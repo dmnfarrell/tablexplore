@@ -13,18 +13,18 @@ from PyQt5.QtWidgets import QMessageBox, QWidget, QTabWidget, QTableView, QSizeP
 import pandas as pd
 #from pandasqt.table import DragTable, DataTableWidget
 from core import TableModel, DataFrameTable
-from plotting import MyStaticMplCanvas
+from plotting import PlotViewer
 
 class Application(QMainWindow):
     def __init__(self):
 
         QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setWindowTitle("application main window")
-        self.resize(635, 530)
+        self.setWindowTitle("pandas qt example")
+        self.resize(880, 600)
         self.createMenu()
         self.main = QTabWidget(self)
-        self.main.setGeometry(QtCore.QRect(5, 10, 625, 470))
+        self.main.setGeometry(QtCore.QRect(20, 20, 825, 470))
 
         self.sheets = {}
         self.addSheet()
@@ -56,16 +56,13 @@ class Application(QMainWindow):
         sheet = self.sheets[0] = QSplitter(self.main)
         self.main.addTab(sheet, 'sheet1')
         l = QHBoxLayout(sheet)
-        #t = QTableView(sheet, width=10, height=20)
         t = DataFrameTable(sheet)
         t.setSortingEnabled(True)
-
         #t = DataTableWidget(self.sheet)
         l.addWidget(t)
 
-        sc = MyStaticMplCanvas(sheet, width=5, height=7, dpi=100)
-        sc.compute_initial_figure()
-        l.addWidget(sc)
+        pl = PlotViewer(sheet)
+        l.addWidget(pl)
         return
 
     def fileQuit(self):
@@ -97,6 +94,5 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
 
     aw = Application()
-    aw.setWindowTitle("PyQt5 Matplot Example")
     aw.show()
     app.exec_()

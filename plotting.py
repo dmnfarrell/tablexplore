@@ -12,9 +12,44 @@ matplotlib.use("Qt5Agg")
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from PyQt5.QtWidgets import QMessageBox, QWidget, QTabWidget, QSizePolicy
+from PyQt5.QtWidgets import QMenu, QVBoxLayout, QHBoxLayout, QSplitter, QLabel, QPushButton
 
-class PlotViewer():
-    def __init__(self, parent=None):
+class OptionsWidget(QWidget):
+    def __init__(self, parent):
+        super(QWidget, self).__init__(parent, height=10)
+        self.label = QLabel('Some Text')
+        vbox = QVBoxLayout(self)
+        okbutton = QPushButton("plot")
+        okbutton.clicked.connect(self.update)
+        vbox.addWidget(okbutton)
+        self.setLayout(vbox)
+        self.parent = parent
+        return
+
+    def update(self):
+        self.parent.plot()
+        return
+
+class PlotViewer(QWidget):
+    def __init__(self, parent):
+        super(QWidget, self).__init__(parent)
+        self.createWidgets()
+        return
+
+    def createWidgets(self):
+        #frame = QSplitter(self)
+
+        vbox = QVBoxLayout(self)
+        #vbox.addStretch(1)
+        sc = self.sc = MyMplCanvas(self, width=5, height=7, dpi=100)
+        sc.compute_figure()
+        vbox.addWidget(sc)
+        ow = OptionsWidget(self)
+        vbox.addWidget(ow)
+        return
+
+    def plot(self):
+        self.sc.compute_figure()
         return
 
 class MyMplCanvas(FigureCanvas):
@@ -33,14 +68,13 @@ class MyMplCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
         return
 
-class MyStaticMplCanvas(MyMplCanvas):
-    """Simple canvas with a sine plot."""
-
-    def compute_initial_figure(self):
+    def compute_figure(self):
         import numpy as np
         x = np.arange(0.0, 3.0, 0.05)
         y = [random.random()+i for i in x]
         self.axes.scatter(x, y, alpha=0.7)
+        self.draw()
+        return
 
 class MyDynamicMplCanvas(MyMplCanvas):
     """A canvas that updates itself every second with a new plot."""
@@ -56,7 +90,6 @@ class MyDynamicMplCanvas(MyMplCanvas):
         self.axes.plot([0, 1, 2, 3], [1, 2, 0, 4], 'r')
 
     def update_figure(self):
-        # Build a list of 4 random integers between 0 and 10 (both inclusive)
         l = [random.randint(0, 10) for i in range(4)]
         self.axes.plot([0, 1, 2, 3], l, 'r')
         self.draw()
