@@ -24,7 +24,7 @@ except AttributeError:
         return s
 
 
-def getSampleData(rows=400, cols=5):
+def get_sample_data(rows=400, cols=5):
     """Generate sample data"""
 
     colnames = list(string.ascii_lowercase[:cols])
@@ -52,11 +52,13 @@ class DataFrameTable(QTableView):
         print(cellContent)  # test
         #sf = "You clicked on {}".format(cellContent)
 
-
+    def editCell(self, item):
+        return
+        
 class TableModel(QtCore.QAbstractTableModel):
     def __init__(self, parent=None, *args):
         super(TableModel, self).__init__()
-        self.df = getSampleData(10,2)
+        self.df = get_sample_data(10,2)
 
     def update(self, df):
         print('Updating Model')
