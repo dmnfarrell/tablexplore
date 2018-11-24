@@ -21,11 +21,11 @@
 """
 
 #from pandasqt.compat import QtCore, QtGui, Qt, Slot, Signal
-from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QMessageBox, QWidget, QTableView, QFrame, QSpacerItem, QToolButton
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QPoint
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QSizePolicy, QTableView
-from PyQt5.QtGui import QPixmap, QDrag, QIcon
+from PySide2 import QtCore, QtGui
+from PySide2.QtWidgets import QMessageBox, QWidget, QTableView, QFrame, QSpacerItem, QToolButton
+from PySide2.QtCore import QObject#, pyqtSignal, pyqtSlot, QPoint
+from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QSizePolicy, QTableView
+from PySide2.QtGui import QPixmap, QDrag, QIcon
 #from models import DataFrameModel
 
 import numpy as np
@@ -90,8 +90,8 @@ class TableModel(QtCore.QAbstractTableModel):
             i = index.row()
             j = index.column()
             return '{0}'.format(self.df.ix[i, j])
-        else:
-            return QtCore.QVariant()
+        #else:
+        #    return QtCore.QVariant()
 
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled

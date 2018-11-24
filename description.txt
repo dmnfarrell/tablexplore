@@ -1,0 +1,10 @@
+Introduction
+------------
+
+The pandastable2 library will provide a table widget for qt with
+plotting and data manipulation functionality. It uses the pandas
+DataFrame class to store table data. Pandas is an open source Python
+library providing high-performance data structures and data analysis
+tools.
+
+Currently only an early test.
