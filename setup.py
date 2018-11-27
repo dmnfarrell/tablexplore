@@ -6,7 +6,7 @@ with open('description.txt') as f:
     long_description = f.read()
 
 setup(
-    name = 'pandastable2',
+    name = 'pandasqtable',
     version = '0.1.0',
     description = 'Library for qt tables using pandas DataFrames',
     long_description = long_description,
@@ -14,8 +14,8 @@ setup(
     license='GPL v3',
     author = 'Damien Farrell',
     author_email = 'farrell.damien@gmail.com',
-    packages = ['pandastable2'],
-    package_data={'pandastable2': ['../logo.png', '../description.txt',
+    packages = ['pandasqtable'],
+    package_data={'pandasqtable': ['../logo.png', '../description.txt',
                                   'datasets/*.csv']},
     install_requires=['PySide2',
                       'matplotlib>=2.0',
@@ -24,7 +24,7 @@ setup(
                       'xlrd>=0.9',
                       'future'],
     entry_points = { 'gui_scripts': [
-                     'dataexplore2 = pandastable2.app:main']},
+                     'dataexplore2 = pandasqtable.app:main']},
     classifiers = ['Operating System :: OS Independent',
             'Programming Language :: Python :: 3',
             'Operating System :: MacOS :: MacOS X',

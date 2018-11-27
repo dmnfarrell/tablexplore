@@ -22,10 +22,9 @@
 
 #from pandasqt.compat import QtCore, QtGui, Qt, Slot, Signal
 from PySide2 import QtCore, QtGui
-from PySide2.QtWidgets import QMessageBox, QWidget, QTableView, QFrame, QSpacerItem, QToolButton
 from PySide2.QtCore import QObject#, pyqtSignal, pyqtSlot, QPoint
-from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QSizePolicy, QTableView
-from PySide2.QtGui import QPixmap, QDrag, QIcon
+from PySide2.QtWidgets import *
+from PySide2.QtGui import *
 #from models import DataFrameModel
 
 import numpy as np

@@ -23,10 +23,10 @@
 
 from __future__ import absolute_import, division, print_function
 import sys,os,platform
+from collections import OrderedDict
 from PySide2 import QtCore
-from PySide2.QtWidgets import QApplication, QMainWindow, QMenu, QVBoxLayout, QHBoxLayout, QSplitter
-from PySide2.QtWidgets import QMessageBox, QWidget, QTabWidget, QTableView, QSizePolicy
-from PySide2.QtGui import QPixmap
+from PySide2.QtWidgets import *
+from PySide2.QtGui import *
 import pandas as pd
 #from pandasqt.table import DragTable, DataTableWidget
 from .core import TableModel, DataFrameTable
@@ -38,13 +38,13 @@ class Application(QMainWindow):
         QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle("pandas qt example")
+        self.setWindowIcon(QIcon('logo.png'))
         self.resize(880, 600)
         self.createMenu()
         self.main = QTabWidget(self)
         self.main.setGeometry(QtCore.QRect(20, 20, 825, 470))
 
-        self.sheets = {}
-        self.addSheet()
+        self.newProject()
 
         self.main.setFocus()
         self.setCentralWidget(self.main)
@@ -54,6 +54,8 @@ class Application(QMainWindow):
     def createMenu(self):
 
         self.file_menu = QMenu('&File', self)
+        self.file_menu.addAction('&New', self.newProject,
+                QtCore.Qt.CTRL + QtCore.Qt.Key_N)
         self.file_menu.addAction('&Quit', self.fileQuit,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
         self.menuBar().addMenu(self.file_menu)
@@ -62,24 +64,51 @@ class Application(QMainWindow):
         self.menuBar().addMenu(self.sheet_menu)
         self.sheet_menu.addAction('&Add', self.addSheet)
 
+        self.dataset_menu = QMenu('&Datasets', self)
+        self.menuBar().addMenu(self.dataset_menu)
+        self.dataset_menu.addAction('&Sample', self.sampleData)
+
         self.help_menu = QMenu('&Help', self)
         self.menuBar().addSeparator()
         self.menuBar().addMenu(self.help_menu)
         self.help_menu.addAction('&About', self.about)
         return
 
-    def addSheet(self, name=None):
+    def newProject(self):
+        """New project"""
 
-        sheet = self.sheets[0] = QSplitter(self.main)
-        self.main.addTab(sheet, 'sheet1')
+        self.main.clear()
+        self.sheets = OrderedDict()
+        self.addSheet()
+        self.filename = None
+        self.projopen = True
+        return
+
+    def closeProject(self):
+        """Close"""
+
+        return
+
+    def addSheet(self, name=None):
+        """Add a new sheet"""
+
+        names = self.sheets.keys()
+        if name is None:
+            name = 'sheet'+str(len(self.sheets)+1)
+        sheet = QSplitter(self.main)
+        idx = self.main.addTab(sheet, name)
+        self.sheets[idx] = sheet
         l = QHBoxLayout(sheet)
         t = DataFrameTable(sheet)
         t.setSortingEnabled(True)
         #t = DataTableWidget(self.sheet)
         l.addWidget(t)
-
         #pl = PlotViewer(sheet)
         #l.addWidget(pl)
+        return
+
+    def removeSheet(self, name):
+        del self.sheets[name]
         return
 
     def fileQuit(self):
@@ -87,6 +116,10 @@ class Application(QMainWindow):
 
     def closeEvent(self, ce):
         self.fileQuit()
+
+    def sampleData(self):
+
+        return
 
     def about(self):
         from . import __version__
@@ -106,7 +139,6 @@ class Application(QMainWindow):
                 +'pandas v%s, matplotlib v%s' %(pandasver,mplver)
 
         msg = QMessageBox.about(self, "About", text)
-        #msg.setIconPixmap(QPixmap("logo.png"))
         return
 
 if __name__ == '__main__':

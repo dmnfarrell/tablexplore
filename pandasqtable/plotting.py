@@ -68,14 +68,14 @@ class OptionsWidget(QWidget):
         return
 
 class PlotViewer(QWidget):
-    def __init__(self, parent):
-        super(QWidget, self).__init__(parent)
+    def __init__(self, parent=None):
+        super(QWidget, self).__init__()
+
         self.createWidgets()
         return
 
     def createWidgets(self):
         #frame = QSplitter(self)
-
         vbox = QVBoxLayout(self)
         #vbox.addStretch(1)
         sc = self.sc = MplCanvas(self, width=5, height=7, dpi=100)
