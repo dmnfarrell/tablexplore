@@ -56,23 +56,55 @@ class DataFrameTable(QTableView):
     def __init__(self, parent=None, model=None, *args):
         super(DataFrameTable, self).__init__()
         self.clicked.connect(self.showSelection)
+        self.setSelectionBehavior(QTableView.SelectRows)
+        #headerView = QHeaderView(self)
+        #self.setHorizontalHeader(headerView)
+        self.setDragEnabled(True)
+        self.viewport().setAcceptDrops(True)
+        self.setDropIndicatorShown(True)
         tm = TableModel()
         self.setModel(tm)
+        self.model = tm
         return
 
     def showSelection(self, item):
         print (item)
         cellContent = item.data()
         print(cellContent)  # test
-        #sf = "You clicked on {}".format(cellContent)
+        row = item.row()
+        model = item.model()
+        columnsTotal= model.columnCount(None)
+
+        return
 
     def editCell(self, item):
         return
 
+    def setRowColor(self, rowIndex, color):
+        for j in range(self.columnCount()):
+            self.item(rowIndex, j).setBackground(color)
+
+    def contextMenuEvent(self, event):
+        """Reimplemented to create context menus for cells and empty space."""
+
+        # Determine the logical indices of the cell where click occured
+        hheader, vheader = self.horizontalHeader(), self.verticalHeader()
+        position = event.globalPos()
+        row = vheader.logicalIndexAt(vheader.mapFromGlobal(position))
+        column = hheader.logicalIndexAt(hheader.mapFromGlobal(position))
+
+        # Map the logical row index to a real index for the source model
+        model = self.model
+        row = model.df.loc[row]
+        # Show a context menu for empty space at bottom of table...
+
+
 class TableModel(QtCore.QAbstractTableModel):
     def __init__(self, parent=None, *args):
         super(TableModel, self).__init__()
-        self.df = get_sample_data(10,2)
+        self.df = get_sample_data(50,2)
+        self.bg = '#F4F4F3'
+        return
 
     def update(self, df):
         print('Updating Model')
@@ -89,8 +121,14 @@ class TableModel(QtCore.QAbstractTableModel):
             i = index.row()
             j = index.column()
             return '{0}'.format(self.df.ix[i, j])
-        #else:
-        #    return QtCore.QVariant()
+
+        elif role == QtCore.Qt.BackgroundRole:
+            return QColor(self.bg)
+
+    def headerData(self, col, orientation, role):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            return self.df.columns[col]
+        return None
 
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled

@@ -42,7 +42,7 @@ class Application(QMainWindow):
         self.resize(880, 600)
         self.createMenu()
         self.main = QTabWidget(self)
-        self.main.setGeometry(QtCore.QRect(20, 20, 825, 470))
+        self.main.setGeometry(QtCore.QRect(20, 20, 900, 600))
 
         self.newProject()
 
@@ -103,8 +103,16 @@ class Application(QMainWindow):
         t.setSortingEnabled(True)
         #t = DataTableWidget(self.sheet)
         l.addWidget(t)
-        #pl = PlotViewer(sheet)
-        #l.addWidget(pl)
+        pl = PlotViewer(sheet)
+        '''plotframe = QFrame(sheet)
+        pl = QVBoxLayout(plotframe)
+        plotframe.setLayout(pl)
+        pv = QLabel('PLOT')
+        dlg = QLabel('DIALOG')
+        pl.addWidget(pv)
+        pl.addWidget(dlg)
+        sheet.addWidget(plotframe)'''
+
         return
 
     def removeSheet(self, name):
@@ -141,9 +149,11 @@ class Application(QMainWindow):
         msg = QMessageBox.about(self, "About", text)
         return
 
-if __name__ == '__main__':
+def main():
     app = QApplication(sys.argv)
-
     aw = Application()
     aw.show()
     app.exec_()
+
+if __name__ == '__main__':
+    main()

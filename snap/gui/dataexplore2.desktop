@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=DataExplore2
+Exec=dataexplore2
+Type=Application
+Icon=${SNAP}/meta/gui/icon.png
+Categories=Education;

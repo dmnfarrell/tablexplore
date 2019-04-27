@@ -23,24 +23,23 @@
 
 from __future__ import absolute_import, division, print_function
 import sys,os,random
-import matplotlib
-matplotlib.use("Qt5Agg")
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+#import matplotlib
+#matplotlib.use("Qt5Agg")
+from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
-import pylab as plt
+#import pylab as plt
 import numpy as np
 import pandas as pd
-from PyQt5.QtWidgets import QMessageBox, QWidget, QTabWidget, QSizePolicy
-from PyQt5.QtWidgets import QMenu, QVBoxLayout, QHBoxLayout, QSplitter, QLabel, QPushButton
-from PyQt5.QtGui import QIcon
-from PyQt5 import QtCore
+from PySide2 import QtCore
+from PySide2.QtWidgets import *
+from PySide2.QtGui import *
 
-colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
+#colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
 
 class OptionsWidget(QWidget):
     def __init__(self, parent):
 
-        super(QWidget, self).__init__(parent, height=10)
+        super(OptionsWidget, self).__init__(parent)
         self.parent = parent
         self.label = QLabel('Some Text')
         vbox = QHBoxLayout(self)
@@ -69,69 +68,69 @@ class OptionsWidget(QWidget):
 
 class PlotViewer(QWidget):
     def __init__(self, parent=None):
-        super(QWidget, self).__init__()
+        super(PlotViewer, self).__init__(parent)
 
         self.createWidgets()
         return
 
     def createWidgets(self):
+
         #frame = QSplitter(self)
-        vbox = QVBoxLayout(self)
-        #vbox.addStretch(1)
-        sc = self.sc = MplCanvas(self, width=5, height=7, dpi=100)
-        self.plot()
+        vbox = QVBoxLayout()
+
+        self.main_widget = QWidget(self)
+        l = QVBoxLayout(self.main_widget)
+
+        #self.sc = sc = FigureCanvas( Figure(figsize=(5, 3)))
+        sc = self.canvas = MyMplCanvas(self.main_widget, width=5, height=10, dpi=100)
+        #l.addWidget(sc)
         vbox.addWidget(sc)
         ow = OptionsWidget(self)
         vbox.addWidget(ow)
+        self.setLayout(vbox)
+        #self.plot()
         return
 
     def plot(self):
-        self.sc.sample_figure()
+        self.canvas.sample_figure()
         return
 
     def clear(self):
-        self.sc.axes.clear()
+        self.canvas.axes.clear()
+        self.canvas.draw()
         return
 
-class MplCanvas(FigureCanvas):
-    """Figure viewer"""
+class MyMplCanvas(FigureCanvas):
+    """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
-    def __init__(self, parent=None, width=6, height=4, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi, facecolor='white')
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
-        # We want the axes cleared every time plot() is called
-        #self.axes.hold(False)
+
+        self.compute_initial_figure()
+
         FigureCanvas.__init__(self, fig)
-        self.setParent(parent)
-        FigureCanvas.setSizePolicy(self,
-                QSizePolicy.Expanding,
-                QSizePolicy.Expanding)
+        #self.setParent(parent)
+        #FigureCanvas.setSizePolicy(self,
+        #                           QtWidgets.QSizePolicy.Expanding,
+        #                           QtWidgets.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-        return
+
+    def compute_initial_figure(self):
+        pass
+
+
+    def plot(self):
+        data = [random.random() for i in range(25)]
+        ax = self.figure.add_subplot(111)
+        ax.plot(data, 'r-')
+        ax.set_title('PyQt Matplotlib Example')
+        self.draw()
 
     def sample_figure(self):
 
         x = np.arange(0.0, 3.0, 0.05)
         y = [random.random()+i for i in x]
         self.axes.scatter(x, y, alpha=0.7)
-        self.draw()
-        return
-
-class DynamicMplCanvas(MplCanvas):
-    """A canvas that updates itself every second with a new plot."""
-
-    def __init__(self, *args, **kwargs):
-        MyMplCanvas.__init__(self, *args, **kwargs)
-        timer = QtCore.QTimer(self)
-        timer.timeout.connect(self.update_figure)
-        timer.start(1000)
-        return
-
-    def compute_initial_figure(self):
-        self.axes.plot([0, 1, 2, 3], [1, 2, 0, 4], 'r')
-
-    def update_figure(self):
-        l = [random.randint(0, 10) for i in range(4)]
-        self.axes.plot([0, 1, 2, 3], l, 'r')
         self.draw()
         return
