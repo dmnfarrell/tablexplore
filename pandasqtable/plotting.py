@@ -42,20 +42,16 @@ class OptionsWidget(QWidget):
         super(OptionsWidget, self).__init__(parent)
         self.parent = parent
         self.label = QLabel('Some Text')
-        vbox = QHBoxLayout(self)
-        button = QPushButton("plot")
-        icon = QIcon.fromTheme("insert-image")
-        button.setIcon(QIcon(icon))
-        button.setIconSize(QtCore.QSize(24,24))
-        button.clicked.connect(self.parent.plot)
-        vbox.addWidget(button)
-        button = QPushButton("apply")
-        button.clicked.connect(self.applyOptions)
-        vbox.addWidget(button)
-        button = QPushButton("clear")
-        button.clicked.connect(self.parent.clear)
-        vbox.addWidget(button)
-        self.setLayout(vbox)
+
+        hbox = QHBoxLayout(self)
+        w = QLabel('ssss')
+        hbox.addWidget(w)
+        w = QSpinBox()
+        w.setRange(0,10)
+        #w.setLabel('sss')
+        hbox.addWidget(w)
+
+        #self.setLayout(hbox)
         return
 
     def applyOptions(self):
@@ -75,21 +71,38 @@ class PlotViewer(QWidget):
 
     def createWidgets(self):
 
-        #frame = QSplitter(self)
+        self.main = QSplitter(self)
         vbox = QVBoxLayout()
+        #self.main = QWidget(self)
+        #l = QVBoxLayout(self.main)
 
-        self.main_widget = QWidget(self)
-        l = QVBoxLayout(self.main_widget)
-
-        #self.sc = sc = FigureCanvas( Figure(figsize=(5, 3)))
-        sc = self.canvas = MyMplCanvas(self.main_widget, width=5, height=10, dpi=100)
+        sc = self.canvas = MyMplCanvas(self.main, width=8, height=10, dpi=100)
         #l.addWidget(sc)
         vbox.addWidget(sc)
+        bw = self.createButtons(self)
+        vbox.addWidget(bw)
         ow = OptionsWidget(self)
         vbox.addWidget(ow)
         self.setLayout(vbox)
-        #self.plot()
+        self.plot()
         return
+
+    def createButtons(self, parent):
+        bw = self.button_widget = QWidget(parent)
+        vbox = QHBoxLayout(bw)
+        button = QPushButton("plot")
+        icon = QIcon.fromTheme("insert-image")
+        button.setIcon(QIcon(icon))
+        button.setIconSize(QtCore.QSize(24,24))
+        button.clicked.connect(self.plot)
+        vbox.addWidget(button)
+        #button = QPushButton("apply")
+        #button.clicked.connect(self.applyOptions)
+        #vbox.addWidget(button)
+        button = QPushButton("clear")
+        button.clicked.connect(self.clear)
+        vbox.addWidget(button)
+        return bw
 
     def plot(self):
         self.canvas.sample_figure()

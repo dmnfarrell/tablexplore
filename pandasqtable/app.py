@@ -39,7 +39,7 @@ class Application(QMainWindow):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle("pandas qt example")
         self.setWindowIcon(QIcon('logo.png'))
-        self.resize(880, 600)
+        self.resize(980, 600)
         self.createMenu()
         self.main = QTabWidget(self)
         self.main.setGeometry(QtCore.QRect(20, 20, 900, 600))

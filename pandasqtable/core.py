@@ -20,12 +20,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-#from pandasqt.compat import QtCore, QtGui, Qt, Slot, Signal
 from PySide2 import QtCore, QtGui
 from PySide2.QtCore import QObject#, pyqtSignal, pyqtSlot, QPoint
 from PySide2.QtWidgets import *
 from PySide2.QtGui import *
-#from models import DataFrameModel
 
 import numpy as np
 import pandas as pd
@@ -52,28 +50,53 @@ def get_sample_data(rows=400, cols=5):
     df['date'] = pd.date_range('1/1/2014', periods=rows, freq='H')
     return df
 
+class ColumnHeader(QHeaderView):
+    def __init__(self):
+        super(QHeaderView, self).__init__()
+        return
+
 class DataFrameTable(QTableView):
+    """
+    QTableView with pandas DataFrame as model.
+    """
     def __init__(self, parent=None, model=None, *args):
         super(DataFrameTable, self).__init__()
         self.clicked.connect(self.showSelection)
+        self.doubleClicked.connect(self.handleDoubleClick)
         self.setSelectionBehavior(QTableView.SelectRows)
-        #headerView = QHeaderView(self)
-        #self.setHorizontalHeader(headerView)
+
+        #self.horizontalHeader = ColumnHeader()
+        vh = self.verticalHeader()
+        vh.setVisible(True)
+        vh = self.horizontalHeader()
+        vh.setStretchLastSection(True)
+
         self.setDragEnabled(True)
+        self.setSortingEnabled(True)
         self.viewport().setAcceptDrops(True)
         self.setDropIndicatorShown(True)
+        self.resizeColumnsToContents()
+
+        font = QFont("Arial", 12)
+        self.setFont(font)
         tm = TableModel()
         self.setModel(tm)
         self.model = tm
         return
 
     def showSelection(self, item):
-        print (item)
+
         cellContent = item.data()
         print(cellContent)  # test
         row = item.row()
         model = item.model()
         columnsTotal= model.columnCount(None)
+
+        return
+
+    def handleDoubleClick(self, item):
+        cellContent = item.data()
+        print (item)
 
         return
 
@@ -97,7 +120,21 @@ class DataFrameTable(QTableView):
         model = self.model
         row = model.df.loc[row]
         # Show a context menu for empty space at bottom of table...
+        menu = QMenu(self)
+        copyAction = menu.addAction("Copy")
+        colorAction = menu.addAction("Set Color")
 
+        action = menu.exec_(self.mapToGlobal(event.pos()))
+
+        if action == copyAction:
+            self.copy()
+        elif action == colorAction:
+            pass
+
+    def copy(self):
+
+        self.model.df
+        return
 
 class TableModel(QtCore.QAbstractTableModel):
     def __init__(self, parent=None, *args):
@@ -131,7 +168,7 @@ class TableModel(QtCore.QAbstractTableModel):
         return None
 
     def flags(self, index):
-        return QtCore.Qt.ItemIsEnabled
+        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable
 
     def sort(self, Ncol, order):
         """Sort table by given column number """
