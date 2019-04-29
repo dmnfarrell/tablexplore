@@ -104,14 +104,6 @@ class Application(QMainWindow):
         #t = DataTableWidget(self.sheet)
         l.addWidget(t)
         pl = PlotViewer(sheet)
-        '''plotframe = QFrame(sheet)
-        pl = QVBoxLayout(plotframe)
-        plotframe.setLayout(pl)
-        pv = QLabel('PLOT')
-        dlg = QLabel('DIALOG')
-        pl.addWidget(pv)
-        pl.addWidget(dlg)
-        sheet.addWidget(plotframe)'''
 
         return
 

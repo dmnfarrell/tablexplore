@@ -11,4 +11,4 @@ See also:
 
 * https://www.hardcoded.net/articles/how-to-customize-qtableview-editing-behavior
 
-* https://github.com/enthought/traitsui/blob/master/traitsui/qt4/table_editor.py
+* https://wiki.qt.io/Qt_for_Python_Tutorial:_Data_Visualization_Tool

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-    core module
+    Implements a core classes for pandasqtable
     Created May 2017
     Copyright (C) Damien Farrell
 
@@ -34,7 +34,7 @@ try:
 except AttributeError:
     def _fromUtf8(s):
         return s
-
+from . import config
 
 def get_sample_data(rows=400, cols=5):
     """Generate sample data"""
@@ -123,13 +123,15 @@ class DataFrameTable(QTableView):
         menu = QMenu(self)
         copyAction = menu.addAction("Copy")
         colorAction = menu.addAction("Set Color")
-
+        prefsAction = menu.addAction("Preferences")
         action = menu.exec_(self.mapToGlobal(event.pos()))
 
         if action == copyAction:
             self.copy()
         elif action == colorAction:
             pass
+        elif action == prefsAction:
+            config.preferencesDialog(self)
 
     def copy(self):
 
