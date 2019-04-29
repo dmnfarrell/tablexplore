@@ -28,7 +28,7 @@ try:
     import configparser
 except:
     import ConfigParser as configparser
-from PySide2 import QtCore, QtGui
+from PySide2 import Qt, QtCore, QtGui
 from PySide2.QtCore import QObject#, pyqtSignal, pyqtSlot, QPoint
 from PySide2.QtWidgets import *
 from PySide2.QtGui import *
@@ -192,10 +192,7 @@ class preferencesDialog(QDialog):
         super(preferencesDialog, self).__init__(parent)
         self.parent = parent
         self.setWindowTitle('Preferences')
-        self.resize(500, 500)
-        self.main = QWidget(self)
-        self.layout = QHBoxLayout(self.main)
-        self.main.setFocus()
+        self.resize(500, 300)
         self.createWidgets()
         self.show()
         return
@@ -203,38 +200,49 @@ class preferencesDialog(QDialog):
     def createWidgets(self):
         """create widgets"""
 
-        self.opts = {'rowheight':{'type':'spinbox','default':18,'range':(5,50),'interval':1,'label':'row height'},
-                'cellwidth':{'type':'spinbox','default':80,'range':(10,300),'interval':5,'label':'cell width'},
-                'linewidth':{'type':'spinbox','default':1,'range':(1,10),'interval':1,'label':'grid line width'},
+        self.opts = {'rowheight':{'type':'slider','default':18,'range':(5,50),'interval':1,'label':'row height'},
+                'cellwidth':{'type':'slider','default':80,'range':(10,300),'interval':5,'label':'cell width'},
+                'linewidth':{'type':'slider','default':1,'range':(1,10),'interval':1,'label':'grid line width'},
                 'align':{'type':'combobox','default':'w','items':['w','e','center'],'label':'text align'},
                 'vertlines':{'type':'checkbutton','default':1,'label':'show vertical lines'},
                 'horizlines':{'type':'checkbutton','default':1,'label':'show horizontal lines'},
                 'font':{'type':'font','default':'Arial'},
                 'fontstyle':{'type':'combobox','default':'','items':['','bold','italic']},
-                'fontsize':{'type':'scale','default':12,'range':(5,40),'interval':1,'label':'font size'},
+                'fontsize':{'type':'slider','default':12,'range':(5,40),'interval':1,'label':'font size'},
                 'floatprecision':{'type':'entry','default':2},
-                'cellbackgr':{'type':'colorchooser','default':'#F4F4F3', 'label':'background color'},
-                'textcolor':{'type':'colorchooser','default':'black', 'label':'text color'},
-                'grid_color':{'type':'colorchooser','default':'#ABB1AD', 'label':'grid color'},
-                'rowselectedcolor':{'type':'colorchooser','default':'#E4DED4','label':'highlight color'},
+                #'cellbackgr':{'type':'colorchooser','default':'#F4F4F3', 'label':'background color'},
+                #'textcolor':{'type':'colorchooser','default':'black', 'label':'text color'},
+                #'grid_color':{'type':'colorchooser','default':'#ABB1AD', 'label':'grid color'},
+                #'rowselectedcolor':{'type':'colorchooser','default':'#E4DED4','label':'highlight color'},
                 'grid':{'type':'checkbutton','default':0,'label':'show grid'},
                 }
         sections = {'table':['align','rowheight','cellwidth','linewidth','vertlines','horizlines'],
-                    'formats':['font','fontstyle','fontsize','floatprecision','cellbackgr','textcolor',
-                    'grid_color','rowselectedcolor']}
+                    'formats':['font','fontstyle','fontsize','floatprecision']}
+                    #'cellbackgr','textcolor','grid_color','rowselectedcolor']}
                     #'plotting':['marker','linestyle','ms','grid','colormap']}
 
-        #dialog, self.tkvars, self.widgets = dialogs.dialogFromOptions(self.main, self.opts, sections)
-        l = self.layout
-        for s in sections:
-            f=QWidget()
-            l.addWidget(f)
-            vb = QVBoxLayout(f)
-            for o in sections[s]:
-                vb.addWidget(QLabel("current value:"))
-                w = QSpinBox()
-                vb.addWidget(w)
+        dialog = dialogs.dialogFromOptions(self, self.opts, sections)
+
+        self.layout = QVBoxLayout(self)
+        self.layout.addWidget(dialog)
+        dialog.setFocus()
+        bw = self.createButtons(self)
+        self.layout.addWidget(bw)
         return
+
+    def createButtons(self, parent):
+        bw = self.button_widget = QWidget(parent)
+        vbox = QHBoxLayout(bw)
+        button = QPushButton("save")
+        button.clicked.connect(self.save)
+        vbox.addWidget(button)
+        button = QPushButton("apply")
+        button.clicked.connect(self.apply)
+        vbox.addWidget(button)
+        button = QPushButton("cancel")
+        button.clicked.connect(self.quit)
+        vbox.addWidget(button)
+        return bw
 
     def updateFromOptions(self, options):
         """Update all widget tk vars using dict"""
@@ -255,17 +263,17 @@ class preferencesDialog(QDialog):
         """Apply options to current table"""
 
         table = self.table
-        options = dialogs.getDictfromTkVars(self.opts, self.tkvars, self.widgets)
-        apply_options(options, table)
+        #options = dialogs.getDictfromTkVars(self.opts, self.tkvars, self.widgets)
+        #apply_options(options, table)
         return
 
     def save(self):
         """Save from current dialog settings"""
 
-        options = dialogs.getDictfromTkVars(self.opts, self.tkvars, self.widgets)
+        #options = dialogs.getDictfromTkVars(self.opts, self.tkvars, self.widgets)
         #print (options)
         #update configparser and write
-        cp = update_config(options)
+        #cp = update_config(options)
         cp.write(open(default_conf,'w'))
         return
 
