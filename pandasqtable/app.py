@@ -64,6 +64,9 @@ class Application(QMainWindow):
         self.menuBar().addMenu(self.sheet_menu)
         self.sheet_menu.addAction('&Add', self.addSheet)
 
+        self.tools_menu = QMenu('&Tools', self)
+        self.menuBar().addMenu(self.tools_menu)
+
         self.dataset_menu = QMenu('&Datasets', self)
         self.menuBar().addMenu(self.dataset_menu)
         self.dataset_menu.addAction('&Sample', self.sampleData)

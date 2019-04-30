@@ -184,15 +184,15 @@ def apply_options(options, table):
     table.redraw()
     return
 
-class preferencesDialog(QDialog):
+class PreferencesDialog(QDialog):
     """Preferences dialog from config parser options"""
 
     def __init__(self, parent, options=None):
 
-        super(preferencesDialog, self).__init__(parent)
+        super(PreferencesDialog, self).__init__(parent)
         self.parent = parent
         self.setWindowTitle('Preferences')
-        self.resize(500, 300)
+        self.resize(500, 200)
         self.createWidgets()
         self.show()
         return
@@ -231,6 +231,7 @@ class preferencesDialog(QDialog):
         return
 
     def createButtons(self, parent):
+        
         bw = self.button_widget = QWidget(parent)
         vbox = QHBoxLayout(bw)
         button = QPushButton("save")

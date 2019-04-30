@@ -34,7 +34,7 @@ try:
 except AttributeError:
     def _fromUtf8(s):
         return s
-from . import config
+from . import config, dialogs
 
 def get_sample_data(rows=400, cols=5):
     """Generate sample data"""
@@ -123,19 +123,26 @@ class DataFrameTable(QTableView):
         menu = QMenu(self)
         copyAction = menu.addAction("Copy")
         colorAction = menu.addAction("Set Color")
+        importAction = menu.addAction("Import")
         prefsAction = menu.addAction("Preferences")
         action = menu.exec_(self.mapToGlobal(event.pos()))
 
         if action == copyAction:
             self.copy()
+        elif action == importAction:
+            self.importFile()
         elif action == colorAction:
             pass
         elif action == prefsAction:
-            config.preferencesDialog(self)
+            config.PreferencesDialog(self)
 
     def copy(self):
 
         self.model.df
+        return
+
+    def importFile(self):
+        dialogs.ImportDialog(self)
         return
 
 class TableModel(QtCore.QAbstractTableModel):

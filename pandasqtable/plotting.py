@@ -50,6 +50,7 @@ class OptionsWidget(QTabWidget):
         idx = self.addTab(w, 'base')
         baseopts = MPLBaseOptions(parent=self)
         dialog = baseopts.showDialog(w)
+        dialog.resize(200,200)
         l=QVBoxLayout(w)
         l.addWidget(dialog)
         return
@@ -74,7 +75,7 @@ class PlotViewer(QWidget):
         self.main = QSplitter(self)
         vbox = QVBoxLayout()
 
-        sc = self.canvas = MyMplCanvas(self.main, width=8, height=10, dpi=100)
+        sc = self.canvas = MyMplCanvas(self, width=8, height=10, dpi=100)
         #l.addWidget(sc)
         vbox.addWidget(sc)
         bw = self.createButtons(self)
@@ -89,7 +90,7 @@ class PlotViewer(QWidget):
         bw = self.button_widget = QWidget(parent)
         vbox = QHBoxLayout(bw)
         button = QPushButton("plot")
-        icon = QIcon.fromTheme("insert-image")
+        icon = QIcon.fromTheme("applications-graphics")
         button.setIcon(QIcon(icon))
         button.setIconSize(QtCore.QSize(24,24))
         button.clicked.connect(self.plot)
@@ -169,7 +170,6 @@ class BaseOptions(object):
 
         dialog = dialogFromOptions(parent, self.opts, self.groups,
                                         layout=layout)
-        #self.setWidgetStyles()
         return dialog
 
 
@@ -242,7 +242,7 @@ class MPLBaseOptions(BaseOptions):
     def applyOptions(self):
         """Set the plot kwd arguments from the tk variables"""
 
-        TkOptions.applyOptions(self)
+        BaseOptions.applyOptions(self)
         size = self.kwds['fontsize']
         plt.rc("font", family=self.kwds['font'], size=size)
         plt.rc('legend', fontsize=size-1)
