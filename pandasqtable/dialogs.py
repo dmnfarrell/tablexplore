@@ -37,17 +37,23 @@ def dialogFromOptions(parent, opts, sections=None,
                       sticky='news',  layout='horizontal'):
     """Get Qt widgets dialog from a dictionary of options"""
 
+    sizepolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    sizepolicy.setHorizontalStretch(0)
+    sizepolicy.setVerticalStretch(0)
+
     if sections == None:
         sections = {'options': opts.keys()}
 
+    widgets = {}
     dialog = QWidget(parent)
+    dialog.setSizePolicy(sizepolicy)
     if layout == 'horizontal':
         l = QHBoxLayout(dialog)
     else:
         l = QVBoxLayout(dialog)
     for s in sections:
         f = QWidget()
-        f.resize(100,100)
+        f.resize(50,100)
         f.sizeHint()
         l.addWidget(f)
         #vb = QVBoxLayout(f)
@@ -70,20 +76,23 @@ def dialogFromOptions(parent, opts, sections=None,
                 w = QSlider(QtCore.Qt.Horizontal)
                 s,e = opt['range']
                 w.setTickInterval(opt['interval'])
-                w.setSingleStep((s-e)/10)
+                w.setSingleStep(float(s-e)/10)
                 w.setMinimum(s)
                 w.setMaximum(e)
                 w.setTickPosition(QSlider.TicksBelow)
+                #w.resize(10,10)
             elif t == 'spinbox':
                 w = QSpinBox()
-            elif t == 'checkbutton':
+            elif t == 'checkbox':
                 w = QCheckBox()
             elif t == 'font':
                 w = QFontComboBox()
+                w.resize(w.sizeHint())
             gl.addWidget(w,i,2)
+            widgets[o] = w
             i+=1
 
-    return dialog
+    return dialog, widgets
 
 class ImportDialog(QDialog):
     """Provides a frame for figure canvas and MPL settings"""
@@ -124,13 +133,13 @@ class ImportDialog(QDialog):
                                 'tooltip':'decimal point symbol'},
                      'comment':{'type':'entry','default':'#','label':'comment',
                                 'tooltip':'comment symbol'},
-                     'skipinitialspace':{'type':'checkbutton','default':0,'label':'skip initial space',
+                     'skipinitialspace':{'type':'checkbox','default':0,'label':'skip initial space',
                                 'tooltip':'skip initial space'},
                      'skiprows':{'type':'entry','default':0,'label':'skiprows',
                                 'tooltip':'rows to skip'},
                      'skip_blank_lines':  {'type':'checkbutton','default':0,'label':'skip blank lines',
                                 'tooltip':'do not use blank lines'},
-                     'parse_dates':  {'type':'checkbutton','default':1,'label':'parse dates',
+                     'parse_dates':  {'type':'checkbox','default':1,'label':'parse dates',
                                 'tooltip':'try to parse date/time columns'},
                      'time format': {'type':'combobox','default':'','items':timeformats,
                                 'tooltip':'date/time format'},
@@ -144,7 +153,7 @@ class ImportDialog(QDialog):
                                 'tooltip':'col labels'},
                      }
 
-        optsframe = dialogFromOptions(self, opts, grps,
+        optsframe, widgets = dialogFromOptions(self, opts, grps,
                                     layout='vertical')
         layout = QGridLayout()
         layout.setColumnStretch(2, 1)

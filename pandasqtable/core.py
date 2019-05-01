@@ -94,6 +94,10 @@ class DataFrameTable(QTableView):
 
         return
 
+    def getSelectedDataFrame(self):
+        df= self.model.df
+        return df
+
     def handleDoubleClick(self, item):
         cellContent = item.data()
         print (item)

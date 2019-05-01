@@ -106,7 +106,7 @@ class Application(QMainWindow):
         t.setSortingEnabled(True)
         #t = DataTableWidget(self.sheet)
         l.addWidget(t)
-        pl = PlotViewer(sheet)
+        pl = PlotViewer(table=t, parent=sheet)
 
         return
 

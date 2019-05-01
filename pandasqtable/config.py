@@ -221,7 +221,7 @@ class PreferencesDialog(QDialog):
                     #'cellbackgr','textcolor','grid_color','rowselectedcolor']}
                     #'plotting':['marker','linestyle','ms','grid','colormap']}
 
-        dialog = dialogs.dialogFromOptions(self, self.opts, sections)
+        dialog, self.widgets = dialogs.dialogFromOptions(self, self.opts, sections)
 
         self.layout = QVBoxLayout(self)
         self.layout.addWidget(dialog)
@@ -231,7 +231,7 @@ class PreferencesDialog(QDialog):
         return
 
     def createButtons(self, parent):
-        
+
         bw = self.button_widget = QWidget(parent)
         vbox = QHBoxLayout(bw)
         button = QPushButton("save")
