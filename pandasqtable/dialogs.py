@@ -34,12 +34,24 @@ from PySide2.QtWidgets import *
 from PySide2.QtGui import *
 
 def dialogFromOptions(parent, opts, sections=None,
-                      sticky='news',  layout='horizontal'):
+                      sticky='news', wrap=2, section_wrap=5):
     """Get Qt widgets dialog from a dictionary of options"""
 
     sizepolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     sizepolicy.setHorizontalStretch(0)
     sizepolicy.setVerticalStretch(0)
+
+    style = '''
+    QLabel {
+        font-size: 12px;
+    }
+    QWidget {
+        max-width: 200px;
+        min-width: 60px;
+        font-size: 14px;
+    }
+
+    '''
 
     if sections == None:
         sections = {'options': opts.keys()}
@@ -47,51 +59,70 @@ def dialogFromOptions(parent, opts, sections=None,
     widgets = {}
     dialog = QWidget(parent)
     dialog.setSizePolicy(sizepolicy)
-    if layout == 'horizontal':
-        l = QHBoxLayout(dialog)
-    else:
-        l = QVBoxLayout(dialog)
+
+    l = QGridLayout(dialog)
+    l.setSpacing(2)
+
+    scol=1
     for s in sections:
+        row=1
+        col=1
         f = QWidget()
         f.resize(50,100)
         f.sizeHint()
-        l.addWidget(f)
-        #vb = QVBoxLayout(f)
+        l.addWidget(f,1,scol)
         gl = QGridLayout(f)
         gl.setSpacing(4)
-        i=0
         for o in sections[s]:
             label = o
+            val = None
             opt = opts[o]
             if label in opt:
                 label = opt['label']
+            val = opt['default']
             t = opt['type']
-            gl.addWidget(QLabel(label),i,1)
+            lbl = QLabel(label)
+            gl.addWidget(lbl,row,col)
+            lbl.setStyleSheet(style)
             if t == 'combobox':
                 w = QComboBox()
                 w.addItems(opt['items'])
+                w.setCurrentIndex(1)
             elif t == 'entry':
                 w = QLineEdit()
+                w.setText(str(val))
             elif t == 'slider':
                 w = QSlider(QtCore.Qt.Horizontal)
                 s,e = opt['range']
                 w.setTickInterval(opt['interval'])
-                w.setSingleStep(float(s-e)/10)
+                w.setSingleStep(opt['interval'])
                 w.setMinimum(s)
                 w.setMaximum(e)
                 w.setTickPosition(QSlider.TicksBelow)
-                #w.resize(10,10)
+                w.setValue(val)
             elif t == 'spinbox':
                 w = QSpinBox()
             elif t == 'checkbox':
                 w = QCheckBox()
+                w.setChecked(val)
             elif t == 'font':
                 w = QFontComboBox()
                 w.resize(w.sizeHint())
-            gl.addWidget(w,i,2)
+                w.setCurrentIndex(5)
+            col+=1
+            gl.addWidget(w,row,col)
+            w.setStyleSheet(style)
             widgets[o] = w
-            i+=1
-
+            #print (o, row, col)
+            if col>=wrap:
+                col=1
+                row+=1
+            else:
+                col+=2
+        if scol > section_wrap:
+            scol=1
+        else:
+            scol+=1
     return dialog, widgets
 
 class ImportDialog(QDialog):
@@ -153,8 +184,7 @@ class ImportDialog(QDialog):
                                 'tooltip':'col labels'},
                      }
 
-        optsframe, widgets = dialogFromOptions(self, opts, grps,
-                                    layout='vertical')
+        optsframe, widgets = dialogFromOptions(self, opts, grps, wrap=2, section_wrap=1)
         layout = QGridLayout()
         layout.setColumnStretch(2, 1)
 

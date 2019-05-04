@@ -29,7 +29,7 @@ from PySide2.QtWidgets import *
 from PySide2.QtGui import *
 import pandas as pd
 #from pandasqt.table import DragTable, DataTableWidget
-from .core import TableModel, DataFrameTable
+from .core import TableModel, DataFrameTable, DataFrameWidget
 from .plotting import PlotViewer
 
 class Application(QMainWindow):
@@ -39,11 +39,12 @@ class Application(QMainWindow):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle("pandas qt example")
         self.setWindowIcon(QIcon('logo.png'))
-        self.resize(980, 600)
         self.createMenu()
         self.main = QTabWidget(self)
-        self.main.setGeometry(QtCore.QRect(20, 20, 900, 600))
-
+        screen_resolution = QDesktopWidget().screenGeometry()
+        width, height = screen_resolution.width()*0.7, screen_resolution.height()*.7
+        self.setGeometry(QtCore.QRect(150, 150, width, height))
+        center = QDesktopWidget().availableGeometry().center()
         self.newProject()
 
         self.main.setFocus()
@@ -98,16 +99,29 @@ class Application(QMainWindow):
         names = self.sheets.keys()
         if name is None:
             name = 'sheet'+str(len(self.sheets)+1)
+
         sheet = QSplitter(self.main)
         idx = self.main.addTab(sheet, name)
         self.sheets[idx] = sheet
         l = QHBoxLayout(sheet)
-        t = DataFrameTable(sheet)
-        t.setSortingEnabled(True)
-        #t = DataTableWidget(self.sheet)
-        l.addWidget(t)
-        pl = PlotViewer(table=t, parent=sheet)
+        w = DataFrameWidget(sheet)
+        l.addWidget(w)
+        pl = PlotViewer(table=w.table, parent=sheet)
+        l.addWidget(pl)
 
+        '''sheet = QWidget(self.main)
+        hbox = QHBoxLayout()
+        sheet.setLayout(hbox)
+        idx = self.main.addTab(sheet, name)
+        w = QDockWidget('main',sheet)
+        #w.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
+        t = DataFrameTable(w)
+        w.setWidget(t)
+        hbox.addWidget(w)
+        w = QDockWidget(sheet)
+        pl = PlotViewer(table=t, parent=w)
+        #w.setWidget(pl)
+        hbox.addWidget(w)'''
         return
 
     def removeSheet(self, name):
@@ -127,18 +141,20 @@ class Application(QMainWindow):
     def about(self):
         from . import __version__
         import matplotlib
+        import PySide2
         pandasver = pd.__version__
         pythonver = platform.python_version()
         mplver = matplotlib.__version__
+        qtver = PySide2.QtCore.__version__
 
         text='DataExplore2 Application\n'\
                 +'Version '+__version__+'\n'\
-                +'Copyright (C) Damien Farrell 2017-\n'\
+                +'Copyright (C) Damien Farrell 2018-\n'\
                 +'This program is free software; you can redistribute it and/or\n'\
-                +'modify it under the terms of the GNU General Public License\n'\
-                +'as published by the Free Software Foundation; either version 3\n'\
+                +'modify it under the terms of the GNU General Public License '\
+                +'as published by the Free Software Foundation; either version 3 '\
                 +'of the License, or (at your option) any later version.\n'\
-                +'Using Python v%s\n' %pythonver\
+                +'Using Python v%s, PySide2 v%s\n' %(pythonver, qtver)\
                 +'pandas v%s, matplotlib v%s' %(pandasver,mplver)
 
         msg = QMessageBox.about(self, "About", text)

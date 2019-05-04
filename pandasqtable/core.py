@@ -55,6 +55,40 @@ class ColumnHeader(QHeaderView):
         super(QHeaderView, self).__init__()
         return
 
+class DataFrameWidget(QWidget):
+    """Widget containing a tableview and toolbars"""
+    def __init__(self, parent=None, *args):
+
+        super(DataFrameWidget, self).__init__()
+        l = self.layout = QGridLayout()
+        l.setSpacing(2)
+        self.table = DataFrameTable(self)
+        l.addWidget(self.table, 1, 1)
+        self.createToolbar()
+        return
+
+    def createToolbar(self):
+        self.toolbar = ToolBar(self)
+        self.setLayout(self.layout)
+        self.layout.addWidget(self.toolbar, 1, 2)
+
+    def load(self, filename=None):
+        return
+
+    def save(self):
+        return
+
+    def copy(self):
+        return
+
+    def paste(self):
+        return
+
+    def pivot(self):
+        """Pivot table"""
+
+        return
+
 class DataFrameTable(QTableView):
     """
     QTableView with pandas DataFrame as model.
@@ -82,6 +116,11 @@ class DataFrameTable(QTableView):
         tm = TableModel()
         self.setModel(tm)
         self.model = tm
+
+        #self.toolbar = ToolBar(self)
+        #self.layout = QHBoxLayout()
+        #self.setLayout(self.layout)
+        #self.layout.addWidget(self.toolbar)
         return
 
     def showSelection(self, item):
@@ -95,13 +134,18 @@ class DataFrameTable(QTableView):
         return
 
     def getSelectedDataFrame(self):
-        df= self.model.df
-        return df
+
+        df = self.model.df
+        #print (self.selectionModel().selectedRows())
+        rows=[]
+        for idx in self.selectionModel().selectedRows():
+            rows.append(idx.row())
+        return df.iloc[rows]
 
     def handleDoubleClick(self, item):
+
         cellContent = item.data()
         print (item)
-
         return
 
     def editCell(self, item):
@@ -152,7 +196,7 @@ class DataFrameTable(QTableView):
 class TableModel(QtCore.QAbstractTableModel):
     def __init__(self, parent=None, *args):
         super(TableModel, self).__init__()
-        self.df = get_sample_data(50,2)
+        self.df = get_sample_data(50,4)
         self.bg = '#F4F4F3'
         return
 
@@ -191,3 +235,43 @@ class TableModel(QtCore.QAbstractTableModel):
         self.df = self.df.sort_values(col)
         self.layoutChanged.emit()
         return
+
+class ToolBar(QWidget):
+    """Toolbar class"""
+    def __init__(self, table, parent=None):
+        super(ToolBar, self).__init__(parent)
+        self.parent = parent
+        self.table = table
+        self.layout = QVBoxLayout()
+        self.layout.setAlignment(QtCore.Qt.AlignTop)
+        self.layout.setContentsMargins(2,2,2,2)
+        self.setLayout(self.layout)
+        self.createButtons()
+        self.setMaximumWidth(40)
+        return
+
+    def createButtons(self):
+
+        funcs = {'load':self.table.load, 'save':self.table.save,
+                 'importexcel': self.table.load,
+                 'copy':self.table.copy, 'paste':self.table.paste,
+                 'pivot':self.table.pivot}
+        icons = {'load': 'document-open', 'save': 'document-save-as',
+                 'importexcel': 'x-office-spreadsheet',
+                 'copy': 'edit-copy', 'paste': 'edit-paste',
+                 'pivot': 'edit-undo'}
+        for name in funcs:
+            self.addButton(name, funcs[name], icons[name])
+
+    def addButton(self, name, function, icon):
+
+        layout=self.layout
+        button = QPushButton(name)
+        button.setGeometry(QtCore.QRect(30,40,30,40))
+        button.setText('')
+        iconw = QIcon.fromTheme(icon)
+        button.setIcon(QIcon(iconw))
+        button.setIconSize(QtCore.QSize(20,20))
+        button.clicked.connect(function)
+        button.setMinimumWidth(30)
+        layout.addWidget(button)
