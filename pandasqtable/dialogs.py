@@ -91,6 +91,8 @@ def dialogFromOptions(parent, opts, sections=None,
             elif t == 'entry':
                 w = QLineEdit()
                 w.setText(str(val))
+                #if type(val) is int:
+                #    w.setValidator(QIntValidator(0, 100, this))
             elif t == 'slider':
                 w = QSlider(QtCore.Qt.Horizontal)
                 s,e = opt['range']
@@ -102,6 +104,7 @@ def dialogFromOptions(parent, opts, sections=None,
                 w.setValue(val)
             elif t == 'spinbox':
                 w = QSpinBox()
+                w.setValue(val)
             elif t == 'checkbox':
                 w = QCheckBox()
                 w.setChecked(val)
@@ -124,6 +127,21 @@ def dialogFromOptions(parent, opts, sections=None,
         else:
             scol+=1
     return dialog, widgets
+
+class TextDialog(QDialog):
+    def __init__(self, parent, text='', title='Text'):
+        super(TextDialog, self).__init__(parent)
+
+        self.setMinimumSize(440, 300)
+        self.setWindowTitle(title)
+        self.b = QPlainTextEdit(self)
+        self.b.insertPlainText(text)
+        self.b.move(10,10)
+        self.b.resize(400,300)
+        #self.b.setFontFamily('fixed')
+        self.show()
+        return
+
 
 class ImportDialog(QDialog):
     """Provides a frame for figure canvas and MPL settings"""

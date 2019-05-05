@@ -142,9 +142,6 @@ class PlotViewer(QWidget):
         box = QHBoxLayout(bw)
         box.setContentsMargins(0,0,0,0)
         button = QPushButton("Plot")
-        icon = QIcon.fromTheme("applications-graphics")
-        button.setIcon(QIcon(icon))
-        button.setIconSize(QtCore.QSize(24,24))
         button.clicked.connect(self.plot)
         button.setMinimumWidth(200)
         box.addWidget(button)
@@ -594,7 +591,7 @@ class PlotViewer(QWidget):
         elif kind == 'bootstrap':
             axs = plotting.bootstrap_plot(data)
         elif kind == 'scatter_matrix':
-            axs = pd.scatter_matrix(data, ax=ax, **kwargs)
+            axs = plotting.scatter_matrix(data, ax=ax, **kwargs)
         elif kind == 'hexbin':
             x = cols[0]
             y = cols[1]
@@ -634,6 +631,7 @@ class PlotViewer(QWidget):
             axs = pd.plotting.radviz(data, col, ax=ax, **kwargs)
         else:
             #line, bar and area plots
+            print (data)
             if useindex == False:
                 x=data.columns[0]
                 data.set_index(x,inplace=True)
@@ -1006,6 +1004,8 @@ class BaseOptions(object):
                     val = w.isChecked()
                 elif type(w) is QSlider:
                     val = w.value()
+                elif type(w) is QSpinBox:
+                    val = w.value()
                 if val != None:
                     kwds[i] = val
                 #print (val, i)
@@ -1034,7 +1034,7 @@ class GlobalOptions(BaseOptions):
         self.parent = parent
 
         self.groups = {'global': ['dpi','grid layout','3D plot']}
-        self.opts = OrderedDict({ 'dpi': {'type':'entry','default':80,'width':4},
+        self.opts = OrderedDict({ 'dpi': {'type':'spinbox','default':80,'width':4},
                                  'grid layout': {'type':'checkbox','default':0,'label':'grid layout'},
                                  '3D plot': {'type':'checkbox','default':0,'label':'3D plot'}  })
         self.kwds = {}
@@ -1054,12 +1054,12 @@ class MPLBaseOptions(BaseOptions):
         """Setup variables"""
 
         self.parent = parent
-        '''if self.parent is not None:
+        if self.parent is not None:
             df = self.parent.table.model.df
             datacols = list(df.columns)
             datacols.insert(0,'')
         else:
-            datacols=[]'''
+            datacols=[]
         datacols=[]
         scales = ['linear','log']
         grps = {'data':['by','by2','labelcol','pointsizes'],
@@ -1094,10 +1094,10 @@ class MPLBaseOptions(BaseOptions):
                 'kind':{'type':'combobox','default':'line','items':self.kinds,'label':'plot type'},
                 'stacked':{'type':'checkbox','default':0,'label':'stacked'},
                 'linewidth':{'type':'slider','default':1.5,'range':(0,10),'interval':0.1,'label':'line width'},
-                'alpha':{'type':'slider','default':9,'range':(0,10),'interval':1,'label':'alpha'},
+                'alpha':{'type':'slider','default':9,'range':(1,10),'interval':1,'label':'alpha'},
                 'subplots':{'type':'checkbox','default':0,'label':'multiple subplots'},
                 'colormap':{'type':'combobox','default':'Spectral','items':colormaps},
-                'bins':{'type':'entry','default':20,'width':10},
+                'bins':{'type':'spinbox','default':20,'width':10},
                 'by':{'type':'combobox','items':datacols,'label':'group by','default':''},
                 'by2':{'type':'combobox','items':datacols,'label':'group by 2','default':''},
                 'labelcol':{'type':'combobox','items':datacols,'label':'point labels','default':''},

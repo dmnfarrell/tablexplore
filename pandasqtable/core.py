@@ -24,7 +24,7 @@ from PySide2 import QtCore, QtGui
 from PySide2.QtCore import QObject#, pyqtSignal, pyqtSlot, QPoint
 from PySide2.QtWidgets import *
 from PySide2.QtGui import *
-
+import sys, os, io
 import numpy as np
 import pandas as pd
 import string
@@ -34,21 +34,8 @@ try:
 except AttributeError:
     def _fromUtf8(s):
         return s
-from . import config, dialogs
+from . import config, dialogs, plotting, util
 
-def get_sample_data(rows=400, cols=5):
-    """Generate sample data"""
-
-    colnames = list(string.ascii_lowercase[:cols])
-    coldata = [np.random.normal(x,1,rows) for x in np.random.normal(5,3,cols)]
-    n = np.array(coldata).T
-    df = pd.DataFrame(n, columns=colnames)
-    df['b'] = df.a*np.random.normal(.8, 0.1, len(df))
-    df = np.round(df, 3)
-    cats = ['green','blue','red','orange','yellow']
-    df['label'] = [cats[i] for i in np.random.randint(0,5,rows)]
-    df['date'] = pd.date_range('1/1/2014', periods=rows, freq='H')
-    return df
 
 class ColumnHeader(QHeaderView):
     def __init__(self):
@@ -57,14 +44,15 @@ class ColumnHeader(QHeaderView):
 
 class DataFrameWidget(QWidget):
     """Widget containing a tableview and toolbars"""
-    def __init__(self, parent=None, *args):
+    def __init__(self, parent=None, dataframe=None, *args):
 
         super(DataFrameWidget, self).__init__()
         l = self.layout = QGridLayout()
         l.setSpacing(2)
-        self.table = DataFrameTable(self)
+        self.table = DataFrameTable(self, dataframe)
         l.addWidget(self.table, 1, 1)
         self.createToolbar()
+        self.pf = None
         return
 
     def createToolbar(self):
@@ -84,43 +72,58 @@ class DataFrameWidget(QWidget):
     def paste(self):
         return
 
+    def plot(self):
+        self.table.pf.replot()
+        return
+
+    def createPlotViewer(self, parent):
+        """Create a plot widget attached to this table"""
+
+        if self.pf == None:
+            self.pf = plotting.PlotViewer(table=self.table, parent=parent)
+        return self.pf
+
     def pivot(self):
         """Pivot table"""
 
+        return
+
+    def info(self):
+
+        buf = io.StringIO()
+        self.table.model.df.info(verbose=True,buf=buf,memory_usage=True)
+        td = dialogs.TextDialog(self, buf.getvalue(), 'Info')
         return
 
 class DataFrameTable(QTableView):
     """
     QTableView with pandas DataFrame as model.
     """
-    def __init__(self, parent=None, model=None, *args):
+    def __init__(self, parent=None, dataframe=None, *args):
         super(DataFrameTable, self).__init__()
         self.clicked.connect(self.showSelection)
         self.doubleClicked.connect(self.handleDoubleClick)
         self.setSelectionBehavior(QTableView.SelectRows)
-
+        #self.setSelectionBehavior(QTableView.SelectColumns)
         #self.horizontalHeader = ColumnHeader()
         vh = self.verticalHeader()
         vh.setVisible(True)
-        vh = self.horizontalHeader()
-        vh.setStretchLastSection(True)
+        hh = self.horizontalHeader()
+        hh.setStretchLastSection(True)
+        hh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        hh.customContextMenuRequested.connect(self.columnHeaderMenu)
 
         self.setDragEnabled(True)
-        self.setSortingEnabled(True)
+        #self.setSortingEnabled(True)
         self.viewport().setAcceptDrops(True)
         self.setDropIndicatorShown(True)
         self.resizeColumnsToContents()
 
         font = QFont("Arial", 12)
         self.setFont(font)
-        tm = TableModel()
+        tm = TableModel(dataframe)
         self.setModel(tm)
         self.model = tm
-
-        #self.toolbar = ToolBar(self)
-        #self.layout = QHBoxLayout()
-        #self.setLayout(self.layout)
-        #self.layout.addWidget(self.toolbar)
         return
 
     def showSelection(self, item):
@@ -140,6 +143,8 @@ class DataFrameTable(QTableView):
         rows=[]
         for idx in self.selectionModel().selectedRows():
             rows.append(idx.row())
+        cols=[]
+        print (self.selectionModel().selectedColumns())
         return df.iloc[rows]
 
     def handleDoubleClick(self, item):
@@ -154,6 +159,20 @@ class DataFrameTable(QTableView):
     def setRowColor(self, rowIndex, color):
         for j in range(self.columnCount()):
             self.item(rowIndex, j).setBackground(color)
+
+    def columnHeaderMenu(self, pos):
+
+        hheader = self.horizontalHeader()
+        column = hheader.logicalIndexAt(hheader.mapFromGlobal(pos))
+        print (column)
+        model = self.model
+        menu = QMenu(self)
+        setIndexAction = menu.addAction("Set as Index")
+        sortAction = menu.addAction("Sort By")
+        action = menu.exec_(self.mapToGlobal(pos))
+        if action == setIndexAction:
+            self.setIndex()
+        return
 
     def contextMenuEvent(self, event):
         """Reimplemented to create context menus for cells and empty space."""
@@ -184,6 +203,10 @@ class DataFrameTable(QTableView):
         elif action == prefsAction:
             config.PreferencesDialog(self)
 
+    def setIndex(self):
+
+        return
+
     def copy(self):
 
         self.model.df
@@ -194,9 +217,12 @@ class DataFrameTable(QTableView):
         return
 
 class TableModel(QtCore.QAbstractTableModel):
-    def __init__(self, parent=None, *args):
+    def __init__(self, dataframe=None, *args):
         super(TableModel, self).__init__()
-        self.df = get_sample_data(50,4)
+        if dataframe is None:
+            self.df = util.getEmptyData()
+        else:
+            self.df = dataframe
         self.bg = '#F4F4F3'
         return
 
@@ -214,7 +240,11 @@ class TableModel(QtCore.QAbstractTableModel):
         if role == QtCore.Qt.DisplayRole:
             i = index.row()
             j = index.column()
-            return '{0}'.format(self.df.ix[i, j])
+            value = self.df.ix[i, j]
+            if type(value) is float and np.isnan(value):
+                return ''
+            else:
+                return '{0}'.format(value)
 
         elif role == QtCore.Qt.BackgroundRole:
             return QColor(self.bg)
@@ -222,6 +252,8 @@ class TableModel(QtCore.QAbstractTableModel):
     def headerData(self, col, orientation, role):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return self.df.columns[col]
+        if orientation == QtCore.Qt.Vertical and role == QtCore.Qt.DisplayRole:
+            return self.df.index[col]
         return None
 
     def flags(self, index):
@@ -255,11 +287,13 @@ class ToolBar(QWidget):
         funcs = {'load':self.table.load, 'save':self.table.save,
                  'importexcel': self.table.load,
                  'copy':self.table.copy, 'paste':self.table.paste,
+                 'plot':self.table.plot,
                  'pivot':self.table.pivot}
         icons = {'load': 'document-open', 'save': 'document-save-as',
                  'importexcel': 'x-office-spreadsheet',
                  'copy': 'edit-copy', 'paste': 'edit-paste',
-                 'pivot': 'edit-undo'}
+                 'plot':'plot',
+                 'pivot': 'edit-undo' }
         for name in funcs:
             self.addButton(name, funcs[name], icons[name])
 

@@ -28,9 +28,9 @@ from PySide2 import QtCore
 from PySide2.QtWidgets import *
 from PySide2.QtGui import *
 import pandas as pd
-#from pandasqt.table import DragTable, DataTableWidget
 from .core import TableModel, DataFrameTable, DataFrameWidget
 from .plotting import PlotViewer
+from . import util
 
 class Application(QMainWindow):
     def __init__(self):
@@ -57,6 +57,8 @@ class Application(QMainWindow):
         self.file_menu = QMenu('&File', self)
         self.file_menu.addAction('&New', self.newProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_N)
+        self.file_menu.addAction('&Save', self.fileQuit,
+                QtCore.Qt.CTRL + QtCore.Qt.Key_S)
         self.file_menu.addAction('&Quit', self.fileQuit,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
         self.menuBar().addMenu(self.file_menu)
@@ -66,6 +68,8 @@ class Application(QMainWindow):
         self.sheet_menu.addAction('&Add', self.addSheet)
 
         self.tools_menu = QMenu('&Tools', self)
+        self.tools_menu.addAction('&Table Info', self.info,
+                QtCore.Qt.CTRL + QtCore.Qt.Key_I)
         self.menuBar().addMenu(self.tools_menu)
 
         self.dataset_menu = QMenu('&Datasets', self)
@@ -93,7 +97,7 @@ class Application(QMainWindow):
 
         return
 
-    def addSheet(self, name=None):
+    def addSheet(self, name=None, df=None):
         """Add a new sheet"""
 
         names = self.sheets.keys()
@@ -102,26 +106,16 @@ class Application(QMainWindow):
 
         sheet = QSplitter(self.main)
         idx = self.main.addTab(sheet, name)
-        self.sheets[idx] = sheet
-        l = QHBoxLayout(sheet)
-        w = DataFrameWidget(sheet)
-        l.addWidget(w)
-        pl = PlotViewer(table=w.table, parent=sheet)
-        l.addWidget(pl)
 
-        '''sheet = QWidget(self.main)
-        hbox = QHBoxLayout()
-        sheet.setLayout(hbox)
-        idx = self.main.addTab(sheet, name)
-        w = QDockWidget('main',sheet)
-        #w.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea)
-        t = DataFrameTable(w)
-        w.setWidget(t)
-        hbox.addWidget(w)
-        w = QDockWidget(sheet)
-        pl = PlotViewer(table=t, parent=w)
-        #w.setWidget(pl)
-        hbox.addWidget(w)'''
+        l = QHBoxLayout(sheet)
+        dfw = DataFrameWidget(sheet, dataframe=df)
+        l.addWidget(dfw)
+        self.sheets[idx] = dfw
+        self.currenttable = dfw
+        pf = dfw.createPlotViewer(sheet)
+        l.addWidget(pf)
+        sheet.setSizes((600,200))
+
         return
 
     def removeSheet(self, name):
@@ -135,7 +129,20 @@ class Application(QMainWindow):
         self.fileQuit()
 
     def sampleData(self):
+        rows, ok = QInputDialog.getInt(self, 'Rows', 'Rows:', 100)
+        if ok:
+            df = util.getSampleData(rows,5)
+            self.addSheet(None,df)
+        return
 
+    def getCurrentTable(self):
+        idx = self.main.currentIndex()
+        table = self.sheets[idx]
+        return table
+
+    def info(self):
+        table = self.getCurrentTable()
+        table.info()
         return
 
     def about(self):

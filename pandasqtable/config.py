@@ -209,7 +209,7 @@ class PreferencesDialog(QDialog):
                 'font':{'type':'font','default':'Arial'},
                 'fontstyle':{'type':'combobox','default':'','items':['','bold','italic']},
                 'fontsize':{'type':'slider','default':12,'range':(5,40),'interval':1,'label':'font size'},
-                'floatprecision':{'type':'entry','default':2},
+                'floatprecision':{'type':'spinbox','default':2},
                 #'cellbackgr':{'type':'colorchooser','default':'#F4F4F3', 'label':'background color'},
                 #'textcolor':{'type':'colorchooser','default':'black', 'label':'text color'},
                 #'grid_color':{'type':'colorchooser','default':'#ABB1AD', 'label':'grid color'},
@@ -234,13 +234,13 @@ class PreferencesDialog(QDialog):
 
         bw = self.button_widget = QWidget(parent)
         vbox = QHBoxLayout(bw)
-        button = QPushButton("save")
+        button = QPushButton("Save")
         button.clicked.connect(self.save)
         vbox.addWidget(button)
-        button = QPushButton("apply")
+        button = QPushButton("Apply")
         button.clicked.connect(self.apply)
         vbox.addWidget(button)
-        button = QPushButton("cancel")
+        button = QPushButton("Cancel")
         button.clicked.connect(self.quit)
         vbox.addWidget(button)
         return bw
