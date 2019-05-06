@@ -66,6 +66,19 @@ class DataFrameWidget(QWidget):
     def save(self):
         return
 
+    def importFile(self, filename=None, dialog=False, **kwargs):
+
+        if dialog is True:
+            options = QFileDialog.Options()
+            filename, _ = QFileDialog.getOpenFileName(self,"Import File",
+                                                      "","All Files (*);;Text Files (*.txt);;CSV files (*.csv)",
+                                                      options=options)
+
+
+            df = pd.read_csv(filename, **kwargs)
+            self.table.model.df = df
+        return
+
     def copy(self):
         return
 
@@ -74,6 +87,9 @@ class DataFrameWidget(QWidget):
 
     def plot(self):
         self.table.pf.replot()
+        return
+
+    def redraw(self):
         return
 
     def createPlotViewer(self, parent):
@@ -93,6 +109,137 @@ class DataFrameWidget(QWidget):
         buf = io.StringIO()
         self.table.model.df.info(verbose=True,buf=buf,memory_usage=True)
         td = dialogs.TextDialog(self, buf.getvalue(), 'Info')
+        return
+
+    def cleanData(self):
+        """Deal with missing data"""
+
+        df = self.table.model.df
+        cols = df.columns
+        fillopts = ['fill scalar','','ffill','bfill','interpolate']
+        opts = {'method':{'label':'Fill missing method','type':'combobox','default':'',
+                             'items':fillopts, 'tooltip':''},
+                'symbol':{'label':'Fill empty with','type':'combobox','default':'',
+                             'items':['','-','x'], 'tooltip':'seperator'},
+                'limit':  {'type':'checkbox','default':1,'label':'Limit gaps',
+                                'tooltip':' '},
+                'dropcols':  {'type':'checkbox','default':0,'label':'Drop columns with null data',
+                                'tooltip':' '},
+                'droprows':  {'type':'checkbox','default':0,'label':'Drop rows with null data',
+                                'tooltip':' '},
+                'how':{'label':'Drop method','type':'combobox','default':'',
+                             'items':['any','all'], 'tooltip':''},
+                'dropduplicatecols':  {'type':'checkbox','default':0,'label':'Drop duplicate columns',
+                                'tooltip':' '},
+                'dropduplicaterows':  {'type':'checkbox','default':0,'label':'Drop duplicate rows',
+                                'tooltip':' '},
+                'rounddecimals':  {'type':'spinbox','default':0,'label':'Round Numbers',
+                                'tooltip':' '},
+                }
+
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Clean Data')
+        dlg.exec_()
+        if not dlg.accepted:
+            return
+        kwds = dlg.values
+        if kwds['dropcols'] == 1:
+            df = df.dropna(axis=1,how=kwds['how'])
+        if kwds['droprows'] == 1:
+            df = df.dropna(axis=0,how=kwds['how'])
+        if kwds['method'] == '':
+            pass
+        elif kwds['method'] == 'fill scalar':
+            df = df.fillna(kwds['symbol'])
+        elif kwds['method'] == 'interpolate':
+            df = df.interpolate()
+        else:
+            df = df.fillna(method=kwds['method'], limit=kwds['limit'])
+        if kwds['dropduplicaterows'] == 1:
+            df = df.drop_duplicates()
+        if kwds['dropduplicatecols'] == 1:
+            df = df.loc[:,~df.columns.duplicated()]
+        if kwds['rounddecimals'] != 0:
+            df = df.round(rounddecimals)
+
+        self.table.model.df = df
+        #print (df)
+        #self.redraw()
+        return
+
+    def convertNumeric(self):
+        """Convert cols to numeric if possible"""
+
+        types = ['float','int']
+
+        opts = {'convert to':  {'type':'combobox','default':'int','items':types,'label':'Convert To',
+                                        'tooltip':' '},
+                'removetext':  {'type':'checkbox','default':0,'label':'try to remove text',
+                                                        'tooltip':' '},
+                'convert currency':  {'type':'checkbox','default':0,'label':'convert currency',
+                                                        'tooltip':' '},
+                'selected columns only':  {'type':'checkbox','default':0,'label':'selected columns only',
+                                                        'tooltip':' '},
+                'fill empty':  {'type':'checkbox','default':0,'label':'Fill Empty',
+                                                        'tooltip':' '},
+               }
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Convert Numeric')
+
+        convtype = d.results[0]
+        currency = d.results[1]
+        removetext = d.results[2]
+        useselected = d.results[3]
+        fillempty = d.results[4]
+
+        cols = self.multiplecollist
+        df = self.table.model.df
+        if useselected == 1:
+            colnames = df.columns[cols]
+        else:
+            colnames = df.columns
+
+        for c in colnames:
+            x=df[c]
+            if fillempty == 1:
+                x = x.fillna(0)
+            if currency == 1:
+                x = x.replace( '[\$\£\€,)]','', regex=True ).replace( '[(]','-', regex=True )
+            if removetext == 1:
+                x = x.replace( '[^\d.]+', '', regex=True)
+            self.model.df[c] = pd.to_numeric(x, errors='coerce').astype(convtype)
+
+        self.redraw()
+        self.tableChanged()
+        return
+
+    def showasText(self):
+
+        return
+
+    def convertColumnNames(self):
+
+        return
+
+    def createChildTable(self, df, title=None, index=False, out=False):
+        """Add the child table"""
+
+        self.closeChildTable()
+        if out == True:
+            win = QWindow()
+        else:
+            win = QWidget(self.parentframe)
+
+        self.childframe = win
+        newtable = self.__class__(win, dataframe=df, showtoolbar=0, showstatusbar=1)
+        newtable.parenttable = self
+        newtable.adjustColumnWidths()
+        newtable.show()
+        toolbar = ChildToolBar(win, newtable)
+        toolbar.grid(row=0,column=3,rowspan=2,sticky='news')
+        self.child = newtable
+        if hasattr(self, 'pf'):
+            newtable.pf = self.pf
+        if index==True:
+            newtable.showIndex()
         return
 
 class DataFrameTable(QTableView):

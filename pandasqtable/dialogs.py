@@ -77,7 +77,7 @@ def dialogFromOptions(parent, opts, sections=None,
             label = o
             val = None
             opt = opts[o]
-            if label in opt:
+            if 'label' in opt:
                 label = opt['label']
             val = opt['default']
             t = opt['type']
@@ -128,20 +128,73 @@ def dialogFromOptions(parent, opts, sections=None,
             scol+=1
     return dialog, widgets
 
+def getWidgetValues(widgets):
+    """Get values back from a set of widgets"""
+
+    kwds = {}
+    for i in widgets:
+        val = None
+        if i in widgets:
+            w = widgets[i]
+            if type(w) is QLineEdit:
+                val = w.text()
+            elif type(w) is QComboBox or type(w) is QFontComboBox:
+                val = w.currentText()
+            elif type(w) is QCheckBox:
+                val = w.isChecked()
+            elif type(w) is QSlider:
+                val = w.value()
+            elif type(w) is QSpinBox:
+                val = w.value()
+            if val != None:
+                kwds[i] = val
+    kwds = kwds
+    return kwds
+
 class TextDialog(QDialog):
+    """Text edit dialog"""
     def __init__(self, parent, text='', title='Text'):
         super(TextDialog, self).__init__(parent)
-
         self.setMinimumSize(440, 300)
         self.setWindowTitle(title)
-        self.b = QPlainTextEdit(self)
-        self.b.insertPlainText(text)
-        self.b.move(10,10)
-        self.b.resize(400,300)
+        vbox = QVBoxLayout(self)
+        b = self.textbox = QPlainTextEdit(self)
+        b.insertPlainText(text)
+        b.move(10,10)
+        b.resize(400,300)
+        vbox.addWidget(self.textbox)
         #self.b.setFontFamily('fixed')
+        buttonbox = QDialogButtonBox(self)
+        buttonbox.setStandardButtons(QDialogButtonBox.Ok)
+        buttonbox.button(QDialogButtonBox.Ok).clicked.connect(self.close)
+        vbox.addWidget(buttonbox)
         self.show()
         return
 
+class MultipleInputDialog(QDialog):
+    """Qdialog with multiple inputs"""
+    def __init__(self, parent, options=None, title='Input'):
+        super(MultipleInputDialog, self).__init__(parent)
+        self.values = None
+        self.accepted = False
+        self.setMinimumSize(440, 300)
+        self.setWindowTitle(title)
+        dialog, self.widgets = dialogFromOptions(self, options)
+        vbox = QVBoxLayout(self)
+        vbox.addWidget(dialog)
+        buttonbox = QDialogButtonBox(self)
+        buttonbox.setStandardButtons(QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+        buttonbox.button(QDialogButtonBox.Ok).clicked.connect(self.accept)
+        buttonbox.button(QDialogButtonBox.Cancel).clicked.connect(self.close)
+        vbox.addWidget(buttonbox)
+        self.show()
+        return self.values
+
+    def accept(self):
+        self.values = getWidgetValues(self.widgets)
+        self.accepted = True
+        self.close()
+        return
 
 class ImportDialog(QDialog):
     """Provides a frame for figure canvas and MPL settings"""
@@ -157,7 +210,7 @@ class ImportDialog(QDialog):
         self.parent = parent
         self.setWindowTitle('Import File')
         self.createWidgets()
-        self.setGeometry(QtCore.QRect(100, 50, 800, 600))
+        self.setGeometry(QtCore.QRect(250, 250, 900, 600))
         self.show()
         return
 
@@ -204,10 +257,10 @@ class ImportDialog(QDialog):
 
         optsframe, widgets = dialogFromOptions(self, opts, grps, wrap=2, section_wrap=1)
         layout = QGridLayout()
-        layout.setColumnStretch(2, 1)
-
+        layout.setColumnStretch(1,2)
         layout.addWidget(optsframe,1,1)
-        optsframe.resize(50,300)
+        optsframe.setMaximumWidth(250)
+        #optsframe.resize(50,300)
         bf = self.createButtons(optsframe)
         layout.addWidget(bf,2,1)
 

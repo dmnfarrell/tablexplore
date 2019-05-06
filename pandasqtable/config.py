@@ -192,7 +192,8 @@ class PreferencesDialog(QDialog):
         super(PreferencesDialog, self).__init__(parent)
         self.parent = parent
         self.setWindowTitle('Preferences')
-        self.resize(500, 200)
+        self.resize(600, 200)
+        #self.setGeometry(QtCore.QRect(100, 50, 800, 600))
         self.createWidgets()
         self.show()
         return
@@ -241,24 +242,9 @@ class PreferencesDialog(QDialog):
         button.clicked.connect(self.apply)
         vbox.addWidget(button)
         button = QPushButton("Cancel")
-        button.clicked.connect(self.quit)
+        button.clicked.connect(self.close)
         vbox.addWidget(button)
         return bw
-
-    def updateFromOptions(self, options):
-        """Update all widget tk vars using dict"""
-
-        if self.tkvars == None:
-            return
-        #print (options)
-        for i in options:
-            if i in self.tkvars and self.tkvars[i]:
-                try:
-                    val = int(options[i])
-                except:
-                    val = options[i]
-                self.tkvars[i].set(val)
-        return
 
     def apply(self):
         """Apply options to current table"""
@@ -276,8 +262,4 @@ class PreferencesDialog(QDialog):
         #update configparser and write
         #cp = update_config(options)
         cp.write(open(default_conf,'w'))
-        return
-
-    def quit(self):
-        self.main.destroy()
         return
