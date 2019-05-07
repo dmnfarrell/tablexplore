@@ -256,19 +256,20 @@ class DataFrameTable(QTableView):
         vh = self.verticalHeader()
         vh.setVisible(True)
         hh = self.horizontalHeader()
-        hh.setStretchLastSection(True)
+        #hh.setStretchLastSection(True)
         hh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         hh.customContextMenuRequested.connect(self.columnHeaderMenu)
-
+        hh.sectionClicked.connect(self.columnClicked)
         self.setDragEnabled(True)
         #self.setSortingEnabled(True)
         self.viewport().setAcceptDrops(True)
         self.setDropIndicatorShown(True)
         self.resizeColumnsToContents()
+        self.setCornerButtonEnabled(True)
 
         font = QFont("Arial", 12)
         self.setFont(font)
-        tm = TableModel(dataframe)
+        tm = DataFrameModel(dataframe)
         self.setModel(tm)
         self.model = tm
         return
@@ -283,6 +284,16 @@ class DataFrameTable(QTableView):
 
         return
 
+    def getSelectedRows(self):
+        rows=[]
+        for idx in self.selectionModel().selectedRows():
+            rows.append(idx.row())
+        return rows
+
+    def getSelectedColumns(self):
+        #indexes = self.selectionModel().selectedIndexes()
+        return self.selectionModel().selectedColumns()
+
     def getSelectedDataFrame(self):
 
         df = self.model.df
@@ -291,13 +302,39 @@ class DataFrameTable(QTableView):
         for idx in self.selectionModel().selectedRows():
             rows.append(idx.row())
         cols=[]
-        print (self.selectionModel().selectedColumns())
+        #print (self.selectionModel().selectedColumns())
         return df.iloc[rows]
 
     def handleDoubleClick(self, item):
 
         cellContent = item.data()
         print (item)
+        return
+
+    def columnClicked(self, col):
+
+        hheader = self.horizontalHeader()
+        df = self.model.df
+        self.model.df = df.sort_values(df.columns[col])
+        return
+
+    def storeCurrent(self):
+        """Store current version of the table before a major change is made"""
+
+        self.prevdf = self.model.df.copy()
+        return
+
+    def deleteCells(self, rows, cols, answer=None):
+        """Clear the cell contents"""
+
+        if answer == None:
+            answer = QMessageBox.question(self, 'Delete Cells?',
+                             'Are you sure?', QMessageBox.Yes, QMessageBox.No)
+        if not answer:
+            return
+        self.storeCurrent()
+        print (rows, cols)
+        self.model.df.iloc[rows,cols] = np.nan
         return
 
     def editCell(self, item):
@@ -320,6 +357,13 @@ class DataFrameTable(QTableView):
         if action == setIndexAction:
             self.setIndex()
         return
+
+    def keyPressEvent(self, event):
+
+        rows = self.getSelectedRows()
+        cols = self.getSelectedColumns()
+        if event.key() == QtCore.Qt.Key_Delete:
+            self.deleteCells(rows, cols)
 
     def contextMenuEvent(self, event):
         """Reimplemented to create context menus for cells and empty space."""
@@ -363,9 +407,9 @@ class DataFrameTable(QTableView):
         dialogs.ImportDialog(self)
         return
 
-class TableModel(QtCore.QAbstractTableModel):
+class DataFrameModel(QtCore.QAbstractTableModel):
     def __init__(self, dataframe=None, *args):
-        super(TableModel, self).__init__()
+        super(DataFrameModel, self).__init__()
         if dataframe is None:
             self.df = util.getEmptyData()
         else:

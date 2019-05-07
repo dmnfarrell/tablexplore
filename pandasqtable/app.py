@@ -28,7 +28,7 @@ from PySide2 import QtCore
 from PySide2.QtWidgets import *
 from PySide2.QtGui import *
 import pandas as pd
-from .core import TableModel, DataFrameTable, DataFrameWidget
+from .core import DataFrameModel, DataFrameTable, DataFrameWidget
 from .plotting import PlotViewer
 from . import util
 
