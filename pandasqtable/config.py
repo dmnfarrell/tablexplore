@@ -193,7 +193,7 @@ class PreferencesDialog(QDialog):
         self.parent = parent
         self.setWindowTitle('Preferences')
         self.resize(600, 200)
-        #self.setGeometry(QtCore.QRect(100, 50, 800, 600))
+        self.setGeometry(QtCore.QRect(300,300, 600, 200))
         self.createWidgets()
         self.show()
         return

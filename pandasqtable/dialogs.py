@@ -91,8 +91,9 @@ def dialogFromOptions(parent, opts, sections=None,
             elif t == 'entry':
                 w = QLineEdit()
                 w.setText(str(val))
-                #if type(val) is int:
-                #    w.setValidator(QIntValidator(0, 100, this))
+            elif t == 'textarea':
+                w = QPlainTextEdit()
+                w.insertPlainText(str(val))
             elif t == 'slider':
                 w = QSlider(QtCore.Qt.Horizontal)
                 s,e = opt['range']
@@ -116,7 +117,7 @@ def dialogFromOptions(parent, opts, sections=None,
             gl.addWidget(w,row,col)
             w.setStyleSheet(style)
             widgets[o] = w
-            #print (o, row, col)
+            print (o, row, col)
             if col>=wrap:
                 col=1
                 row+=1
@@ -138,6 +139,8 @@ def getWidgetValues(widgets):
             w = widgets[i]
             if type(w) is QLineEdit:
                 val = w.text()
+            elif type(w) is QPlainTextEdit:
+                val = w.toPlainText()
             elif type(w) is QComboBox or type(w) is QFontComboBox:
                 val = w.currentText()
             elif type(w) is QCheckBox:
@@ -162,6 +165,8 @@ def setWidgetValues(widgets, values):
             w = widgets[i]
             if type(w) is QLineEdit:
                 w.setText(str(val))
+            elif type(w) is QPlainTextEdit:
+                w.insertPlainText(str(val))
             elif type(w) is QComboBox or type(w) is QFontComboBox:
                 w.setCurrentIndex(1)
             elif type(w) is QCheckBox:

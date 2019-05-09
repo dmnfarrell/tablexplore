@@ -143,6 +143,7 @@ class PlotViewer(QWidget):
                    'Clear': {'action':self.clear,'icon':'SP_ArrowBack'},
                    'Zoom Out': {'action': lambda: self.zoom(zoomin=False),'icon':'SP_ArrowBack'},
                    'Zoom In': {'action':lambda: self.zoom(zoomin=True),'icon':'SP_ArrowForward'},
+                   'Save': {'action':self.savePlot,'icon':'SP_ArrowBack'}
             }
         w=120; h=35
         bw = self.button_widget = QWidget(parent)
@@ -249,6 +250,20 @@ class PlotViewer(QWidget):
         self.canvas.draw()
         self.table.plotted=None
         self.gridaxes = {}
+        return
+
+    def savePlot(self, filename=None):
+        """Save the current plot"""
+
+        ftypes = [('png','*.png'),('jpg','*.jpg'),('tif','*.tif'),('pdf','*.pdf'),
+                    ('eps','*.eps'),('svg','*.svg')]
+        if filename == None:
+            filename, _ = QFileDialog.getSaveFileName(self,"Save Project",
+                                              "","png files (*.png);;jpg files (*.jpg)")
+        if filename:
+            self.currentdir = os.path.dirname(os.path.abspath(filename))
+            dpi = self.globalopts['dpi']
+            self.fig.savefig(filename, dpi=dpi)
         return
 
     def showWarning(self, text='plot error', ax=None):
@@ -1008,26 +1023,7 @@ class BaseOptions(object):
     def applyOptions(self):
         """Set the plot kwd arguments from the widgets"""
 
-        kwds = {}
-        for i in self.opts:
-            val = None
-            if i in self.widgets:
-                w = self.widgets[i]
-                if type(w) is QLineEdit:
-                    val = w.text()
-                elif type(w) is QComboBox or type(w) is QFontComboBox:
-                    val = w.currentText()
-                elif type(w) is QCheckBox:
-                    val = w.isChecked()
-                elif type(w) is QSlider:
-                    val = w.value()
-                elif type(w) is QSpinBox:
-                    val = w.value()
-                if val != None:
-                    kwds[i] = val
-                #print (val, i)
-        self.kwds = kwds
-        #print (self.kwds)
+        self.kwds = getWidgetValues(self.widgets)
         return
 
     def apply(self):
@@ -1165,13 +1161,13 @@ class AnnotationOptions(BaseOptions):
 
         self.parent = parent
         self.groups = grps = {'global labels':['title','xlabel','ylabel','rot'],
-                              'textbox': ['boxstyle','facecolor','linecolor','rotate'],
-                              'textbox format': ['fontsize','font','fontweight','align'],
-                              'text to add': ['text']
+                             # 'textbox': ['boxstyle','facecolor','linecolor','rotate'],
+                             # 'textbox format': ['fontsize','font','fontweight','align'],
+                             # 'text to add': ['text']
                              }
         self.groups = OrderedDict(sorted(grps.items()))
         opts = self.opts = {
-                'title':{'type':'entry','default':'','width':20},
+                'title':{'type':'textarea','default':'','width':30},
                 'xlabel':{'type':'entry','default':'','width':20},
                 'ylabel':{'type':'entry','default':'','width':20},
                 'facecolor':{'type':'combobox','default':'white','items': colors},
