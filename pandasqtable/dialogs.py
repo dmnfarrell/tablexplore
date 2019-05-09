@@ -87,7 +87,7 @@ def dialogFromOptions(parent, opts, sections=None,
             if t == 'combobox':
                 w = QComboBox()
                 w.addItems(opt['items'])
-                w.setCurrentIndex(1)
+                w.setCurrentIndex(0)
             elif t == 'entry':
                 w = QLineEdit()
                 w.setText(str(val))
@@ -111,7 +111,7 @@ def dialogFromOptions(parent, opts, sections=None,
             elif t == 'font':
                 w = QFontComboBox()
                 w.resize(w.sizeHint())
-                w.setCurrentIndex(5)
+                w.setCurrentIndex(1)
             col+=1
             gl.addWidget(w,row,col)
             w.setStyleSheet(style)
@@ -150,6 +150,27 @@ def getWidgetValues(widgets):
                 kwds[i] = val
     kwds = kwds
     return kwds
+
+def setWidgetValues(widgets, values):
+    """Set values for a set of widgets from a dict"""
+
+    kwds = {}
+    for i in values:
+        val = values[i]
+        if i in widgets:
+            #print (i, val, type(val))
+            w = widgets[i]
+            if type(w) is QLineEdit:
+                w.setText(str(val))
+            elif type(w) is QComboBox or type(w) is QFontComboBox:
+                w.setCurrentIndex(1)
+            elif type(w) is QCheckBox:
+                w.setChecked(val)
+            elif type(w) is QSlider:
+                w.setValue(val)
+            elif type(w) is QSpinBox:
+                w.setValue(val)
+    return
 
 class TextDialog(QDialog):
     """Text edit dialog"""

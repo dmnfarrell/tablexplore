@@ -138,24 +138,23 @@ class PlotViewer(QWidget):
 
     def createButtons(self, parent):
 
+        buttons = {'Plot': {'action':self.plot,'icon':'SP_ArrowBack'},
+                   #'Apply': {'action':self.clear,'icon':'SP_ArrowBack'},
+                   'Clear': {'action':self.clear,'icon':'SP_ArrowBack'},
+                   'Zoom Out': {'action': lambda: self.zoom(zoomin=False),'icon':'SP_ArrowBack'},
+                   'Zoom In': {'action':lambda: self.zoom(zoomin=True),'icon':'SP_ArrowForward'},
+            }
+        w=120; h=35
         bw = self.button_widget = QWidget(parent)
         box = QHBoxLayout(bw)
         box.setContentsMargins(0,0,0,0)
-        button = QPushButton("Plot")
-        button.clicked.connect(self.plot)
-        button.setMinimumSize(200,30)
-        box.addWidget(button)
-        #button = QPushButton("apply")
-        #button.clicked.connect(self.applyOptions)
-        #vbox.addWidget(button)
-        button = QPushButton("Clear")
-        button.clicked.connect(self.clear)
-        box.addWidget(button)
-        button.setMinimumSize(200,30)
-        button = QPushButton("Save")
-        button.clicked.connect(self.clear)
-        box.addWidget(button)
-        button.setMinimumSize(200,30)
+        for b in buttons:
+            btn = QPushButton(b)
+            btn.clicked.connect(buttons[b]['action'])
+            btn.setMinimumSize(w,h)
+            if 'icon' in buttons[b]:
+                btn.setIcon(self.style().standardIcon(getattr(QStyle, buttons[b]['icon'])))
+            box.addWidget(btn)
 
         self.globalopts = GlobalOptions(parent=self)
         dialog = self.globalopts.showDialog(bw, wrap=6)
@@ -173,6 +172,23 @@ class PlotViewer(QWidget):
         cmap = plt.cm.get_cmap(kwds['colormap'])
         self.ax.scatter(x, y, s=kwds['ms']*10, marker=kwds['marker'] )
         self.canvas.draw()
+        return
+
+    def zoom(self, zoomin=True):
+        """Zoom in/out to plot by changing size of elements"""
+
+        keys = ['fontsize','ms','linewidth']
+        kwds = {i: self.baseopts.kwds[i] for i in keys}
+        for i in keys:
+            if zoomin == True:
+                new = kwds[i] + 1
+            else:
+                new = kwds[i] - .5
+            if new >0:
+                kwds[i] = new
+        setWidgetValues(self.baseopts.widgets, kwds)
+        self.baseopts.applyOptions()
+        self.replot()
         return
 
     def clear(self):
@@ -493,7 +509,7 @@ class PlotViewer(QWidget):
             if u == None or b>u:
                 u=b
         lims = (l, u)
-        print (lims)
+        #print (lims)
         for a in self.fig.axes:
             if axis=='y':
                 a.set_ylim(lims)
@@ -515,8 +531,8 @@ class PlotViewer(QWidget):
 
         kwargs = kwargs.copy()
         kwargs['alpha'] = kwargs['alpha']/10
-        if self.style != None:
-            kwargs = self._clearArgs(kwargs)
+        #if self.style != None:
+        #    kwargs = self._clearArgs(kwargs)
 
         cols = data.columns
         if kind == 'line':
@@ -525,6 +541,7 @@ class PlotViewer(QWidget):
         rows = int(round(np.sqrt(len(data.columns)),0))
         if len(data.columns) == 1 and kind not in ['pie']:
             kwargs['subplots'] = 0
+        print (kwargs)
         if 'colormap' in kwargs:
             cmap = plt.cm.get_cmap(kwargs['colormap'])
         else:
@@ -1060,7 +1077,7 @@ class MPLBaseOptions(BaseOptions):
             datacols.insert(0,'')
         else:
             datacols=[]
-        datacols=[]
+
         scales = ['linear','log']
         grps = {'data':['by','by2','labelcol','pointsizes'],
                 'formats':['font','fontsize','marker','ms','linestyle','linewidth','alpha'],
@@ -1093,7 +1110,7 @@ class MPLBaseOptions(BaseOptions):
                 #'loc':{'type':'combobox','default':'best','items':self.legendlocs,'label':'legend loc'},
                 'kind':{'type':'combobox','default':'line','items':self.kinds,'label':'plot type'},
                 'stacked':{'type':'checkbox','default':0,'label':'stacked'},
-                'linewidth':{'type':'slider','default':1.5,'range':(0,10),'interval':0.1,'label':'line width'},
+                'linewidth':{'type':'slider','default':2,'range':(0,10),'interval':0.1,'label':'line width'},
                 'alpha':{'type':'slider','default':9,'range':(1,10),'interval':1,'label':'alpha'},
                 'subplots':{'type':'checkbox','default':0,'label':'multiple subplots'},
                 'colormap':{'type':'combobox','default':'Spectral','items':colormaps},

@@ -46,7 +46,7 @@ class Application(QMainWindow):
         self.setGeometry(QtCore.QRect(200, 200, width, height))
         center = QDesktopWidget().availableGeometry().center()
         self.newProject()
-
+        self.sampleData(200)
         self.main.setFocus()
         self.setCentralWidget(self.main)
         self.statusBar().showMessage("Welcome", 3000)
@@ -57,7 +57,9 @@ class Application(QMainWindow):
         self.file_menu = QMenu('&File', self)
         self.file_menu.addAction('&New', self.newProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_N)
-        self.file_menu.addAction('&Save', self.fileQuit,
+        self.file_menu.addAction('&Open', self.openProject,
+                QtCore.Qt.CTRL + QtCore.Qt.Key_O)
+        self.file_menu.addAction('&Save', self.saveProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_S)
         self.file_menu.addAction('&Import', lambda: self._call('importFile', dialog=True))
         self.file_menu.addAction('&Quit', self.fileQuit,
@@ -106,6 +108,16 @@ class Application(QMainWindow):
             return True
         return False
 
+    def _checkTables(self):
+        """Check tables before saving that so we are not saving
+        filtered copies"""
+
+        for s in self.sheets:
+            t=self.sheets[s]
+            if t.filtered==True:
+                t.showAll()
+        return
+
     def newProject(self, data=None):
         """New project"""
 
@@ -133,6 +145,104 @@ class Application(QMainWindow):
 
         return
 
+    def openProject(self, filename=None, asksave=False):
+        """Open project file"""
+
+        w=True
+        if asksave == True:
+            w = self.closeProject()
+        if w == None:
+            return
+
+        if filename == None:
+            options = QFileDialog.Options()
+            filename, _ = QFileDialog.getOpenFileName(self,"Import File",
+                                                      "","Dxpl Files (*.dexpl);;All files (*.*)",
+                                                      options=options)
+
+        if not filename:
+            return
+        if not os.path.exists(filename):
+            print ('no such file')
+            self.removeRecent(filename)
+            return
+        ext = os.path.splitext(filename)[1]
+        if ext != '.dexpl':
+            print ('does not appear to be a project file')
+            return
+        if os.path.isfile(filename):
+            data = pd.read_msgpack(filename)
+            #create backup file before we change anything
+            backupfile = filename+'.bak'
+            pd.to_msgpack(backupfile, data, encoding='utf-8')
+        else:
+            print ('no such file')
+            self.quit()
+            return
+        self.newProject(data)
+        self.filename = filename
+        self.main.title('%s - DataExplore' %filename)
+        self.projopen = True
+        self.defaultsavedir = os.path.dirname(os.path.abspath(filename))
+        #self.addRecent(filename)
+        return
+
+    def saveProject(self, filename=None):
+        """Save as a new filename"""
+
+        if filename is None:
+            options = QFileDialog.Options()
+            filename, _ = QFileDialog.getSaveFileName(self,"Save Project",
+                                                      "","Dxpl Files (*.dexpl);;All files (*.*)",
+                                                      options=options)
+        if not filename:
+            return
+        self.filename = filename
+        self.defaultsavedir = os.path.dirname(os.path.abspath(filename))
+        self.doSaveProject(self.filename)
+        #self.addRecent(filename)
+        return
+
+    def doSaveProject(self, filename):
+        """Save sheets as dict in msgpack"""
+
+        #self._checkTables()
+        data={}
+        for i in self.sheets:
+            sheet = self.sheets[i]
+            data[i] = {}
+            data[i]['table'] = sheet.table.model.df
+            data[i]['meta'] = self.saveMeta(sheet)
+
+        pd.to_msgpack(filename, data, encoding='utf-8')
+        return
+
+    def saveMeta(self, sheet):
+        """Save meta data such as current plot options"""
+
+        meta = {}
+        table = sheet.table
+        pf = sheet.pf
+        #save plot options
+        meta['baseopts'] = pf.baseopts.kwds
+        #meta['mplopts3d'] = pf.mplopts3d.kwds
+        meta['labelopts'] = pf.labelopts.kwds
+        #print (pf.baseopts.kwds)
+
+        #save table selections
+        meta['table'] = util.getAttributes(table)
+        meta['plotviewer'] = util.getAttributes(pf)
+        #print (meta['plotviewer'])
+        #save row colors since its a dataframe and isn't picked up by getattributes currently
+        #meta['table']['rowcolors'] = table.rowcolors
+
+        #save child table if present
+        #if table.child != None:
+        #    meta['childtable'] = table.child.model.df
+        #    meta['childselected'] = util.getAttributes(table.child)
+
+        return meta
+
     def addSheet(self, name=None, df=None, meta=None):
         """Add a new sheet"""
 
@@ -151,7 +261,7 @@ class Application(QMainWindow):
         pf = dfw.createPlotViewer(sheet)
         l.addWidget(pf)
         sheet.setSizes((600,200))
-
+        self.main.setCurrentIndex(idx)
         return
 
     def removeSheet(self, name):
@@ -197,8 +307,11 @@ class Application(QMainWindow):
     def closeEvent(self, ce):
         self.fileQuit()
 
-    def sampleData(self):
-        rows, ok = QInputDialog.getInt(self, 'Rows', 'Rows:', 100)
+    def sampleData(self, rows=None):
+        if rows is None:
+            rows, ok = QInputDialog.getInt(self, 'Rows', 'Rows:', 100)
+        else:
+            ok=True
         if ok:
             df = util.getSampleData(rows,5)
             self.addSheet(None,df)
@@ -239,6 +352,22 @@ class Application(QMainWindow):
         return
 
 def main():
+    import sys, os
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option("-f", "--file", dest="msgpack",
+                        help="Open a dataframe as msgpack", metavar="FILE")
+    parser.add_option("-p", "--project", dest="projfile",
+                        help="Open a dataexplore project file", metavar="FILE")
+    parser.add_option("-i", "--csv", dest="csv",
+                        help="Import a csv file", metavar="FILE")
+    parser.add_option("-x", "--excel", dest="excel",
+                        help="Import an excel file", metavar="FILE")
+    parser.add_option("-t", "--test", dest="test",  action="store_true",
+                        default=False, help="Run a basic test app")
+
+    opts, remainder = parser.parse_args()
+
     app = QApplication(sys.argv)
     aw = Application()
     aw.show()

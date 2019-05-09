@@ -28,7 +28,7 @@ try:
     import configparser
 except:
     import ConfigParser as configparser
-from PySide2 import Qt, QtCore, QtGui
+from PySide2 import QtCore, QtGui
 from PySide2.QtCore import QObject#, pyqtSignal, pyqtSlot, QPoint
 from PySide2.QtWidgets import *
 from PySide2.QtGui import *
