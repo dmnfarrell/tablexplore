@@ -53,10 +53,10 @@ baseoptions['colors'] =  {'cellbackgr':'#F4F4F3',
                         'textcolor':'black',
                         'grid_color':'#ABB1AD',
                         'rowselectedcolor':'#E4DED4'}
-'''baseoptions['plotting'] = {'marker': '','linestyle':'-',
+baseoptions['plotting'] = {'marker': '','linestyle':'-',
                         'colormap':'Spectral',
-                        'ms':5, 'grid':1
-                        }'''
+                        'ms':5, 'grid':0
+                        }
 
 def write_default_config():
     """Write a default config to users .config folder. Used to add global settings."""
@@ -192,7 +192,7 @@ class PreferencesDialog(QDialog):
         super(PreferencesDialog, self).__init__(parent)
         self.parent = parent
         self.setWindowTitle('Preferences')
-        self.resize(600, 200)
+        self.resize(700, 200)
         self.setGeometry(QtCore.QRect(300,300, 600, 200))
         self.createWidgets()
         self.show()
@@ -201,24 +201,33 @@ class PreferencesDialog(QDialog):
     def createWidgets(self):
         """create widgets"""
 
-        self.opts = {'rowheight':{'type':'slider','default':18,'range':(5,50),'interval':1,'label':'row height'},
-                'cellwidth':{'type':'slider','default':80,'range':(10,300),'interval':5,'label':'cell width'},
-                'linewidth':{'type':'slider','default':1,'range':(1,10),'interval':1,'label':'grid line width'},
+        import pylab as plt
+        colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
+        markers = ['','o','.','^','v','>','<','s','+','x','p','d','h','*']
+        linestyles = ['-','--','-.',':','steps']
+        self.opts = {'rowheight':{'type':'spinbox','default':18,'range':(5,50),'label':'row height'},
+                'cellwidth':{'type':'spinbox','default':80,'range':(10,300),'label':'cell width'},
+                'linewidth':{'type':'spinbox','default':1,'range':(1,10),'label':'grid line width'},
                 'align':{'type':'combobox','default':'w','items':['w','e','center'],'label':'text align'},
                 'vertlines':{'type':'checkbutton','default':1,'label':'show vertical lines'},
                 'horizlines':{'type':'checkbutton','default':1,'label':'show horizontal lines'},
                 'font':{'type':'font','default':'Arial'},
                 'fontstyle':{'type':'combobox','default':'','items':['','bold','italic']},
                 'fontsize':{'type':'slider','default':12,'range':(5,40),'interval':1,'label':'font size'},
-                'floatprecision':{'type':'spinbox','default':2},
+                'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
                 #'cellbackgr':{'type':'colorchooser','default':'#F4F4F3', 'label':'background color'},
                 #'textcolor':{'type':'colorchooser','default':'black', 'label':'text color'},
                 #'grid_color':{'type':'colorchooser','default':'#ABB1AD', 'label':'grid color'},
                 #'rowselectedcolor':{'type':'colorchooser','default':'#E4DED4','label':'highlight color'},
-                'grid':{'type':'checkbutton','default':0,'label':'show grid'},
+                'colormap':{'type':'combobox','default':'Spectral','items':colormaps,'label':'color map'},
+                'marker':{'type':'combobox','default':'','items': markers},
+                'linestyle':{'type':'combobox','default':'-','items': linestyles},
+                'grid':{'type':'checkbox','default':0,'label':'show grid'},
+
                 }
         sections = {'table':['align','rowheight','cellwidth','linewidth','vertlines','horizlines'],
-                    'formats':['font','fontstyle','fontsize','floatprecision']}
+                    'formats':['font','fontstyle','fontsize','floatprecision'],
+                    'plotting':['colormap','marker','linestyle','grid']}
                     #'cellbackgr','textcolor','grid_color','rowselectedcolor']}
                     #'plotting':['marker','linestyle','ms','grid','colormap']}
 

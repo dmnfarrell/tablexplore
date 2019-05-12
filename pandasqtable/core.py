@@ -479,12 +479,15 @@ class ToolBar(QWidget):
                  'importexcel': self.table.load,
                  'copy':self.table.copy, 'paste':self.table.paste,
                  'plot':self.table.plot,
+                 'transpose':self.table.pivot,
                  'pivot':self.table.pivot}
-        icons = {'load': 'document-open', 'save': 'document-save-as',
+        icons = {'load': 'document-new', 'save': 'document-save-as',
                  'importexcel': 'x-office-spreadsheet',
                  'copy': 'edit-copy', 'paste': 'edit-paste',
-                 'plot':'plot',
-                 'pivot': 'edit-undo' }
+                 'plot':'insert-image',
+                 'transpose':'object-rotate-right',
+                 'pivot': 'edit-undo',
+                 }
         for name in funcs:
             self.addButton(name, funcs[name], icons[name])
 

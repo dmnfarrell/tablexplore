@@ -46,9 +46,12 @@ def dialogFromOptions(parent, opts, sections=None,
         font-size: 12px;
     }
     QWidget {
-        max-width: 200px;
+        max-width: 250px;
         min-width: 60px;
         font-size: 14px;
+    }
+    QPlainTextEdit {
+        max-height: 80px;
     }
 
     '''
@@ -62,7 +65,7 @@ def dialogFromOptions(parent, opts, sections=None,
 
     l = QGridLayout(dialog)
     l.setSpacing(2)
-
+    l.setAlignment(QtCore.Qt.AlignLeft)
     scol=1
     for s in sections:
         row=1
@@ -72,7 +75,8 @@ def dialogFromOptions(parent, opts, sections=None,
         f.sizeHint()
         l.addWidget(f,1,scol)
         gl = QGridLayout(f)
-        gl.setSpacing(4)
+        gl.setAlignment(QtCore.Qt.AlignTop)
+        gl.setSpacing(10)
         for o in sections[s]:
             label = o
             val = None
@@ -93,6 +97,7 @@ def dialogFromOptions(parent, opts, sections=None,
                 w.setText(str(val))
             elif t == 'textarea':
                 w = QPlainTextEdit()
+                #w.setSizePolicy(sizepolicy)
                 w.insertPlainText(str(val))
             elif t == 'slider':
                 w = QSlider(QtCore.Qt.Horizontal)
@@ -117,7 +122,7 @@ def dialogFromOptions(parent, opts, sections=None,
             gl.addWidget(w,row,col)
             w.setStyleSheet(style)
             widgets[o] = w
-            print (o, row, col)
+            #print (o, row, col)
             if col>=wrap:
                 col=1
                 row+=1
