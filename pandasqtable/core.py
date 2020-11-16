@@ -284,6 +284,13 @@ class DataFrameTable(QTableView):
         self.setWordWrap(False)
         return
 
+    def refresh(self):
+
+        self.model.beginResetModel()
+        self.model.dataChanged.emit(0,0)
+        self.model.endResetModel()
+        return
+        
     def showSelection(self, item):
 
         cellContent = item.data()
@@ -291,7 +298,6 @@ class DataFrameTable(QTableView):
         row = item.row()
         model = item.model()
         columnsTotal= model.columnCount(None)
-
         return
 
     def getSelectedRows(self):
@@ -518,6 +524,7 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         return len(self.df.columns.values)
 
     def data(self, index, role=QtCore.Qt.DisplayRole):
+        """Edir or display roles """
 
         i = index.row()
         j = index.column()
@@ -529,8 +536,8 @@ class DataFrameModel(QtCore.QAbstractTableModel):
                 return '{0}'.format(value)
         elif (role == QtCore.Qt.EditRole):
             value = self.df.iloc[i, j]
-            if type(value) != str and np.isnan(value):
-                return ''
+            if value == '':
+                return np.nan
             else:
                 return value
         elif role == QtCore.Qt.BackgroundRole:
@@ -545,13 +552,12 @@ class DataFrameModel(QtCore.QAbstractTableModel):
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
         """Set data upon edits"""
-    
+
         i = index.row()
         j = index.column()
         curr = self.df.iloc[i,j]
         #print (curr, value)
         self.df.iloc[i,j] = value
-        #self.dataChanged.emit()
         return True
 
     def flags(self, index):

@@ -23,6 +23,7 @@
 
 from __future__ import absolute_import, division, print_function
 import sys,os,platform
+import pickle, gzip
 from collections import OrderedDict
 from PySide2 import QtCore
 from PySide2.QtWidgets import *
@@ -59,7 +60,7 @@ class Application(QMainWindow):
                 QtCore.Qt.CTRL + QtCore.Qt.Key_N)
         self.file_menu.addAction('&Open', self.openProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_O)
-        self.file_menu.addAction('&Save', self.saveProject,
+        self.file_menu.addAction('&Save', self.save_project,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_S)
         self.file_menu.addAction('&Import', lambda: self._call('importFile', dialog=True))
         self.file_menu.addAction('&Quit', self.fileQuit,
@@ -69,6 +70,11 @@ class Application(QMainWindow):
         self.edit_menu = QMenu('&Edit', self)
         self.menuBar().addMenu(self.edit_menu)
         self.edit_menu.addAction('&Undo', self.addSheet)
+
+        self.view_menu = QMenu('&View', self)
+        self.menuBar().addMenu(self.view_menu)
+        self.view_menu.addAction('&Zoom In', self.zoomIn)
+        self.view_menu.addAction('&Zoom Out', self.zoomOut)
 
         self.sheet_menu = QMenu('&Sheet', self)
         self.menuBar().addMenu(self.sheet_menu)
@@ -171,10 +177,7 @@ class Application(QMainWindow):
             print ('does not appear to be a project file')
             return
         if os.path.isfile(filename):
-            data = pd.read_msgpack(filename)
-            #create backup file before we change anything
-            backupfile = filename+'.bak'
-            pd.to_msgpack(backupfile, data, encoding='utf-8')
+            data = pickle.load(gzip.GzipFile(filename, 'r'))
         else:
             print ('no such file')
             self.quit()
@@ -187,7 +190,7 @@ class Application(QMainWindow):
         #self.addRecent(filename)
         return
 
-    def saveProject(self, filename=None):
+    def save_project(self, filename=None):
         """Save as a new filename"""
 
         if filename is None:
@@ -198,36 +201,40 @@ class Application(QMainWindow):
         if not filename:
             return
         self.filename = filename
+        if not os.path.splitext(filename)[1] == '.snpgenie':
+            self.filename += '.dexpl'
         self.defaultsavedir = os.path.dirname(os.path.abspath(filename))
-        self.doSaveProject(self.filename)
+        self.do_save_project(self.filename)
         #self.addRecent(filename)
+        print (self.filename)
         return
 
-    def doSaveProject(self, filename):
-        """Save sheets as dict in msgpack"""
+    def do_save_project(self, filename):
+        """Save sheets as dict to pickle"""
 
         #self._checkTables()
         data={}
         for i in self.sheets:
-            sheet = self.sheets[i]
+            tablewidget = self.sheets[i]
+            table = tablewidget.table
             data[i] = {}
-            data[i]['table'] = sheet.table.model.df
-            data[i]['meta'] = self.saveMeta(sheet)
+            data[i]['table'] = table.model.df
+            data[i]['meta'] = self.saveMeta(tablewidget)
 
-        pd.to_msgpack(filename, data, encoding='utf-8')
+        file = gzip.GzipFile(filename, 'w')
+        pickle.dump(data, file)
         return
 
-    def saveMeta(self, sheet):
+    def saveMeta(self, tablewidget):
         """Save meta data such as current plot options"""
 
         meta = {}
-        table = sheet.table
-        pf = sheet.pf
+        pf = tablewidget.pf
+        table =  tablewidget.table
         #save plot options
-        meta['baseopts'] = pf.baseopts.kwds
+        meta['generalopts'] = pf.generalopts.kwds
         #meta['mplopts3d'] = pf.mplopts3d.kwds
         meta['labelopts'] = pf.labelopts.kwds
-        #print (pf.baseopts.kwds)
 
         #save table selections
         meta['table'] = util.getAttributes(table)
@@ -283,16 +290,6 @@ class Application(QMainWindow):
             self.newProject(data)
         return
 
-    def load_msgpack(self, filename):
-        """Load a msgpack file"""
-
-        size = round((os.path.getsize(filename)/1.0485e6),2)
-        print (size)
-        df = pd.read_msgpack(filename)
-        name = os.path.splitext(os.path.basename(filename))[0]
-        self.load_dataframe(df, name)
-        return
-
     def load_pickle(self, filename):
         """Load a pickle file"""
 
@@ -318,9 +315,22 @@ class Application(QMainWindow):
         return
 
     def getCurrentTable(self):
+
         idx = self.main.currentIndex()
-        table = self.sheets[idx]
+        table = self.sheets[idx].table
         return table
+
+    def zoomIn(self):
+
+        table = self.getCurrentTable()
+        table.zoomIn()
+        return
+
+    def zoomOut(self):
+
+        table = self.getCurrentTable()
+        table.zoomOut()
+        return
 
     def online_documentation(self,event=None):
         """Open the online documentation"""
