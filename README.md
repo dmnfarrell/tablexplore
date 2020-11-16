@@ -1,14 +1,19 @@
-# pandasqtapp
+# pandasqtable
 <img align="right" src=https://raw.githubusercontent.com/dmnfarrell/pandasqtapp/master/logo.png width=150px>
 
-sample code for a pandas pyside2/qt table based app
+pandasqtable is a PySide2/Qt table based widget using pandas DataFrames. It also provides the DataExplore2 application for data analysis and plotting. 
 
-See also:
+## Installation
 
-* https://github.com/datalyze-solutions/pandas-qt/
+```
+pip install -e git+https://github.com/dmnfarrell/pandasqtable.git#egg=pandasqtable
+```
 
-* https://doc.qt.io/qtforpython/PySide2/QtWidgets/QTableView.html#PySide2.QtWidgets.PySide2.QtWidgets.QTableView
+## Current features
 
-* https://www.hardcoded.net/articles/how-to-customize-qtableview-editing-behavior
+* save and load projects
+* plotting partially works
 
-* https://wiki.qt.io/Qt_for_Python_Tutorial:_Data_Visualization_Tool
+## See also
+
+[pandastable - Tkinter based version](https://github.com/dmnfarrell/pandastable)
