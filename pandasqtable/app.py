@@ -38,15 +38,17 @@ class Application(QMainWindow):
 
         QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setWindowTitle("pandas qt example")
+        self.setWindowTitle("DataExplore2")
         self.setWindowIcon(QIcon('logo.png'))
         self.createMenu()
         self.main = QTabWidget(self)
+        self.main.setTabsClosable(True)
+        self.main.tabCloseRequested.connect(lambda index: self.main.removeTab(index))
         screen_resolution = QDesktopWidget().screenGeometry()
         width, height = screen_resolution.width()*0.7, screen_resolution.height()*.7
         self.setGeometry(QtCore.QRect(200, 200, width, height))
         center = QDesktopWidget().availableGeometry().center()
-        self.newProject()
+        self.new_project()
         self.sampleData(200)
         self.main.setFocus()
         self.setCentralWidget(self.main)
@@ -56,7 +58,7 @@ class Application(QMainWindow):
     def createMenu(self):
 
         self.file_menu = QMenu('&File', self)
-        self.file_menu.addAction('&New', self.newProject,
+        self.file_menu.addAction('&New', self.new_project,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_N)
         self.file_menu.addAction('&Open', self.openProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_O)
@@ -69,7 +71,7 @@ class Application(QMainWindow):
 
         self.edit_menu = QMenu('&Edit', self)
         self.menuBar().addMenu(self.edit_menu)
-        self.edit_menu.addAction('&Undo', self.addSheet)
+        self.edit_menu.addAction('&Undo', self.add_sheet)
 
         self.view_menu = QMenu('&View', self)
         self.menuBar().addMenu(self.view_menu)
@@ -78,7 +80,7 @@ class Application(QMainWindow):
 
         self.sheet_menu = QMenu('&Sheet', self)
         self.menuBar().addMenu(self.sheet_menu)
-        self.sheet_menu.addAction('&Add', self.addSheet)
+        self.sheet_menu.addAction('&Add', self.add_sheet)
 
         self.tools_menu = QMenu('&Tools', self)
         self.tools_menu.addAction('&Table Info', lambda: self._call('info'),
@@ -104,11 +106,12 @@ class Application(QMainWindow):
     def _call(self, func, **args):
         """Call a table function from it's string name"""
 
-        table = self.getCurrentTable()
+        table = self.get_current_table()
         getattr(table, func)(**args)
         return
 
     def _check_snap(self):
+
         if os.environ.has_key('SNAP_USER_COMMON'):
             print ('running inside snap')
             return True
@@ -124,7 +127,7 @@ class Application(QMainWindow):
                 t.showAll()
         return
 
-    def newProject(self, data=None):
+    def new_project(self, data=None):
         """New project"""
 
         self.main.clear()
@@ -140,9 +143,9 @@ class Application(QMainWindow):
                     meta = data[s]['meta']
                 else:
                     meta=None
-                self.addSheet(s, df, meta)
+                self.add_sheet(s, df, meta)
         else:
-            self.addSheet()
+            self.add_sheet()
 
         return
 
@@ -182,7 +185,7 @@ class Application(QMainWindow):
             print ('no such file')
             self.quit()
             return
-        self.newProject(data)
+        self.new_project(data)
         self.filename = filename
         self.main.title('%s - DataExplore' %filename)
         self.projopen = True
@@ -250,7 +253,7 @@ class Application(QMainWindow):
 
         return meta
 
-    def addSheet(self, name=None, df=None, meta=None):
+    def add_sheet(self, name=None, df=None, meta=None):
         """Add a new sheet"""
 
         names = self.sheets.keys()
@@ -271,7 +274,7 @@ class Application(QMainWindow):
         self.main.setCurrentIndex(idx)
         return
 
-    def removeSheet(self, name):
+    def remove_sheet(self, name):
         del self.sheets[name]
         return
 
@@ -284,10 +287,10 @@ class Application(QMainWindow):
         """
 
         if hasattr(self,'sheets'):
-            self.addSheet(sheetname=name, df=df, select=select)
+            self.add_sheet(sheetname=name, df=df, select=select)
         else:
             data = {name:{'table':df}}
-            self.newProject(data)
+            self.new_project(data)
         return
 
     def load_pickle(self, filename):
@@ -311,25 +314,25 @@ class Application(QMainWindow):
             ok=True
         if ok:
             df = util.getSampleData(rows,5)
-            self.addSheet(None,df)
+            self.add_sheet(None,df)
         return
 
-    def getCurrentTable(self):
+    def get_current_table(self):
 
         idx = self.main.currentIndex()
-        table = self.sheets[idx].table
+        table = self.sheets[idx]#.table
         return table
 
     def zoomIn(self):
 
-        table = self.getCurrentTable()
-        table.zoomIn()
+        w = self.get_current_table()
+        w.table.zoomIn()
         return
 
     def zoomOut(self):
 
-        table = self.getCurrentTable()
-        table.zoomOut()
+        w = self.get_current_table()
+        w.table.zoomOut()
         return
 
     def online_documentation(self,event=None):

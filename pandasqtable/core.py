@@ -56,6 +56,7 @@ class DataFrameWidget(QWidget):
         return
 
     def createToolbar(self):
+
         self.toolbar = ToolBar(self)
         self.setLayout(self.layout)
         self.layout.addWidget(self.toolbar, 1, 2)
@@ -86,7 +87,7 @@ class DataFrameWidget(QWidget):
         return
 
     def plot(self):
-        self.table.pf.replot()
+        self.pf.replot()
         return
 
     def redraw(self):
@@ -98,11 +99,6 @@ class DataFrameWidget(QWidget):
         if self.pf == None:
             self.pf = plotting.PlotViewer(table=self.table, parent=parent)
         return self.pf
-
-    def pivot(self):
-        """Pivot table"""
-
-        return
 
     def info(self):
 
@@ -163,7 +159,7 @@ class DataFrameWidget(QWidget):
 
         self.table.model.df = df
         #print (df)
-        #self.redraw()
+        self.table.refresh()
         return
 
     def convertNumeric(self):
@@ -183,14 +179,18 @@ class DataFrameWidget(QWidget):
                                                         'tooltip':' '},
                }
         dlg = dialogs.MultipleInputDialog(self, opts, title='Convert Numeric')
+        dlg.exec_()
+        if not dlg.accepted:
+            return
+        kwds = dlg.values
 
-        convtype = d.results[0]
-        currency = d.results[1]
-        removetext = d.results[2]
-        useselected = d.results[3]
-        fillempty = d.results[4]
+        convtype = kwds['convert to']
+        currency = kwds['convert currency']
+        removetext = kwds['removetext']
+        useselected = kwds['selected columns only']
+        fillempty = kwds['fill empty']
 
-        cols = self.multiplecollist
+        #cols = self.table.multiplecollist
         df = self.table.model.df
         if useselected == 1:
             colnames = df.columns[cols]
@@ -205,10 +205,10 @@ class DataFrameWidget(QWidget):
                 x = x.replace( '[\$\£\€,)]','', regex=True ).replace( '[(]','-', regex=True )
             if removetext == 1:
                 x = x.replace( '[^\d.]+', '', regex=True)
-            self.model.df[c] = pd.to_numeric(x, errors='coerce').astype(convtype)
+            self.table.model.df[c] = pd.to_numeric(x, errors='coerce').astype(convtype)
 
-        self.redraw()
-        self.tableChanged()
+        self.table.refresh()
+        #self.tableChanged()
         return
 
     def showasText(self):
@@ -216,6 +216,10 @@ class DataFrameWidget(QWidget):
         return
 
     def convertColumnNames(self):
+
+        return
+
+    def merge(self):
 
         return
 
@@ -290,7 +294,7 @@ class DataFrameTable(QTableView):
         self.model.dataChanged.emit(0,0)
         self.model.endResetModel()
         return
-        
+
     def showSelection(self, item):
 
         cellContent = item.data()
@@ -472,6 +476,31 @@ class DataFrameTable(QTableView):
             self.refresh()
         return
 
+    def transpose(self):
+
+        self.model.df = self.model.df.T
+        self.refresh()
+        return
+
+    def pivot(self):
+        """Pivot table"""
+
+        self.model.df
+        self.refresh()
+        return
+
+    def aggregate(self):
+        """Groupby aggregate operation"""
+
+        self.refresh()
+        return
+
+    def melt(self):
+        """Melt table"""
+
+        self.refresh()
+        return
+
     def importFile(self):
         dialogs.ImportDialog(self)
         return
@@ -573,11 +602,11 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         return
 
 class ToolBar(QWidget):
-    """Toolbar class"""
-    def __init__(self, table, parent=None):
+    """Toolbar class for side buttons"""
+    def __init__(self, app, parent=None):
         super(ToolBar, self).__init__(parent)
         self.parent = parent
-        self.table = table
+        self.app = app
         self.layout = QVBoxLayout()
         self.layout.setAlignment(QtCore.Qt.AlignTop)
         self.layout.setContentsMargins(2,2,2,2)
@@ -587,24 +616,37 @@ class ToolBar(QWidget):
         return
 
     def createButtons(self):
+        """Toolbar buttons"""
 
-        funcs = {'load':self.table.load, 'save':self.table.save,
-                 'importexcel': self.table.load,
-                 'copy':self.table.copy, 'paste':self.table.paste,
-                 'plot':self.table.plot,
-                 'transpose':self.table.pivot,
-                 'pivot':self.table.pivot}
+        funcs = {'load':self.app.load, 'save':self.app.save,
+                 'importexcel': self.app.load,
+                 'copy':self.app.copy, 'paste':self.app.paste,
+                 'plot':self.app.plot,
+                 'transpose':self.app.table.transpose,
+                 'aggregate':self.app.table.aggregate,
+                 'pivot':self.app.table.pivot,
+                 'melt':self.app.table.melt,
+                 'merge':self.app.merge}
         icons = {'load': 'document-new', 'save': 'document-save-as',
                  'importexcel': 'x-office-spreadsheet',
                  'copy': 'edit-copy', 'paste': 'edit-paste',
                  'plot':'insert-image',
                  'transpose':'object-rotate-right',
-                 'pivot': 'edit-undo',
+                 'aggregate':'',
+                 'pivot': 'object-flip-horizontal',
+                 'melt':'', 'merge':'insert-object',
                  }
+        tooltips = {'load':'load table','importexcel':'import excel file',
+                    'transpose':'transpose table', 'aggregate':'groupby-aggregate',
+                    'pivot':'pivot table','melt':'melt table',
+                    'merge':'merge two tables'}
         for name in funcs:
-            self.addButton(name, funcs[name], icons[name])
+            tip=None
+            if name in tooltips:
+                tip=tooltips[name]
+            self.addButton(name, funcs[name], icons[name], tip)
 
-    def addButton(self, name, function, icon):
+    def addButton(self, name, function, icon, tooltip=None):
 
         layout=self.layout
         button = QPushButton(name)
@@ -613,6 +655,8 @@ class ToolBar(QWidget):
         iconw = QIcon.fromTheme(icon)
         button.setIcon(QIcon(iconw))
         button.setIconSize(QtCore.QSize(20,20))
+        if tooltip is not None:
+            button.setToolTip(tooltip)
         button.clicked.connect(function)
         button.setMinimumWidth(30)
         layout.addWidget(button)
