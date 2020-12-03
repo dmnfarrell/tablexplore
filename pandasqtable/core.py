@@ -29,6 +29,9 @@ import numpy as np
 import pandas as pd
 import string
 
+module_path = os.path.dirname(os.path.abspath(__file__))
+iconpath = os.path.join(module_path, 'icons')
+
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
@@ -47,10 +50,13 @@ class DataFrameWidget(QWidget):
     def __init__(self, parent=None, dataframe=None, *args):
 
         super(DataFrameWidget, self).__init__()
-        l = self.layout = QGridLayout()
+
+        self.splitter = QSplitter(self, Qt.Vertical)
+        l = self.layout = QHBoxLayout()
         l.setSpacing(2)
-        self.table = DataFrameTable(self, dataframe)
-        l.addWidget(self.table, 1, 1)
+        l.addWidget(self.splitter)
+        self.table = DataFrameTable(self.splitter, dataframe)
+        self.splitter.addWidget(self.table)
         self.createToolbar()
         self.pf = None
         return
@@ -59,7 +65,7 @@ class DataFrameWidget(QWidget):
 
         self.toolbar = ToolBar(self)
         self.setLayout(self.layout)
-        self.layout.addWidget(self.toolbar, 1, 2)
+        self.layout.addWidget(self.toolbar)
 
     def load(self, filename=None):
         return
@@ -67,17 +73,20 @@ class DataFrameWidget(QWidget):
     def save(self):
         return
 
-    def importFile(self, filename=None, dialog=False, **kwargs):
+    def importFile(self, filename=None, dialog=True, **kwargs):
 
         if dialog is True:
             options = QFileDialog.Options()
             filename, _ = QFileDialog.getOpenFileName(self,"Import File",
-                                                      "","All Files (*);;Text Files (*.txt);;CSV files (*.csv)",
+                                                      "","CSV files (*.csv);;Text Files (*.txt);;All Files (*)",
                                                       options=options)
 
-
-            df = pd.read_csv(filename, **kwargs)
-            self.table.model.df = df
+            dlg = dialogs.ImportDialog(self, filename)
+            dlg.exec_()
+            if not dlg.accepted:
+                return
+            self.table.model.df = dlg.df
+            self.table.refresh()
         return
 
     def copy(self):
@@ -223,22 +232,56 @@ class DataFrameWidget(QWidget):
 
         return
 
-    def createChildTable(self, df, title=None, index=False, out=False):
+    def transpose(self):
+
+        self.table.model.df = self.table.model.df.T
+        self.table.refresh()
+        return
+
+    def pivot(self):
+        """Pivot table"""
+
+        self.table.model.df
+        self.refresh()
+        return
+
+    def aggregate(self):
+        """Groupby aggregate operation"""
+
+        dlg = dialogs.AggregateDialog(self, self.table.model.df)
+        dlg.exec_()
+        if not dlg.accepted:
+            return
+
+    def melt(self):
+        """Melt table"""
+
+        self.refresh()
+        return
+
+    def sub_table_from_selection(self):
+
+        df = self.table.model.df
+        self.create_sub_table(df)
+        return
+
+    def create_sub_table(self, df, title=None, index=False, out=False):
         """Add the child table"""
 
-        self.closeChildTable()
-        if out == True:
-            win = QWindow()
-        else:
-            win = QWidget(self.parentframe)
+        #self.closeChildTable()
+        #if out == True:
+        #    win = QWindow()
+        #else:
+        #    win = QWidget(self.parentframe)
 
-        self.childframe = win
-        newtable = self.__class__(win, dataframe=df, showtoolbar=0, showstatusbar=1)
-        newtable.parenttable = self
-        newtable.adjustColumnWidths()
+        #self.childframe = win
+        newtable = DataFrameTable(self.splitter, df)
+        #newtable = self.__class__(win, dataframe=df, showtoolbar=0, showstatusbar=1)
+        #newtable.parenttable = self
         newtable.show()
-        toolbar = ChildToolBar(win, newtable)
-        toolbar.grid(row=0,column=3,rowspan=2,sticky='news')
+        self.splitter.addWidget(newtable)
+        #toolbar = ChildToolBar(win, newtable)
+
         self.child = newtable
         if hasattr(self, 'pf'):
             newtable.pf = self.pf
@@ -476,35 +519,6 @@ class DataFrameTable(QTableView):
             self.refresh()
         return
 
-    def transpose(self):
-
-        self.model.df = self.model.df.T
-        self.refresh()
-        return
-
-    def pivot(self):
-        """Pivot table"""
-
-        self.model.df
-        self.refresh()
-        return
-
-    def aggregate(self):
-        """Groupby aggregate operation"""
-
-        self.refresh()
-        return
-
-    def melt(self):
-        """Melt table"""
-
-        self.refresh()
-        return
-
-    def importFile(self):
-        dialogs.ImportDialog(self)
-        return
-
     def zoomIn(self, fontsize=None):
 
         if fontsize == None:
@@ -622,24 +636,28 @@ class ToolBar(QWidget):
                  'importexcel': self.app.load,
                  'copy':self.app.copy, 'paste':self.app.paste,
                  'plot':self.app.plot,
-                 'transpose':self.app.table.transpose,
-                 'aggregate':self.app.table.aggregate,
-                 'pivot':self.app.table.pivot,
-                 'melt':self.app.table.melt,
-                 'merge':self.app.merge}
+                 'transpose':self.app.transpose,
+                 'aggregate':self.app.aggregate,
+                 'pivot':self.app.pivot,
+                 'melt':self.app.melt,
+                 'merge':self.app.merge,
+                 'subtable':self.app.sub_table_from_selection}
         icons = {'load': 'document-new', 'save': 'document-save-as',
-                 'importexcel': 'x-office-spreadsheet',
-                 'copy': 'edit-copy', 'paste': 'edit-paste',
-                 'plot':'insert-image',
-                 'transpose':'object-rotate-right',
-                 'aggregate':'',
-                 'pivot': 'object-flip-horizontal',
-                 'melt':'', 'merge':'insert-object',
+                 'importexcel': 'excel',
+                 'copy': 'copy', 'paste': 'paste',
+                 'plot':'plot',
+                 'transpose':'transpose',
+                 'aggregate':'aggregate',
+                 'pivot': 'pivot',
+                 'melt':'melt', 'merge':'merge',
+                 'subtable':'subtable'
                  }
         tooltips = {'load':'load table','importexcel':'import excel file',
+                    'copy':'copy','paste':'paste',
                     'transpose':'transpose table', 'aggregate':'groupby-aggregate',
                     'pivot':'pivot table','melt':'melt table',
-                    'merge':'merge two tables'}
+                    'merge':'merge two tables',
+                    'subtable':'sub-table from selection'}
         for name in funcs:
             tip=None
             if name in tooltips:
@@ -647,16 +665,22 @@ class ToolBar(QWidget):
             self.addButton(name, funcs[name], icons[name], tip)
 
     def addButton(self, name, function, icon, tooltip=None):
+        """Add named button"""
 
         layout=self.layout
         button = QPushButton(name)
-        button.setGeometry(QtCore.QRect(30,40,30,40))
+        button.setGeometry(QtCore.QRect(30,30,30,30))
         button.setText('')
-        iconw = QIcon.fromTheme(icon)
-        button.setIcon(QIcon(iconw))
-        button.setIconSize(QtCore.QSize(20,20))
+        iconfile = os.path.join(iconpath,icon+'.png')
+        if os.path.exists(iconfile):
+            button.setIcon(QIcon(iconfile))
+        else:
+            iconw = QIcon.fromTheme(icon)
+            button.setIcon(QIcon(iconw))
+        button.setIconSize(QtCore.QSize(26,26))
         if tooltip is not None:
             button.setToolTip(tooltip)
         button.clicked.connect(function)
         button.setMinimumWidth(30)
         layout.addWidget(button)
+        return

@@ -24,6 +24,7 @@ import math, time
 import os, types
 import string, copy
 from collections import OrderedDict
+import pandas as pd
 try:
     import configparser
 except:
@@ -182,6 +183,38 @@ def setWidgetValues(widgets, values):
                 w.setValue(val)
     return
 
+class PlainTextEditor(QPlainTextEdit):
+    def __init__(self, parent=None, **kwargs):
+        super(PlainTextEditor, self).__init__(parent, **kwargs)
+        font = QFont("Monospace")
+        font.setPointSize(10)
+        font.setStyleHint(QFont.TypeWriter)
+        self.setFont(font)
+        return
+
+    def zoom(self, delta):
+        if delta < 0:
+            self.zoomOut(1)
+        elif delta > 0:
+            self.zoomIn(1)
+
+    def contextMenuEvent(self, event):
+
+        menu = QMenu(self)
+        copyAction = menu.addAction("Copy")
+        clearAction = menu.addAction("Clear")
+        zoominAction = menu.addAction("Zoom In")
+        zoomoutAction = menu.addAction("Zoom Out")
+        action = menu.exec_(self.mapToGlobal(event.pos()))
+        if action == copyAction:
+            self.copy()
+        elif action == clearAction:
+            self.clear()
+        elif action == zoominAction:
+            self.zoom(1)
+        elif action == zoomoutAction:
+            self.zoom(-1)
+
 class TextDialog(QDialog):
     """Text edit dialog"""
     def __init__(self, parent, text='', title='Text'):
@@ -208,7 +241,7 @@ class MultipleInputDialog(QDialog):
         super(MultipleInputDialog, self).__init__(parent)
         self.values = None
         self.accepted = False
-        self.setMinimumSize(440, 300)
+        self.setMinimumSize(500, 300)
         self.setWindowTitle(title)
         dialog, self.widgets = dialogFromOptions(self, options)
         vbox = QVBoxLayout(self)
@@ -228,7 +261,7 @@ class MultipleInputDialog(QDialog):
         return
 
 class ImportDialog(QDialog):
-    """Provides a frame for figure canvas and MPL settings"""
+    """Provides a dialog for import settings"""
 
     def __init__(self, parent=None, filename=None):
 
@@ -242,24 +275,28 @@ class ImportDialog(QDialog):
         self.setWindowTitle('Import File')
         self.createWidgets()
         self.setGeometry(QtCore.QRect(250, 250, 900, 600))
+
+        self.update()
         self.show()
         return
 
     def createWidgets(self):
+        """Create widgets"""
+
         delimiters = [',',r'\t',' ',';','/','&','|','^','+','-']
         encodings = ['utf-8','ascii','iso8859_15','cp037','cp1252','big5','euc_jp']
         timeformats = ['infer','%d/%m/%Y','%Y/%m/%d','%Y/%d/%m',
                         '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
                         '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
         grps = {'formats':['delimiter','decimal','comment'],
-                'data':['header','skiprows','index_col','skipinitialspace',
+                'data':['skiprows','index_col','skipinitialspace',
                         'skip_blank_lines','parse_dates','time format','encoding','names'],
                 'other':['rowsperfile']}
         grps = OrderedDict(sorted(grps.items()))
         opts = self.opts = {'delimiter':{'type':'combobox','default':',',
                         'items':delimiters, 'tooltip':'seperator'},
-                     'header':{'type':'entry','default':0,'label':'header',
-                               'tooltip':'position of column header'},
+                     #'header':{'type':'entry','default':0,'label':'header',
+                     #          'tooltip':'position of column header'},
                      'index_col':{'type':'entry','default':'','label':'index col',
                                 'tooltip':''},
                      'decimal':{'type':'combobox','default':'.','items':['.',','],
@@ -286,12 +323,11 @@ class ImportDialog(QDialog):
                                 'tooltip':'col labels'},
                      }
 
-        optsframe, widgets = dialogFromOptions(self, opts, grps, wrap=2, section_wrap=1)
+        optsframe, self.widgets = dialogFromOptions(self, opts, grps, wrap=1, section_wrap=1)
         layout = QGridLayout()
         layout.setColumnStretch(1,2)
         layout.addWidget(optsframe,1,1)
-        optsframe.setMaximumWidth(250)
-        #optsframe.resize(50,300)
+        optsframe.setMaximumWidth(300)
         bf = self.createButtons(optsframe)
         layout.addWidget(bf,2,1)
 
@@ -299,7 +335,7 @@ class ImportDialog(QDialog):
         main.setOrientation(QtCore.Qt.Vertical)
         layout.addWidget(main,1,2,2,1)
 
-        self.textarea = QPlainTextEdit(main)
+        self.textarea = PlainTextEditor(main)
         main.addWidget(self.textarea)
         self.textarea.resize(200,200)
         from .core import DataFrameTable
@@ -331,39 +367,24 @@ class ImportDialog(QDialog):
                 text = stream.read()
             except:
                 text = 'failed to preview, check encoding and then update preview'
-        self.textpreview.delete('1.0', END)
-        self.textpreview.insert('1.0', text)
+        self.textarea.insertPlainText(text)
+        self.textarea.verticalScrollBar().setValue(1)
         return
 
     def update(self):
         """Reload previews"""
 
-        kwds = {}
-        other = ['rowsperfile','time format']
-        for i in self.opts:
-            if i in other:
-                continue
-            try:
-                val = self.tkvars[i].get()
-            except:
-                val=None
-            if val == '':
-                val=None
-            if self.opts[i]['type'] == 'checkbutton':
-                val = bool(val)
-            elif type(self.opts[i]['default']) != int:
-                try:
-                    val=int(val)
-                except:
-                    pass
-            kwds[i] = val
-        self.kwds = kwds
-        timeformat = self.tkvars['time format'].get()
-        dateparse = lambda x: pd.datetime.strptime(x, timeformat)
         self.showText()
+        self.values = getWidgetValues(self.widgets)
+        timeformat = self.values['time format']
+        dateparse = lambda x: pd.datetime.strptime(x, timeformat)
+        del self.values['time format']
+        del self.values['rowsperfile']
+        print (self.values)
+
         try:
             f = pd.read_csv(self.filename, chunksize=400, error_bad_lines=False,
-                        warn_bad_lines=False, date_parser=dateparse, **kwds)
+                        warn_bad_lines=False, date_parser=dateparse)#, **self.values)
         except Exception as e:
             print ('read csv error')
             print (e)
@@ -374,20 +395,128 @@ class ImportDialog(QDialog):
             print ('parser error')
             df = pd.DataFrame()
 
-        model = TableModel(dataframe=df)
-        self.previewtable.updateModel(model)
-        self.previewtable.showIndex()
-        self.previewtable.redraw()
+        self.previewtable.model.df = df
+        self.previewtable.refresh()
         return
 
     def doImport(self):
         """Do the import"""
 
         self.update()
-        self.df = pd.read_csv(self.filename, **self.kwds)
-        self.quit()
+        self.df = pd.read_csv(self.filename)#, **self.values)
+        self.close()
         return
 
     def quit(self):
         self.main.destroy()
+        return
+
+class AggregateDialog(QDialog):
+    """Qdialog with multiple inputs"""
+    def __init__(self, parent, df):
+
+        from .core import DataFrameTable
+        super(AggregateDialog, self).__init__(parent)
+        self.parent = parent
+        self.df = df
+
+        self.setWindowTitle('Groupby-Aggregate')
+        self.createWidgets()
+        self.setGeometry(QtCore.QRect(350, 200, 900, 600))
+
+        self.show()
+        return
+
+    def createWidgets(self):
+        """Create widgets"""
+
+        cols = list(self.df.columns)
+        funcs = ['sum','mean','size','std','min','max','var']
+        vbox = QHBoxLayout(self)
+        main = QWidget(self)
+        main.setMaximumWidth(300)
+        vbox.addWidget(main)
+
+        l = QVBoxLayout(main)
+        w = self.groupbyw = QListWidget(main)
+        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        w.addItems(cols)
+        l.addWidget(QLabel('Group by'))
+        l.addWidget(w)
+        w = self.aggw = QListWidget(main)
+        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        w.addItems(cols)
+        l.addWidget(QLabel('Aggregate on'))
+        l.addWidget(w)
+        w = self.funcw = QListWidget(main)
+        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        w.addItems(funcs)
+        l.addWidget(QLabel('Functions'))
+        l.addWidget(w)
+
+        from . import app
+        self.table = app.DataFrameTable(self)
+        vbox.addWidget(self.table)
+        bf = self.createButtons(self)
+        vbox.addWidget(bf)
+        return
+
+    def createButtons(self, parent):
+
+        bw = self.button_widget = QWidget(parent)
+        vbox = QVBoxLayout(bw)
+        vbox.addWidget(QLabel('map cols to functions'))
+        mapcolsbtn = QCheckBox()
+        vbox.addWidget(mapcolsbtn)
+        button = QPushButton("Apply")
+        button.clicked.connect(self.apply)
+        vbox.addWidget(button)
+        button = QPushButton("Copy to sub-table")
+        button.clicked.connect(self.copy_to_subtable)
+        vbox.addWidget(button)
+        button = QPushButton("Copy to new sheet")
+        button.clicked.connect(self.copy_to_sheet)
+        vbox.addWidget(button)
+        button = QPushButton("Export result")
+        button.clicked.connect(self.export)
+        vbox.addWidget(button)
+        button = QPushButton("Close")
+        button.clicked.connect(self.close)
+        vbox.addWidget(button)
+        return bw
+
+    def apply(self):
+        """Do the operation"""
+
+        grpcols = [i.text() for i in self.groupbyw.selectedItems()]
+        aggcols =[i.text() for i in self.aggw.selectedItems()]
+        funcs = [i.text() for i in self.funcw.selectedItems()]
+        aggdict = {}
+
+        if len(funcs)==1: funcs=funcs[0]
+        for a in aggcols:
+            aggdict[a] = funcs
+
+        res = self.df.groupby(grpcols).agg(aggdict).reset_index()
+        self.table.model.df = res
+        self.table.refresh()
+        return
+
+    def copy_to_subtable(self):
+        """Do the operation"""
+
+        df = self.table.model.df
+        self.parent.create_sub_table(df)
+        return
+
+    def copy_to_sheet(self):
+
+        return
+
+    def export(self):
+
+        return
+
+    def close(self):
+        self.destroy()
         return

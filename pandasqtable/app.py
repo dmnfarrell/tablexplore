@@ -64,7 +64,7 @@ class Application(QMainWindow):
                 QtCore.Qt.CTRL + QtCore.Qt.Key_O)
         self.file_menu.addAction('&Save', self.save_project,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_S)
-        self.file_menu.addAction('&Import', lambda: self._call('importFile', dialog=True))
+        self.file_menu.addAction('&Import', self.import_file)
         self.file_menu.addAction('&Quit', self.fileQuit,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
         self.menuBar().addMenu(self.file_menu)
@@ -75,8 +75,10 @@ class Application(QMainWindow):
 
         self.view_menu = QMenu('&View', self)
         self.menuBar().addMenu(self.view_menu)
-        self.view_menu.addAction('&Zoom In', self.zoomIn)
-        self.view_menu.addAction('&Zoom Out', self.zoomOut)
+        self.view_menu.addAction('&Zoom In', self.zoomIn,
+                QtCore.Qt.CTRL + QtCore.Qt.Key_Equal)
+        self.view_menu.addAction('&Zoom Out', self.zoomOut,
+                QtCore.Qt.CTRL + QtCore.Qt.Key_Minus)
 
         self.sheet_menu = QMenu('&Sheet', self)
         self.menuBar().addMenu(self.sheet_menu)
@@ -253,6 +255,13 @@ class Application(QMainWindow):
 
         return meta
 
+    def import_file(self):
+
+        self.add_sheet()
+        w = self.get_current_table()
+        w.importFile()
+        return
+
     def add_sheet(self, name=None, df=None, meta=None):
         """Add a new sheet"""
 
@@ -385,6 +394,8 @@ def main():
     aw = Application()
     aw.show()
     app.exec_()
+    #if opts.csv != None:
+    #    t = app.import_file()
 
 if __name__ == '__main__':
     main()
