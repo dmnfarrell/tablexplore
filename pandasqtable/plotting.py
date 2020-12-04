@@ -46,6 +46,9 @@ from .dialogs import *
 import logging
 from . import util
 
+module_path = os.path.dirname(os.path.abspath(__file__))
+iconpath = os.path.join(module_path, 'icons')
+
 colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
 markers = ['','o','.','^','v','>','<','s','+','x','p','d','h','*']
 linestyles = ['-','--','-.',':','steps']
@@ -83,6 +86,20 @@ valid_kwds = {'line': ['alpha', 'colormap', 'grid', 'legend', 'linestyle','ms',
             'radviz': ['linewidth','marker','edgecolor','s','colormap','alpha']
             }
 
+style = '''
+    QLabel {
+        font-size: 10px;
+    }
+    QWidget {
+        max-width: 250px;
+        min-width: 60px;
+        font-size: 14px;
+    }
+    QPlainTextEdit {
+        max-height: 80px;
+    }
+'''
+
 class PlotViewer(QWidget):
     """Plot viewer class"""
     def __init__(self, table, parent=None):
@@ -96,41 +113,49 @@ class PlotViewer(QWidget):
     def createWidgets(self):
         """Create widgets"""
 
-        self.main = QSplitter(self)
-        self.vbox = vbox = QVBoxLayout()
-        self.fig, self.canvas = addFigure(self)
+        self.main = QSplitter(Qt.Horizontal, self)
+        left = QWidget(self.main)
+        self.main.addWidget(left)
+        vbox1 = QVBoxLayout(left)
+        self.fig, self.canvas = addFigure(left)
         self.ax = self.fig.add_subplot(111)
-        vbox.addWidget(self.canvas)
-        bw = self.createButtons(self)
-        vbox.addWidget(bw)
-        sizepolicy = QSizePolicy()
-        sizepolicy.setHorizontalStretch(0)
-        sizepolicy.setVerticalStretch(0)
-        bw.setSizePolicy(sizepolicy)
-        ow = self.createDialogs()
-        vbox.addWidget(ow)
-        self.setLayout(vbox)
-        vbox.setSpacing(2)
+        vbox1.addWidget(self.canvas)
 
-        ow.setSizePolicy(sizepolicy)
-        #self.plot()
+        bw = self.createButtons(left)
+        vbox1.addWidget(bw)
+        self.sidebar = QWidget(self)
+        self.sidebar.setMaximumWidth(300)
+        self.main.addWidget(self.sidebar)
+        #self.main.setSizes((300,300))
+
+        vbox2 = QVBoxLayout(self.sidebar)
+
+        sizepolicy = QSizePolicy()
+        sizepolicy.setHorizontalStretch(1)
+        sizepolicy.setVerticalStretch(1)
+        self.main.setSizePolicy(sizepolicy)
+        ow = self.createDialogs(self.sidebar)
+        #ow.setMaximumHeight(800)
+        vbox2.addWidget(ow)
         return
 
-    def createDialogs(self):
+    def createDialogs(self, parent):
+        """Create widgets"""
 
-        tab = QTabWidget(self)
+        tab = QTabWidget(parent)
         w = QWidget(tab)
         idx = tab.addTab(w, 'general')
         self.generalopts = MPLBaseOptions(parent=self)
-        dialog = self.generalopts.showDialog(w, wrap=2)
+        dialog = self.generalopts.showDialog(w, wrap=2, section_wrap=1)
         dialog.resize(200,200)
         l=QVBoxLayout(w)
         l.addWidget(dialog)
 
         w = QWidget(tab)
+        w.setStyleSheet(style)
         idx = tab.addTab(w, 'labels')
         self.labelopts = AnnotationOptions(parent=self)
-        dialog = self.labelopts.showDialog(w, wrap=2)
+        dialog = self.labelopts.showDialog(w, wrap=2, section_wrap=1)
         dialog.resize(200,200)
         l=QVBoxLayout(w)
         l.addWidget(dialog)
@@ -138,23 +163,26 @@ class PlotViewer(QWidget):
         w = QWidget(tab)
         idx = tab.addTab(w, 'axes')
         self.axesopts = AxesOptions(parent=self)
-        dialog = self.axesopts.showDialog(w, wrap=2)
+        dialog = self.axesopts.showDialog(w, wrap=2, section_wrap=1)
         dialog.resize(200,200)
         l=QVBoxLayout(w)
         l.addWidget(dialog)
         return tab
 
     def createButtons(self, parent):
+        """Create button widgets"""
 
-        buttons = {'Plot': {'action':self.plot,'icon':'insert-image'},
-                   #'Apply': {'action':self.clear,'icon':'SP_ArrowBack'},
+        buttons = {'Plot': {'action':self.plot,'icon':'plot'},
                    'Clear': {'action':self.clear,'icon':'view-restore'},
-                   'Zoom Out': {'action': lambda: self.zoom(zoomin=False),'icon':'zoom-out','label':''},
-                   'Zoom In': {'action':lambda: self.zoom(zoomin=True),'icon':'zoom-in','label':''},
+                   'Zoom Out': {'action': lambda: self.zoom(zoomin=False),
+                                'icon':'zoom-out','label':''},
+                   'Zoom In': {'action':lambda: self.zoom(zoomin=True),
+                                'icon':'zoom-in','label':''},
                    'Save': {'action':self.savePlot,'icon':'document-save'}
             }
         w=80; h=35
         bw = self.button_widget = QWidget(parent)
+        bw.setMaximumHeight(100)
         box = QHBoxLayout(bw)
         box.setContentsMargins(0,0,0,0)
         for b in buttons:
@@ -162,13 +190,20 @@ class PlotViewer(QWidget):
             btn.clicked.connect(buttons[b]['action'])
             btn.setMinimumSize(w,h)
             if 'icon' in buttons[b]:
-                btn.setIcon(QIcon.fromTheme(buttons[b]['icon']))
+                icon = buttons[b]['icon']
+                iconfile = os.path.join(iconpath,icon+'.png')
+                if os.path.exists(iconfile):
+                    btn.setIcon(QIcon(iconfile))
+                else:
+                    iconw = QIcon.fromTheme(icon)
+                    btn.setIcon(QIcon(iconw))
             if 'label' in buttons[b]:
                 btn.setText(buttons[b]['label'])
             box.addWidget(btn)
 
         self.globalopts = GlobalOptions(parent=self)
-        dialog = self.globalopts.showDialog(bw, wrap=6)
+        dialog = self.globalopts.showDialog(bw, wrap=1)
+        dialog.resize(200,200)
         box.addWidget(dialog)
         return bw
 
@@ -287,7 +322,7 @@ class PlotViewer(QWidget):
         """Clear figure or add a new axis to existing layout"""
 
         from matplotlib.gridspec import GridSpec
-        layout = self.globalopts.kwds['grid layout']
+        layout = 0 #self.globalopts.kwds['grid layout']
         plot3d = self.globalopts.kwds['3D plot']
 
         style = self.generalopts.kwds['style']
@@ -494,8 +529,8 @@ class PlotViewer(QWidget):
         elif type(axs) is list:
             self.ax = axs[0]
         self.fig.suptitle(kwds['title'], fontsize=kwds['fontsize']*1.2)
-        layout = self.globalopts.kwds['grid layout']
-        '''if layout == 0:
+        '''layout = self.globalopts.kwds['grid layout']
+        if layout == 0:
             for ax in self.fig.axes:
                 self.setAxisLabels(ax, kwds)
         else:
@@ -1011,7 +1046,6 @@ class PlotViewer(QWidget):
     def _checkNumeric(self, df):
         """Get only numeric data that can be plotted"""
 
-        #x = df.convert_objects()._get_numeric_data()
         x = df.apply( lambda x: pd.to_numeric(x,errors='ignore',downcast='float') )
         if x.empty==True:
             return False
@@ -1021,9 +1055,11 @@ def addFigure(parent, figure=None, resize_callback=None):
     """Create a tk figure and canvas in the parent frame"""
 
     if figure == None:
-        figure = Figure(figsize=(5,4), dpi=80, facecolor='white')
+        figure = Figure(figsize=(6,4), dpi=80, facecolor='white')
 
     canvas = FigureCanvas(figure)
+    canvas.setSizePolicy( QSizePolicy.Expanding,
+                          QSizePolicy.Expanding)
     canvas.updateGeometry()
     return figure, canvas
 
@@ -1048,14 +1084,20 @@ class BaseOptions(object):
             self.callback()
         return
 
-    def showDialog(self, parent, wrap=2):
-        """Auto create tk vars, widgets for corresponding options and
-           and return the frame"""
+    def showDialog(self, parent, wrap=2, section_wrap=2):
+        """Auto create widgets for corresponding options and
+           and return the dialog.
+          Args:
+            parent: parent frame
+            wrap: wrap for internal widgets
+        """
 
-        dialog, self.widgets = dialogFromOptions(parent, self.opts, self.groups, wrap=wrap)
+        dialog, self.widgets = dialogFromOptions(parent, self.opts, self.groups,
+                                wrap=wrap, section_wrap=section_wrap)
         return dialog
 
     def setWidgetValue(self, key, value):
+
         setWidgetValues(self.widgets, {key: value})
         self.applyOptions()
         return
@@ -1074,9 +1116,9 @@ class GlobalOptions(BaseOptions):
         """Setup variables"""
         self.parent = parent
 
-        self.groups = {'global': ['dpi','grid layout','3D plot']}
+        self.groups = {'global': ['dpi','3D plot']}
         self.opts = OrderedDict({ 'dpi': {'type':'spinbox','default':80,'width':4},
-                                 'grid layout': {'type':'checkbox','default':0,'label':'grid layout'},
+                                 #'grid layout': {'type':'checkbox','default':0,'label':'grid layout'},
                                  '3D plot': {'type':'checkbox','default':0,'label':'3D plot'}  })
         self.kwds = {}
         return

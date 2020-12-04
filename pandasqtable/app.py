@@ -279,7 +279,7 @@ class Application(QMainWindow):
         self.currenttable = dfw
         pf = dfw.createPlotViewer(sheet)
         l.addWidget(pf)
-        sheet.setSizes((600,200))
+        sheet.setSizes((500,600))
         self.main.setCurrentIndex(idx)
         return
 

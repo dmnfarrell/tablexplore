@@ -1,0 +1,48 @@
+name: dataexplore2
+version: 'latest'
+#version-script: git describe --abbrev=1 --tags
+summary: data plotting and analysis package
+description: |
+  DataExplore2 is an open source desktop application for data analysis and plotting
+  intended for use in both research and education. The program allows quick
+  visualization of data, table manipulation tools and supports large data tables.
+
+grade: stable
+confinement: strict
+icon: gui/icon.png
+
+architectures:
+  - build-on: amd64
+
+apps:
+  dataexplore2:
+    command: desktop-launch $SNAP/bin/dataexplore2
+    environment:
+      #PYTHONPATH: $SNAP/pyside/pyside
+      #LIBGL_DRIVERS_PATH: $SNAP/usr/lib/$ARCH/dri
+      XCOMPOSEFILE: $SNAP/usr/share/X11/locale/en_US.UTF-8/Compose
+      FONTCONFIG_PATH: $SNAP/etc/fonts/conf.d
+      FONTCONFIG_FILE: $SNAP/etc/fonts/fonts.conf
+    plugs:
+      - opengl
+      - desktop
+      - desktop-legacy
+      - unity7
+      - wayland
+      - x11
+      - home
+
+parts:
+  dataexplore2:
+    plugin: python
+    python-version: python3
+    source: .
+    stage-packages:
+      [ttf-ubuntu-font-family,fontconfig]
+    after: [desktop-glib-only]
+
+#layout:
+#  /usr/share/fonts:
+#    bind: $SNAP/pyside/usr/share/fonts
+#  /etc/fonts:
+#    bind: $SNAP/pyside/etc/fonts

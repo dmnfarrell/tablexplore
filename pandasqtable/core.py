@@ -50,8 +50,7 @@ class DataFrameWidget(QWidget):
     def __init__(self, parent=None, dataframe=None, *args):
 
         super(DataFrameWidget, self).__init__()
-
-        self.splitter = QSplitter(self, Qt.Vertical)
+        self.splitter = QSplitter(Qt.Vertical, self)        
         l = self.layout = QHBoxLayout()
         l.setSpacing(2)
         l.addWidget(self.splitter)
@@ -78,8 +77,8 @@ class DataFrameWidget(QWidget):
         if dialog is True:
             options = QFileDialog.Options()
             filename, _ = QFileDialog.getOpenFileName(self,"Import File",
-                                                      "","CSV files (*.csv);;Text Files (*.txt);;All Files (*)",
-                                                      options=options)
+                                 "","CSV files (*.csv);;Text Files (*.txt);;All Files (*)",
+                                 options=options)
 
             dlg = dialogs.ImportDialog(self, filename)
             dlg.exec_()
@@ -90,6 +89,9 @@ class DataFrameWidget(QWidget):
         return
 
     def copy(self):
+
+        df = self.table.getSelectedDataFrame()
+        df.to_clipboard()
         return
 
     def paste(self):
@@ -114,6 +116,11 @@ class DataFrameWidget(QWidget):
         buf = io.StringIO()
         self.table.model.df.info(verbose=True,buf=buf,memory_usage=True)
         td = dialogs.TextDialog(self, buf.getvalue(), 'Info')
+        return
+
+    def clear(self):
+        self.table.model.df = pd.DataFrame()
+        self.table.refresh()
         return
 
     def cleanData(self):
@@ -259,34 +266,40 @@ class DataFrameWidget(QWidget):
         self.refresh()
         return
 
+    def getSelectedDataFrame(self):
+        """Get selection as a dataframe"""
+
+        return self.table.getSelectedDataFrame()
+
     def sub_table_from_selection(self):
 
-        df = self.table.model.df
+        df = self.getSelectedDataFrame()
         self.create_sub_table(df)
         return
 
     def create_sub_table(self, df, title=None, index=False, out=False):
         """Add the child table"""
 
-        #self.closeChildTable()
-        #if out == True:
-        #    win = QWindow()
-        #else:
-        #    win = QWidget(self.parentframe)
+        self.close_subtable_table()
 
-        #self.childframe = win
         newtable = DataFrameTable(self.splitter, df)
-        #newtable = self.__class__(win, dataframe=df, showtoolbar=0, showstatusbar=1)
-        #newtable.parenttable = self
         newtable.show()
         self.splitter.addWidget(newtable)
         #toolbar = ChildToolBar(win, newtable)
 
-        self.child = newtable
+        self.subtable = newtable
         if hasattr(self, 'pf'):
             newtable.pf = self.pf
-        if index==True:
+        if index == True:
             newtable.showIndex()
+        return
+
+    def close_subtable_table(self):
+        if hasattr(self, 'subtable'):
+            w = self.splitter.widget(1)
+            w.deleteLater()
+            self.subtable = None
+
         return
 
 class DataFrameTable(QTableView):
@@ -358,14 +371,13 @@ class DataFrameTable(QTableView):
         return self.selectionModel().selectedColumns()
 
     def getSelectedDataFrame(self):
+        """Get selection as a dataframe"""
 
         df = self.model.df
-        #print (self.selectionModel().selectedRows())
         rows=[]
         for idx in self.selectionModel().selectedRows():
             rows.append(idx.row())
         cols=[]
-        #print (self.selectionModel().selectedColumns())
         return df.iloc[rows]
 
     def handleDoubleClick(self, item):
@@ -469,10 +481,6 @@ class DataFrameTable(QTableView):
 
     def setIndex(self):
 
-        return
-
-    def copy(self):
-        self.model.df
         return
 
     def addColumn(self):
@@ -641,7 +649,8 @@ class ToolBar(QWidget):
                  'pivot':self.app.pivot,
                  'melt':self.app.melt,
                  'merge':self.app.merge,
-                 'subtable':self.app.sub_table_from_selection}
+                 'subtable':self.app.sub_table_from_selection,
+                 'clear':self.app.clear}
         icons = {'load': 'document-new', 'save': 'document-save-as',
                  'importexcel': 'excel',
                  'copy': 'copy', 'paste': 'paste',
@@ -650,14 +659,15 @@ class ToolBar(QWidget):
                  'aggregate':'aggregate',
                  'pivot': 'pivot',
                  'melt':'melt', 'merge':'merge',
-                 'subtable':'subtable'
+                 'subtable':'subtable','clear':'clear'
                  }
         tooltips = {'load':'load table','importexcel':'import excel file',
                     'copy':'copy','paste':'paste',
                     'transpose':'transpose table', 'aggregate':'groupby-aggregate',
                     'pivot':'pivot table','melt':'melt table',
                     'merge':'merge two tables',
-                    'subtable':'sub-table from selection'}
+                    'subtable':'sub-table from selection',
+                    'clear':'clear table'}
         for name in funcs:
             tip=None
             if name in tooltips:

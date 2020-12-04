@@ -10,7 +10,7 @@ setup(
     version = '0.1.0',
     description = 'Library for qt tables using pandas DataFrames',
     long_description = long_description,
-    url='https://github.com/dmnfarrell/pandastable2',
+    url='https://github.com/dmnfarrell/pandasqtable',
     license='GPL v3',
     author = 'Damien Farrell',
     author_email = 'farrell.damien@gmail.com',
@@ -19,9 +19,8 @@ setup(
                                   'datasets/*.csv']},
     install_requires=['matplotlib>=2.0',
                       'pandas>=0.20',
-                      'PySide2'],
-                      #'xlrd>=0.9',
-                      #'future'],
+                      'PySide2',
+                      'xlrd>=0.9']
     entry_points = { 'gui_scripts': [
                      'dataexplore2 = pandasqtable.app:main']},
     classifiers = ['Operating System :: OS Independent',

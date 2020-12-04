@@ -35,7 +35,7 @@ from PySide2.QtWidgets import *
 from PySide2.QtGui import *
 
 def dialogFromOptions(parent, opts, sections=None,
-                      sticky='news', wrap=2, section_wrap=5):
+                      sticky='news', wrap=2, section_wrap=4):
     """Get Qt widgets dialog from a dictionary of options"""
 
     sizepolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -44,7 +44,7 @@ def dialogFromOptions(parent, opts, sections=None,
 
     style = '''
     QLabel {
-        font-size: 12px;
+        font-size: 10px;
     }
     QWidget {
         max-width: 250px;
@@ -54,7 +54,6 @@ def dialogFromOptions(parent, opts, sections=None,
     QPlainTextEdit {
         max-height: 80px;
     }
-
     '''
 
     if sections == None:
@@ -65,16 +64,17 @@ def dialogFromOptions(parent, opts, sections=None,
     dialog.setSizePolicy(sizepolicy)
 
     l = QGridLayout(dialog)
-    l.setSpacing(2)
+    l.setSpacing(1)
     l.setAlignment(QtCore.Qt.AlignLeft)
     scol=1
+    srow=1
     for s in sections:
-        row=1
+        row=srow
         col=1
         f = QWidget()
         f.resize(50,100)
         f.sizeHint()
-        l.addWidget(f,1,scol)
+        l.addWidget(f,row,scol)
         gl = QGridLayout(f)
         gl.setAlignment(QtCore.Qt.AlignTop)
         gl.setSpacing(10)
@@ -129,8 +129,10 @@ def dialogFromOptions(parent, opts, sections=None,
                 row+=1
             else:
                 col+=2
-        if scol > section_wrap:
+
+        if scol >= section_wrap:
             scol=1
+            srow+=2
         else:
             scol+=1
     return dialog, widgets
@@ -474,8 +476,8 @@ class AggregateDialog(QDialog):
         button = QPushButton("Copy to sub-table")
         button.clicked.connect(self.copy_to_subtable)
         vbox.addWidget(button)
-        button = QPushButton("Copy to new sheet")
-        button.clicked.connect(self.copy_to_sheet)
+        button = QPushButton("Copy to clipboard")
+        button.clicked.connect(self.copy_to_clipboard)
         vbox.addWidget(button)
         button = QPushButton("Export result")
         button.clicked.connect(self.export)
@@ -509,8 +511,10 @@ class AggregateDialog(QDialog):
         self.parent.create_sub_table(df)
         return
 
-    def copy_to_sheet(self):
+    def copy_to_clipboard(self):
 
+        df = self.table.model.df
+        df.to_clipboard()
         return
 
     def export(self):
