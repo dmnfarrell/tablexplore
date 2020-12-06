@@ -1,22 +1,20 @@
-name: dataexplore2
+name: tablexplore
 version: 'latest'
 #version-script: git describe --abbrev=1 --tags
 summary: data plotting and analysis package
 description: |
-  DataExplore2 is an open source desktop application for data analysis and plotting
+  tablexplore is an open source desktop application for data analysis and plotting
   intended for use in both research and education. The program allows quick
   visualization of data, table manipulation tools and supports large data tables.
 
+base: core18
 grade: stable
 confinement: strict
 icon: gui/icon.png
 
-architectures:
-  - build-on: amd64
-
 apps:
-  dataexplore2:
-    command: desktop-launch $SNAP/bin/dataexplore2
+  tablexplore:
+    command: desktop-launch $SNAP/bin/tablexplore
     environment:
       #PYTHONPATH: $SNAP/pyside/pyside
       #LIBGL_DRIVERS_PATH: $SNAP/usr/lib/$ARCH/dri
@@ -33,9 +31,8 @@ apps:
       - home
 
 parts:
-  dataexplore2:
+  tablexplore:
     plugin: python
-    python-version: python3
     source: .
     stage-packages:
       [ttf-ubuntu-font-family,fontconfig]

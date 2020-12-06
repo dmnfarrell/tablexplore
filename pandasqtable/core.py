@@ -39,6 +39,16 @@ except AttributeError:
         return s
 from . import config, dialogs, plotting, util
 
+icons = {'load': 'open', 'save': 'export',
+         'importexcel': 'excel',
+         'copy': 'copy', 'paste': 'paste',
+         'plot':'plot',
+         'transpose':'transpose',
+         'aggregate':'aggregate',
+         'pivot': 'pivot',
+         'melt':'melt', 'merge':'merge',
+         'subtable':'subtable','clear':'clear'
+         }
 
 class ColumnHeader(QHeaderView):
     def __init__(self):
@@ -47,17 +57,18 @@ class ColumnHeader(QHeaderView):
 
 class DataFrameWidget(QWidget):
     """Widget containing a tableview and toolbars"""
-    def __init__(self, parent=None, dataframe=None, *args):
+    def __init__(self, parent=None, dataframe=None, app=None, *args):
 
         super(DataFrameWidget, self).__init__()
-        self.splitter = QSplitter(Qt.Vertical, self)        
+        self.splitter = QSplitter(Qt.Vertical, self)
         l = self.layout = QHBoxLayout()
         l.setSpacing(2)
         l.addWidget(self.splitter)
-        self.table = DataFrameTable(self.splitter, dataframe)
+        self.table = DataFrameTable(self, dataframe)
         self.splitter.addWidget(self.table)
         self.createToolbar()
         self.pf = None
+        self.app = app
         return
 
     def createToolbar(self):
@@ -74,7 +85,7 @@ class DataFrameWidget(QWidget):
 
     def importFile(self, filename=None, dialog=True, **kwargs):
 
-        if dialog is True:
+        if dialog is True and filename == None:
             options = QFileDialog.Options()
             filename, _ = QFileDialog.getOpenFileName(self,"Import File",
                                  "","CSV files (*.csv);;Text Files (*.txt);;All Files (*)",
@@ -86,22 +97,27 @@ class DataFrameWidget(QWidget):
                 return
             self.table.model.df = dlg.df
             self.table.refresh()
+        elif filename != None:
+            self.table.model.df = pd.read_csv(filename)
+            self.table.refresh()
         return
 
     def copy(self):
+        """Copy to clipboard"""
 
         df = self.table.getSelectedDataFrame()
         df.to_clipboard()
         return
 
     def paste(self):
+        """Paste from clipboard"""
+
+        self.table.model.df = pd.read_clipboard(sep='\t')
+        self.table.refresh()
         return
 
     def plot(self):
         self.pf.replot()
-        return
-
-    def redraw(self):
         return
 
     def createPlotViewer(self, parent):
@@ -237,6 +253,10 @@ class DataFrameWidget(QWidget):
 
     def merge(self):
 
+        dlg = dialogs.MergeDialog(self, self.table.model.df)
+        dlg.exec_()
+        if not dlg.accepted:
+            return
         return
 
     def transpose(self):
@@ -248,8 +268,10 @@ class DataFrameWidget(QWidget):
     def pivot(self):
         """Pivot table"""
 
-        self.table.model.df
-        self.refresh()
+        dlg = dialogs.PivotDialog(self, self.table.model.df)
+        dlg.exec_()
+        if not dlg.accepted:
+            return
         return
 
     def aggregate(self):
@@ -263,7 +285,10 @@ class DataFrameWidget(QWidget):
     def melt(self):
         """Melt table"""
 
-        self.refresh()
+        dlg = dialogs.MeltDialog(self, self.table.model.df)
+        dlg.exec_()
+        if not dlg.accepted:
+            return
         return
 
     def getSelectedDataFrame(self):
@@ -274,18 +299,21 @@ class DataFrameWidget(QWidget):
     def sub_table_from_selection(self):
 
         df = self.getSelectedDataFrame()
-        self.create_sub_table(df)
+        self.createSubTable(df)
         return
 
-    def create_sub_table(self, df, title=None, index=False, out=False):
+    def createSubTable(self, df=None, title=None, index=False, out=False):
         """Add the child table"""
 
-        self.close_subtable_table()
-
-        newtable = DataFrameTable(self.splitter, df)
+        self.closeSubtable()
+        dock = QDockWidget(self.splitter)
+        self.setFeatures(QDockWidget.DockWidgetFloatable |
+                         QDockWidget.DockWidgetMovable)
+        self.splitter.addWidget(dock)
+        newtable = SubTableWidget(dock, dataframe=df)
+        dock.setWidget(newtable)
         newtable.show()
-        self.splitter.addWidget(newtable)
-        #toolbar = ChildToolBar(win, newtable)
+        #self.splitter.addWidget(newtable)
 
         self.subtable = newtable
         if hasattr(self, 'pf'):
@@ -294,7 +322,8 @@ class DataFrameWidget(QWidget):
             newtable.showIndex()
         return
 
-    def close_subtable_table(self):
+    def closeSubtable(self):
+
         if hasattr(self, 'subtable'):
             w = self.splitter.widget(1)
             w.deleteLater()
@@ -307,7 +336,9 @@ class DataFrameTable(QTableView):
     QTableView with pandas DataFrame as model.
     """
     def __init__(self, parent=None, dataframe=None, fontsize=12, *args):
+
         QTableView.__init__(self)
+        self.parent = parent
         self.clicked.connect(self.showSelection)
         #self.doubleClicked.connect(self.handleDoubleClick)
         self.setSelectionBehavior(QTableView.SelectRows)
@@ -349,6 +380,15 @@ class DataFrameTable(QTableView):
         self.model.beginResetModel()
         self.model.dataChanged.emit(0,0)
         self.model.endResetModel()
+        return
+
+    def memory_usage(self):
+
+        m = self.model.df.memory_usage(deep=True).sum()
+        msg = QMessageBox()
+        msg.setText("Memory used: %s bytes" %m)
+        msg.setWindowTitle('Memory Usage')
+        msg.exec_()
         return
 
     def showSelection(self, item):
@@ -467,6 +507,8 @@ class DataFrameTable(QTableView):
         copyAction = menu.addAction("Copy")
         colorAction = menu.addAction("Set Color")
         importAction = menu.addAction("Import")
+        plotAction = menu.addAction("Plot Selected")
+        memAction = menu.addAction("Memory Usage")
         prefsAction = menu.addAction("Preferences")
         action = menu.exec_(self.mapToGlobal(event.pos()))
 
@@ -476,6 +518,10 @@ class DataFrameTable(QTableView):
             self.importFile()
         elif action == colorAction:
             pass
+        elif action == plotAction:
+            self.parent.plot()
+        elif action == memAction:
+            self.memory_usage()
         elif action == prefsAction:
             config.PreferencesDialog(self)
 
@@ -553,7 +599,6 @@ class DataFrameTable(QTableView):
         vh.setDefaultSectionSize(h-2)
         return
 
-
 class DataFrameModel(QtCore.QAbstractTableModel):
     def __init__(self, dataframe=None, *args):
         super(DataFrameModel, self).__init__()
@@ -623,6 +668,20 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         self.layoutChanged.emit()
         return
 
+class SubTableWidget(DataFrameWidget):
+    """Widget for sub table"""
+    def __init__(self, parent=None, dataframe=None, *args):
+
+        DataFrameWidget.__init__(self, parent, dataframe, *args )
+        return
+
+    def createToolbar(self):
+
+        self.toolbar = SubToolBar(self)
+        self.setLayout(self.layout)
+        self.layout.addWidget(self.toolbar)
+        return
+
 class ToolBar(QWidget):
     """Toolbar class for side buttons"""
     def __init__(self, app, parent=None):
@@ -640,8 +699,9 @@ class ToolBar(QWidget):
     def createButtons(self):
         """Toolbar buttons"""
 
-        funcs = {'load':self.app.load, 'save':self.app.save,
+        funcs = {'load':self.app.load,
                  'importexcel': self.app.load,
+                 'save':self.app.save,
                  'copy':self.app.copy, 'paste':self.app.paste,
                  'plot':self.app.plot,
                  'transpose':self.app.transpose,
@@ -651,17 +711,9 @@ class ToolBar(QWidget):
                  'merge':self.app.merge,
                  'subtable':self.app.sub_table_from_selection,
                  'clear':self.app.clear}
-        icons = {'load': 'document-new', 'save': 'document-save-as',
-                 'importexcel': 'excel',
-                 'copy': 'copy', 'paste': 'paste',
-                 'plot':'plot',
-                 'transpose':'transpose',
-                 'aggregate':'aggregate',
-                 'pivot': 'pivot',
-                 'melt':'melt', 'merge':'merge',
-                 'subtable':'subtable','clear':'clear'
-                 }
-        tooltips = {'load':'load table','importexcel':'import excel file',
+
+        tooltips = {'load':'load table', 'save':'export',
+                    'importexcel':'import excel file',
                     'copy':'copy','paste':'paste',
                     'transpose':'transpose table', 'aggregate':'groupby-aggregate',
                     'pivot':'pivot table','melt':'melt table',
@@ -693,4 +745,22 @@ class ToolBar(QWidget):
         button.clicked.connect(function)
         button.setMinimumWidth(30)
         layout.addWidget(button)
+        return
+
+class SubToolBar(ToolBar):
+    def __init__(self, app, parent=None):
+        ToolBar.__init__(self, app, parent)
+        return
+
+    def createButtons(self):
+        funcs = {'copy': self.app.copy,
+                 'paste':self.app.paste,
+                 'transpose':self.app.transpose,
+                 'plot':self.app.plot}
+        tooltips = {'plot':'plot','copy':'copy selection','paste':'paste selection'}
+        for name in funcs:
+            tip=None
+            if name in tooltips:
+                tip=tooltips[name]
+            self.addButton(name, funcs[name], icons[name], tip)
         return

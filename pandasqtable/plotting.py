@@ -24,8 +24,7 @@
 from __future__ import absolute_import, division, print_function
 import sys,os,random
 from collections import OrderedDict
-#import matplotlib
-#matplotlib.use("Qt5Agg")
+
 try:
     from pandas import plotting
 except ImportError:
@@ -108,45 +107,57 @@ class PlotViewer(QWidget):
         self.table = table
         self.createWidgets()
         self.currentdir = os.path.expanduser('~')
+        sizepolicy = QSizePolicy()
+        self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
         return
 
     def createWidgets(self):
-        """Create widgets"""
+        """Create widgets. Plot on left and dock for tools on right."""
 
         self.main = QSplitter(Qt.Horizontal, self)
+
         left = QWidget(self.main)
         self.main.addWidget(left)
         vbox1 = QVBoxLayout(left)
+        bw = self.createButtons(left)
+        vbox1.addWidget(bw)
         self.fig, self.canvas = addFigure(left)
         self.ax = self.fig.add_subplot(111)
         vbox1.addWidget(self.canvas)
 
-        bw = self.createButtons(left)
-        vbox1.addWidget(bw)
-        self.sidebar = QWidget(self)
-        self.sidebar.setMaximumWidth(300)
-        self.main.addWidget(self.sidebar)
+        dock = QDockWidget('options',self)
+        #dock.setWindowFlags((dock.windowFlags() | Qt.WindowMaximizeButtonHint |
+        #        Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint))
+        #dock.setMaximumWidth(300)
+        self.main.addWidget(dock)
+
         #self.main.setSizes((300,300))
+        #self.main.setStretchFactor(2, 0)
 
-        vbox2 = QVBoxLayout(self.sidebar)
+        ow = self.createDialogs(dock)
+        dock.setWidget(ow)
 
-        sizepolicy = QSizePolicy()
-        sizepolicy.setHorizontalStretch(1)
-        sizepolicy.setVerticalStretch(1)
-        self.main.setSizePolicy(sizepolicy)
-        ow = self.createDialogs(self.sidebar)
-        #ow.setMaximumHeight(800)
-        vbox2.addWidget(ow)
         return
 
     def createDialogs(self, parent):
         """Create widgets"""
 
+        style = '''
+            QLabel {
+                font-size: 12px;
+            }
+            QWidget {
+                max-width: 250px;
+                min-width: 50px;
+                font-size: 12px;
+            }
+            '''
+
         tab = QTabWidget(parent)
         w = QWidget(tab)
         idx = tab.addTab(w, 'general')
         self.generalopts = MPLBaseOptions(parent=self)
-        dialog = self.generalopts.showDialog(w, wrap=2, section_wrap=1)
+        dialog = self.generalopts.showDialog(w, wrap=2, section_wrap=1, style=style)
         dialog.resize(200,200)
         l=QVBoxLayout(w)
         l.addWidget(dialog)
@@ -155,7 +166,7 @@ class PlotViewer(QWidget):
         w.setStyleSheet(style)
         idx = tab.addTab(w, 'labels')
         self.labelopts = AnnotationOptions(parent=self)
-        dialog = self.labelopts.showDialog(w, wrap=2, section_wrap=1)
+        dialog = self.labelopts.showDialog(w, wrap=2, section_wrap=1, style=style)
         dialog.resize(200,200)
         l=QVBoxLayout(w)
         l.addWidget(dialog)
@@ -163,7 +174,7 @@ class PlotViewer(QWidget):
         w = QWidget(tab)
         idx = tab.addTab(w, 'axes')
         self.axesopts = AxesOptions(parent=self)
-        dialog = self.axesopts.showDialog(w, wrap=2, section_wrap=1)
+        dialog = self.axesopts.showDialog(w, wrap=2, section_wrap=1, style=style)
         dialog.resize(200,200)
         l=QVBoxLayout(w)
         l.addWidget(dialog)
@@ -1055,13 +1066,22 @@ def addFigure(parent, figure=None, resize_callback=None):
     """Create a tk figure and canvas in the parent frame"""
 
     if figure == None:
-        figure = Figure(figsize=(6,4), dpi=80, facecolor='white')
+        figure = Figure(figsize=(8,4), dpi=80, facecolor='white')
 
-    canvas = FigureCanvas(figure)
+    canvas = FigureCanvas(figure=figure)
     canvas.setSizePolicy( QSizePolicy.Expanding,
                           QSizePolicy.Expanding)
     canvas.updateGeometry()
     return figure, canvas
+
+class PlotWidget(FigureCanvas):
+    def __init__(self, parent=None, dpi=100, hold=False):
+        super(MatplotlibWidget, self).__init__(Figure())
+        self.setParent(parent)
+        self.figure = Figure(dpi=dpi)
+        self.canvas = FigureCanvas(self.figure)
+        self.ax = self.figure.add_subplot(111)
+
 
 class BaseOptions(object):
     """Class to generate widget dialog for dict of options"""
@@ -1084,7 +1104,7 @@ class BaseOptions(object):
             self.callback()
         return
 
-    def showDialog(self, parent, wrap=2, section_wrap=2):
+    def showDialog(self, parent, wrap=2, section_wrap=2, style=None):
         """Auto create widgets for corresponding options and
            and return the dialog.
           Args:
@@ -1093,7 +1113,7 @@ class BaseOptions(object):
         """
 
         dialog, self.widgets = dialogFromOptions(parent, self.opts, self.groups,
-                                wrap=wrap, section_wrap=section_wrap)
+                                wrap=wrap, section_wrap=section_wrap, style=style)
         return dialog
 
     def setWidgetValue(self, key, value):
@@ -1114,8 +1134,8 @@ class GlobalOptions(BaseOptions):
 
     def __init__(self, parent=None):
         """Setup variables"""
-        self.parent = parent
 
+        self.parent = parent
         self.groups = {'global': ['dpi','3D plot']}
         self.opts = OrderedDict({ 'dpi': {'type':'spinbox','default':80,'width':4},
                                  #'grid layout': {'type':'checkbox','default':0,'label':'grid layout'},

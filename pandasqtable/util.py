@@ -27,28 +27,15 @@ import numpy as np
 import pandas as pd
 
 def getEmptyData(rows=10,columns=4):
+    
     colnames = list(string.ascii_lowercase[:columns])
     df = pd.DataFrame(index=range(rows),columns=colnames)
-    return df
-
-def getSampleData(rows=400, cols=5):
-    """Generate sample data"""
-
-    colnames = list(string.ascii_lowercase[:cols])
-    coldata = [np.random.normal(x,1,rows) for x in np.random.normal(5,3,cols)]
-    n = np.array(coldata).T
-    df = pd.DataFrame(n, columns=colnames)
-    df['b'] = df.a*np.random.normal(.8, 0.1, len(df))
-    df = np.round(df, 3)
-    cats = ['green','blue','red','orange','yellow']
-    df['label'] = [cats[i] for i in np.random.randint(0,5,rows)]
-    #df['date'] = pd.date_range('1/1/2014', periods=rows, freq='H')
     return df
 
 def check_multiindex(index):
     """Check if index is a multiindex"""
 
-    if isinstance(index, pd.core.index.MultiIndex):
+    if isinstance(index, pd.MultiIndex):
         return 1
     else:
         return 0

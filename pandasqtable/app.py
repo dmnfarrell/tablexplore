@@ -31,34 +31,45 @@ from PySide2.QtGui import *
 import pandas as pd
 from .core import DataFrameModel, DataFrameTable, DataFrameWidget
 from .plotting import PlotViewer
-from . import util
+from . import util, data
 
 class Application(QMainWindow):
-    def __init__(self):
+    def __init__(self, project_file=None, csv_file=None):
 
         QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setWindowTitle("DataExplore2")
+        self.setWindowTitle("Tablexplore")
         self.setWindowIcon(QIcon('logo.png'))
         self.createMenu()
         self.main = QTabWidget(self)
         self.main.setTabsClosable(True)
-        self.main.tabCloseRequested.connect(lambda index: self.main.removeTab(index))
+        self.main.tabCloseRequested.connect(lambda index: self.remove_sheet(index))
         screen_resolution = QDesktopWidget().screenGeometry()
         width, height = screen_resolution.width()*0.7, screen_resolution.height()*.7
         self.setGeometry(QtCore.QRect(200, 200, width, height))
         center = QDesktopWidget().availableGeometry().center()
-        self.new_project()
-        self.sampleData(200)
+        self.newProject()
+        #self.sampleData(200)
         self.main.setFocus()
         self.setCentralWidget(self.main)
-        self.statusBar().showMessage("Welcome", 3000)
+        self.statusbar = QStatusBar()
+        #self.statusbar.addWidget(lbl,1)
+        self.proj_label = QLabel("")
+        self.statusbar.addWidget(self.proj_label, 1)
+        self.proj_label.setStyleSheet('color: blue')
+
+        #self.statusBar().showMessage("Welcome", 3000)
+        self.setStatusBar(self.statusbar)
+        if project_file != None:
+            self.openProject(project_file)
+        elif csv_file != None:
+            self.import_file(csv_file)
         return
 
     def createMenu(self):
 
         self.file_menu = QMenu('&File', self)
-        self.file_menu.addAction('&New', self.new_project,
+        self.file_menu.addAction('&New', self.newProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_N)
         self.file_menu.addAction('&Open', self.openProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_O)
@@ -71,7 +82,7 @@ class Application(QMainWindow):
 
         self.edit_menu = QMenu('&Edit', self)
         self.menuBar().addMenu(self.edit_menu)
-        self.edit_menu.addAction('&Undo', self.add_sheet)
+        self.edit_menu.addAction('&Undo', self.undo)
 
         self.view_menu = QMenu('&View', self)
         self.menuBar().addMenu(self.view_menu)
@@ -82,7 +93,8 @@ class Application(QMainWindow):
 
         self.sheet_menu = QMenu('&Sheet', self)
         self.menuBar().addMenu(self.sheet_menu)
-        self.sheet_menu.addAction('&Add', self.add_sheet)
+        self.sheet_menu.addAction('&Add', self.addSheet)
+        self.sheet_menu.addAction('&Rename', self.rename_sheet)
 
         self.tools_menu = QMenu('&Tools', self)
         self.tools_menu.addAction('&Table Info', lambda: self._call('info'),
@@ -97,7 +109,8 @@ class Application(QMainWindow):
 
         self.dataset_menu = QMenu('&Datasets', self)
         self.menuBar().addMenu(self.dataset_menu)
-        self.dataset_menu.addAction('&Sample', self.sampleData)
+        self.dataset_menu.addAction('&Sample', lambda: self.getSampleData('sample'))
+        self.dataset_menu.addAction('&Iris', lambda: self.getSampleData('iris'))
 
         self.help_menu = QMenu('&Help', self)
         self.menuBar().addSeparator()
@@ -129,7 +142,7 @@ class Application(QMainWindow):
                 t.showAll()
         return
 
-    def new_project(self, data=None):
+    def newProject(self, data=None):
         """New project"""
 
         self.main.clear()
@@ -145,9 +158,9 @@ class Application(QMainWindow):
                     meta = data[s]['meta']
                 else:
                     meta=None
-                self.add_sheet(s, df, meta)
+                self.addSheet(s, df, meta)
         else:
-            self.add_sheet()
+            self.addSheet('dataset1')
 
         return
 
@@ -187,9 +200,10 @@ class Application(QMainWindow):
             print ('no such file')
             self.quit()
             return
-        self.new_project(data)
+        self.newProject(data)
         self.filename = filename
-        self.main.title('%s - DataExplore' %filename)
+
+        self.proj_label.setText(self.filename)
         self.projopen = True
         self.defaultsavedir = os.path.dirname(os.path.abspath(filename))
         #self.addRecent(filename)
@@ -206,7 +220,7 @@ class Application(QMainWindow):
         if not filename:
             return
         self.filename = filename
-        if not os.path.splitext(filename)[1] == '.snpgenie':
+        if not os.path.splitext(filename)[1] == '.dexpl':
             self.filename += '.dexpl'
         self.defaultsavedir = os.path.dirname(os.path.abspath(filename))
         self.do_save_project(self.filename)
@@ -219,12 +233,14 @@ class Application(QMainWindow):
 
         #self._checkTables()
         data={}
+        print (self.sheets)
         for i in self.sheets:
+            print (i)
             tablewidget = self.sheets[i]
             table = tablewidget.table
             data[i] = {}
             data[i]['table'] = table.model.df
-            data[i]['meta'] = self.saveMeta(tablewidget)
+            #data[i]['meta'] = self.saveMeta(tablewidget)
 
         file = gzip.GzipFile(filename, 'w')
         pickle.dump(data, file)
@@ -255,36 +271,44 @@ class Application(QMainWindow):
 
         return meta
 
-    def import_file(self):
+    def import_file(self, filename=None):
 
-        self.add_sheet()
+        self.addSheet()
         w = self.get_current_table()
-        w.importFile()
+        w.importFile(filename)
         return
 
-    def add_sheet(self, name=None, df=None, meta=None):
+    def addSheet(self, name=None, df=None, meta=None):
         """Add a new sheet"""
 
         names = self.sheets.keys()
         if name is None:
-            name = 'sheet'+str(len(self.sheets)+1)
+            name = 'dataset'+str(len(self.sheets)+1)
 
         sheet = QSplitter(self.main)
         idx = self.main.addTab(sheet, name)
+        #provide reference to self to dataframewidget
+        dfw = DataFrameWidget(sheet, dataframe=df, app=self)
+        sheet.addWidget(dfw)
 
-        l = QHBoxLayout(sheet)
-        dfw = DataFrameWidget(sheet, dataframe=df)
-        l.addWidget(dfw)
-        self.sheets[idx] = dfw
+        self.sheets[name] = dfw
         self.currenttable = dfw
         pf = dfw.createPlotViewer(sheet)
-        l.addWidget(pf)
-        sheet.setSizes((500,600))
+        sheet.addWidget(pf)
+        sheet.setSizes((500,1000))
         self.main.setCurrentIndex(idx)
         return
 
-    def remove_sheet(self, name):
+    def remove_sheet(self, index):
+        """Remove sheet"""
+
+        name = self.main.tabText(index)
         del self.sheets[name]
+        self.main.removeTab(index)
+        return
+
+    def rename_sheet(self):
+
         return
 
     def load_dataframe(self, df, name=None, select=False):
@@ -296,10 +320,10 @@ class Application(QMainWindow):
         """
 
         if hasattr(self,'sheets'):
-            self.add_sheet(sheetname=name, df=df, select=select)
+            self.addSheet(sheetname=name, df=df, select=select)
         else:
             data = {name:{'table':df}}
-            self.new_project(data)
+            self.newProject(data)
         return
 
     def load_pickle(self, filename):
@@ -316,20 +340,26 @@ class Application(QMainWindow):
     def closeEvent(self, ce):
         self.fileQuit()
 
-    def sampleData(self, rows=None):
-        if rows is None:
-            rows, ok = QInputDialog.getInt(self, 'Rows', 'Rows:', 100)
+    def getSampleData(self, name, rows=None):
+        """Sample table"""
+
+        ok = True
+        if name == 'sample':
+            if rows is None:
+                rows, ok = QInputDialog.getInt(self, 'Rows', 'Rows:', 100)
+            if ok:
+                df = data.getSampleData(rows,5)
         else:
-            ok=True
-        if ok:
-            df = util.getSampleData(rows,5)
-            self.add_sheet(None,df)
+            df = data.getIrisData()    
+        self.addSheet(None,df)
         return
 
     def get_current_table(self):
 
         idx = self.main.currentIndex()
-        table = self.sheets[idx]#.table
+        name= self.main.tabText(idx)
+
+        table = self.sheets[name]
         return table
 
     def zoomIn(self):
@@ -342,6 +372,10 @@ class Application(QMainWindow):
 
         w = self.get_current_table()
         w.table.zoomOut()
+        return
+
+    def undo(self):
+
         return
 
     def online_documentation(self,event=None):
@@ -360,7 +394,7 @@ class Application(QMainWindow):
         mplver = matplotlib.__version__
         qtver = PySide2.QtCore.__version__
 
-        text='DataExplore2 Application\n'\
+        text='TablExplore Application\n'\
                 +'Version '+__version__+'\n'\
                 +'Copyright (C) Damien Farrell 2018-\n'\
                 +'This program is free software; you can redistribute it and/or\n'\
@@ -375,27 +409,25 @@ class Application(QMainWindow):
 
 def main():
     import sys, os
-    from optparse import OptionParser
-    parser = OptionParser()
-    parser.add_option("-f", "--file", dest="msgpack",
-                        help="Open a dataframe as msgpack", metavar="FILE")
-    parser.add_option("-p", "--project", dest="projfile",
-                        help="Open a dataexplore project file", metavar="FILE")
-    parser.add_option("-i", "--csv", dest="csv",
-                        help="Import a csv file", metavar="FILE")
-    parser.add_option("-x", "--excel", dest="excel",
-                        help="Import an excel file", metavar="FILE")
-    parser.add_option("-t", "--test", dest="test",  action="store_true",
-                        default=False, help="Run a basic test app")
 
-    opts, remainder = parser.parse_args()
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    #parser.add_argument("-f", "--file", dest="msgpack",
+    #                    help="Open a dataframe as msgpack", metavar="FILE")
+    parser.add_argument("-p", "--project", dest="project_file",
+                        help="Open a dataexplore project file", metavar="FILE")
+    parser.add_argument("-i", "--csv", dest="csv_file",
+                        help="Import a csv file", metavar="FILE")
+    #parser.add_argument("-x", "--excel", dest="excel",
+    #                    help="Import an excel file", metavar="FILE")
+    #parser.add_argument("-t", "--test", dest="test",  action="store_true",
+    #                    default=False, help="Run a basic test app")
+    args = vars(parser.parse_args())
 
     app = QApplication(sys.argv)
-    aw = Application()
+    aw = Application(**args)
     aw.show()
     app.exec_()
-    #if opts.csv != None:
-    #    t = app.import_file()
 
 if __name__ == '__main__':
     main()

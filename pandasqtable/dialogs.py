@@ -33,28 +33,38 @@ from PySide2 import QtCore, QtGui
 from PySide2.QtCore import QObject
 from PySide2.QtWidgets import *
 from PySide2.QtGui import *
+from . import util
 
 def dialogFromOptions(parent, opts, sections=None,
-                      sticky='news', wrap=2, section_wrap=4):
-    """Get Qt widgets dialog from a dictionary of options"""
+                      wrap=2, section_wrap=4,
+                      style=None):
+    """
+    Get Qt widgets dialog from a dictionary of options.
+    Args:
+        opts: options dictionary
+        sections:
+        section_wrap: how many sections in one row
+        style: stylesheet css if required
+    """
 
     sizepolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
     sizepolicy.setHorizontalStretch(0)
     sizepolicy.setVerticalStretch(0)
 
-    style = '''
-    QLabel {
-        font-size: 10px;
-    }
-    QWidget {
-        max-width: 250px;
-        min-width: 60px;
-        font-size: 14px;
-    }
-    QPlainTextEdit {
-        max-height: 80px;
-    }
-    '''
+    if style == None:
+        style = '''
+        QLabel {
+            font-size: 10px;
+        }
+        QWidget {
+            max-width: 250px;
+            min-width: 60px;
+            font-size: 14px;
+        }
+        QPlainTextEdit {
+            max-height: 80px;
+        }
+        '''
 
     if sections == None:
         sections = {'options': opts.keys()}
@@ -77,7 +87,7 @@ def dialogFromOptions(parent, opts, sections=None,
         l.addWidget(f,row,scol)
         gl = QGridLayout(f)
         gl.setAlignment(QtCore.Qt.AlignTop)
-        gl.setSpacing(10)
+        gl.setSpacing(5)
         for o in sections[s]:
             label = o
             val = None
@@ -413,20 +423,91 @@ class ImportDialog(QDialog):
         self.main.destroy()
         return
 
-class AggregateDialog(QDialog):
-    """Qdialog with multiple inputs"""
-    def __init__(self, parent, df):
+class BasicDialog(QDialog):
+    """Qdialog for table operations interfaces"""
+    def __init__(self, parent, df, title=None):
 
-        from .core import DataFrameTable
-        super(AggregateDialog, self).__init__(parent)
+        super(BasicDialog, self).__init__(parent)
         self.parent = parent
         self.df = df
-
-        self.setWindowTitle('Groupby-Aggregate')
+        self.app = self.parent.app
+        self.setWindowTitle(title)
         self.createWidgets()
         self.setGeometry(QtCore.QRect(350, 200, 900, 600))
-
         self.show()
+        return
+
+    def createWidgets(self):
+        """Create widgets - override this"""
+
+        cols = list(self.df.columns)
+
+    def createButtons(self, parent):
+
+        bw = self.button_widget = QWidget(parent)
+        vbox = QVBoxLayout(bw)
+        vbox.setAlignment(QtCore.Qt.AlignTop)
+        button = QPushButton("Apply")
+        button.clicked.connect(self.apply)
+        vbox.addWidget(button)
+        button = QPushButton("Copy to sub-table")
+        button.clicked.connect(self.copy_to_subtable)
+        vbox.addWidget(button)
+        button = QPushButton("Copy to clipboard")
+        button.clicked.connect(self.copy_to_clipboard)
+        vbox.addWidget(button)
+        button = QPushButton("Copy to new sheet")
+        button.clicked.connect(self.copy_to_sheet)
+        vbox.addWidget(button)
+        button = QPushButton("Export result")
+        button.clicked.connect(self.export)
+        vbox.addWidget(button)
+        button = QPushButton("Close")
+        button.clicked.connect(self.close)
+        vbox.addWidget(button)
+        return bw
+
+    def apply(self):
+        """Override this"""
+        return
+
+    def copy_to_subtable(self):
+        """Do the operation"""
+
+        df = self.table.model.df
+        self.parent.createSubTable(df)
+        return
+
+    def copy_to_sheet(self):
+        """Copy result to new sheet in app, if available"""
+
+        if self.app == None:
+            return
+        name, ok = QInputDialog().getText(self, "Enter Sheet Name",
+                                             "Name:", QLineEdit.Normal)
+        if ok and name:
+            self.app.addSheet(name=name, df=self.table.model.df)
+        return
+
+    def copy_to_clipboard(self):
+
+        df = self.table.model.df
+        df.to_clipboard()
+        return
+
+    def export(self):
+
+        return
+
+    def close(self):
+        self.destroy()
+        return
+
+class AggregateDialog(BasicDialog):
+    """Qdialog with multiple inputs"""
+    def __init__(self, parent, df, title='Groupby-Aggregate'):
+
+        BasicDialog.__init__(self, parent, df, title)
         return
 
     def createWidgets(self):
@@ -456,36 +537,17 @@ class AggregateDialog(QDialog):
         l.addWidget(QLabel('Functions'))
         l.addWidget(w)
 
-        from . import app
-        self.table = app.DataFrameTable(self)
+        from . import core
+        self.table = core.DataFrameTable(self)
         vbox.addWidget(self.table)
         bf = self.createButtons(self)
         vbox.addWidget(bf)
         return
 
-    def createButtons(self, parent):
-
-        bw = self.button_widget = QWidget(parent)
-        vbox = QVBoxLayout(bw)
+    def customButtons():
         vbox.addWidget(QLabel('map cols to functions'))
         mapcolsbtn = QCheckBox()
         vbox.addWidget(mapcolsbtn)
-        button = QPushButton("Apply")
-        button.clicked.connect(self.apply)
-        vbox.addWidget(button)
-        button = QPushButton("Copy to sub-table")
-        button.clicked.connect(self.copy_to_subtable)
-        vbox.addWidget(button)
-        button = QPushButton("Copy to clipboard")
-        button.clicked.connect(self.copy_to_clipboard)
-        vbox.addWidget(button)
-        button = QPushButton("Export result")
-        button.clicked.connect(self.export)
-        vbox.addWidget(button)
-        button = QPushButton("Close")
-        button.clicked.connect(self.close)
-        vbox.addWidget(button)
-        return bw
 
     def apply(self):
         """Do the operation"""
@@ -504,23 +566,190 @@ class AggregateDialog(QDialog):
         self.table.refresh()
         return
 
-    def copy_to_subtable(self):
+class PivotDialog(BasicDialog):
+    """Dialog to pivot table"""
+    def __init__(self, parent, df, title='Pivot'):
+
+        BasicDialog.__init__(self, parent, df, title)
+        return
+
+    def createWidgets(self):
+        """Create widgets"""
+
+        cols = list(self.df.columns)
+        funcs = ['sum','mean','size','std','min','max','var']
+        vbox = QHBoxLayout(self)
+        main = QWidget(self)
+        main.setMaximumWidth(300)
+        vbox.addWidget(main)
+
+        l = QVBoxLayout(main)
+        w = self.columnsw = QListWidget(main)
+        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        w.addItems(cols)
+        l.addWidget(QLabel('Columns'))
+        l.addWidget(w)
+        w = self.valuesw = QListWidget(main)
+        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        w.addItems(cols)
+        l.addWidget(QLabel('Values'))
+        l.addWidget(w)
+        w = self.idxw = QListWidget(main)
+        w.addItems(cols)
+        l.addWidget(QLabel('Index'))
+        l.addWidget(w)
+
+        from . import core
+        self.table = core.DataFrameTable(self)
+        vbox.addWidget(self.table)
+        bf = self.createButtons(self)
+        vbox.addWidget(bf)
+
+    def apply(self):
         """Do the operation"""
 
-        df = self.table.model.df
-        self.parent.create_sub_table(df)
+        cols = [i.text() for i in self.columnsw.selectedItems()]
+        vals =[i.text() for i in self.valuesw.selectedItems()]
+        idx = self.idxw.selectedItems()[0].text()
+
+        res = pd.pivot_table(self.df, index=idx, columns=cols, values=vals)
+        if util.check_multiindex(res.columns) == 1:
+            res.columns = res.columns.get_level_values(1)
+
+        self.table.model.df = res
+        self.table.refresh()
         return
 
-    def copy_to_clipboard(self):
+class MeltDialog(BasicDialog):
+    """Dialog to melt table"""
+    def __init__(self, parent, df, title='Melt'):
 
-        df = self.table.model.df
-        df.to_clipboard()
+        BasicDialog.__init__(self, parent, df, title)
         return
 
-    def export(self):
+    def createWidgets(self):
+        """Create widgets"""
 
+        cols = list(self.df.columns)
+        funcs = ['sum','mean','size','std','min','max','var']
+        vbox = QHBoxLayout(self)
+        main = QWidget(self)
+        main.setMaximumWidth(300)
+        vbox.addWidget(main)
+
+        l = QVBoxLayout(main)
+        w = self.idvarsw = QListWidget(main)
+        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        w.addItems(cols)
+        l.addWidget(QLabel('ID vars'))
+        l.addWidget(w)
+        w = self.valuevarsw = QListWidget(main)
+        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        w.addItems(cols)
+        l.addWidget(QLabel('Value vars'))
+        l.addWidget(w)
+        w = self.varnamew = QLineEdit('var')
+        l.addWidget(QLabel('Var name'))
+        l.addWidget(w)
+
+        from . import core
+        self.table = core.DataFrameTable(self)
+        vbox.addWidget(self.table)
+        bf = self.createButtons(self)
+        vbox.addWidget(bf)
         return
 
-    def close(self):
-        self.destroy()
+    def apply(self):
+        """Do the operation"""
+
+        idvars = [i.text() for i in self.idvarsw.selectedItems()]
+        value_vars =[i.text() for i in self.valuevarsw .selectedItems()]
+        varname = self.varnamew.text()
+        res = pd.melt(self.df, idvars, value_vars, varname)
+
+        self.table.model.df = res
+        self.table.refresh()
+        return
+
+class MergeDialog(BasicDialog):
+    """Dialog to melt table"""
+    def __init__(self, parent, df, title='Merge Tables'):
+
+        BasicDialog.__init__(self, parent, df, title)
+        return
+
+    def createWidgets(self):
+        """Create widgets"""
+
+        if hasattr(self.parent, 'subtable'):
+            self.df2 = self.parent.subtable.table.model.df
+            cols2 = self.df2.columns
+        else:
+            self.df2 = None
+            cols2 = []
+        cols = list(self.df.columns)
+        ops = ['merge','concat']
+        how = ['inner','outer']
+        hbox = QHBoxLayout(self)
+        main = QWidget(self)
+        main.setMaximumWidth(300)
+        hbox.addWidget(main)
+
+        l = QVBoxLayout(main)
+        w = self.ops_w = QComboBox(main)
+        w.addItems(ops)
+        l.addWidget(QLabel('Operation'))
+        l.addWidget(w)
+        w = self.lefton_w = QListWidget(main)
+        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        w.addItems(cols)
+        l.addWidget(QLabel('Left on'))
+        l.addWidget(w)
+        w = self.righton_w = QListWidget(main)
+        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        w.addItems(cols2)
+        l.addWidget(QLabel('Right on'))
+        l.addWidget(w)
+
+        w = self.how_w = QComboBox(main)
+        w.addItems(how)
+        l.addWidget(QLabel('How'))
+        l.addWidget(w)
+
+        w = self.left_suffw = QLineEdit('_1')
+        l.addWidget(QLabel('Left suffix'))
+        l.addWidget(w)
+        w = self.right_suffw = QLineEdit('_2')
+        l.addWidget(QLabel('Right suffix'))
+        l.addWidget(w)
+
+        '''
+        tableswidget = QWidget(self)
+        l = QVBoxLayout(tableswidget)
+        self.table1 = app.DataFrameTable(tableswidget, self.df)
+        self.table2 = app.DataFrameTable(tableswidget, subdf)
+        l.addWidget(self.table1)
+        l.addWidget(self.table2)
+        hbox.addWidget(tableswidget)'''
+        from . import core
+        self.table = core.DataFrameTable(self)
+        hbox.addWidget(self.table)
+        bf = self.createButtons(self)
+        hbox.addWidget(bf)
+        return
+
+    def apply(self):
+        """Do the operation"""
+
+        lefton = [i.text() for i in self.lefton_w.selectedItems()]
+        righton = [i.text() for i in self.righton_w.selectedItems()]
+        print (lefton)
+        res = pd.merge(self.df, self.df2,
+                            left_on=lefton,
+                            right_on=righton,
+                            suffixes=(self.left_suffw .text(),self.right_suffw.text())
+                            )
+
+        self.table.model.df = res
+        self.table.refresh()
         return
