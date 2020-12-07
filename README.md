@@ -1,7 +1,7 @@
+<img align="right" src=https://raw.githubusercontent.com/dmnfarrell/pandasqtable/master/logo.png width=150px>
 # pandasqtable
-<img align="right" src=https://raw.githubusercontent.com/dmnfarrell/pandasqtapp/master/logo.png width=150px>
 
-pandasqtable is a PySide2/Qt table based widget using pandas DataFrames. It also provides the DataExplore2 application for data analysis and plotting.
+pandasqtable is a PySide2/Qt table based widget using pandas DataFrames. It also provides the **tablexplore** application for data analysis and plotting.
 
 ## Installation
 
@@ -14,8 +14,10 @@ pip install -e git+https://github.com/dmnfarrell/pandasqtable.git#egg=pandasqtab
 * save and load projects
 * import csv
 * delete/add columns
-* groupby-aggregate operation
-* plotting partially works
+* groupby-aggregate/pivot/transpose/melt operations
+* merge tables
+* show sub-tables
+* plotting mostly works
 
 ## Screenshots
 

@@ -234,7 +234,7 @@ class TextDialog(QDialog):
         self.setMinimumSize(440, 300)
         self.setWindowTitle(title)
         vbox = QVBoxLayout(self)
-        b = self.textbox = QPlainTextEdit(self)
+        b = self.textbox = PlainTextEditor(self)
         b.insertPlainText(text)
         b.move(10,10)
         b.resize(400,300)
@@ -433,7 +433,7 @@ class BasicDialog(QDialog):
         self.app = self.parent.app
         self.setWindowTitle(title)
         self.createWidgets()
-        self.setGeometry(QtCore.QRect(350, 200, 900, 600))
+        self.setGeometry(QtCore.QRect(400, 300, 900, 600))
         self.show()
         return
 
@@ -490,13 +490,25 @@ class BasicDialog(QDialog):
         return
 
     def copy_to_clipboard(self):
+        """Copy result to clipboard"""
 
         df = self.table.model.df
         df.to_clipboard()
         return
 
     def export(self):
+        """export result to file"""
 
+        df = self.table.model.df
+        options = QFileDialog.Options()
+        filename, _ = QFileDialog.getSaveFileName(self,"Export File",
+                             "","CSV files (*.csv);;",
+                             options=options)
+        if not filename:
+            return
+        if not os.path.splitext(filename)[1] == '.csv':
+            filename += '.csv'
+        df.to_csv(filename)
         return
 
     def close(self):
@@ -598,6 +610,10 @@ class PivotDialog(BasicDialog):
         w.addItems(cols)
         l.addWidget(QLabel('Index'))
         l.addWidget(w)
+        w = self.aggw = QListWidget(main)
+        w.addItems(funcs)
+        l.addWidget(QLabel('Aggregate function'))
+        l.addWidget(w)
 
         from . import core
         self.table = core.DataFrameTable(self)
@@ -611,10 +627,11 @@ class PivotDialog(BasicDialog):
         cols = [i.text() for i in self.columnsw.selectedItems()]
         vals =[i.text() for i in self.valuesw.selectedItems()]
         idx = self.idxw.selectedItems()[0].text()
-
-        res = pd.pivot_table(self.df, index=idx, columns=cols, values=vals)
+        aggfuncs = [i.text() for i in self.aggw.selectedItems()]
+        res = pd.pivot_table(self.df, index=idx, columns=cols, values=vals, aggfunc=aggfuncs)
+        print (res.columns)
         if util.check_multiindex(res.columns) == 1:
-            res.columns = res.columns.get_level_values(1)
+            res.columns = res.columns.get_level_values(2)
 
         self.table.model.df = res
         self.table.refresh()

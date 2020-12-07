@@ -33,6 +33,8 @@ from .core import DataFrameModel, DataFrameTable, DataFrameWidget
 from .plotting import PlotViewer
 from . import util, data
 
+homepath = os.path.expanduser("~")
+
 class Application(QMainWindow):
     def __init__(self, project_file=None, csv_file=None):
 
@@ -40,16 +42,16 @@ class Application(QMainWindow):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle("Tablexplore")
         self.setWindowIcon(QIcon('logo.png'))
+
         self.createMenu()
         self.main = QTabWidget(self)
         self.main.setTabsClosable(True)
-        self.main.tabCloseRequested.connect(lambda index: self.remove_sheet(index))
-        screen_resolution = QDesktopWidget().screenGeometry()
+        self.main.tabCloseRequested.connect(lambda index: self.removeSheet(index))
+        screen_resolution = QGuiApplication.primaryScreen().availableGeometry()
         width, height = screen_resolution.width()*0.7, screen_resolution.height()*.7
         self.setGeometry(QtCore.QRect(200, 200, width, height))
-        center = QDesktopWidget().availableGeometry().center()
+
         self.newProject()
-        #self.sampleData(200)
         self.main.setFocus()
         self.setCentralWidget(self.main)
         self.statusbar = QStatusBar()
@@ -64,6 +66,31 @@ class Application(QMainWindow):
             self.openProject(project_file)
         elif csv_file != None:
             self.import_file(csv_file)
+        self.loadSettings()
+        return
+
+    def loadSettings(self):
+        """Load GUI settings"""
+
+        s = self.settings = QtCore.QSettings('tablexplore','default')
+        #self.settings.setValue("RecentFiles", recentFiles)
+
+        self.recentFiles = s.value("RecentFiles")
+        try:
+            self.resize(s.value('window size'))
+            self.move(s.value('window position'))
+            print ('set')
+        except:
+            pass
+        return
+
+    def saveSettings(self):
+        """Save GUI settings"""
+
+        self.settings.setValue('window size', self.size())
+        self.settings.setValue('window position', self.pos())
+        self.settings.sync()
+
         return
 
     def createMenu(self):
@@ -73,8 +100,12 @@ class Application(QMainWindow):
                 QtCore.Qt.CTRL + QtCore.Qt.Key_N)
         self.file_menu.addAction('&Open', self.openProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_O)
-        self.file_menu.addAction('&Save', self.save_project,
+        self.menuRecentFiles = QMenu("Open Recent Files",
+            self.file_menu)
+        self.file_menu.addAction(self.menuRecentFiles.menuAction())
+        self.file_menu.addAction('&Save', self.saveProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_S)
+        self.file_menu.addAction('&Save As', self.saveAsProject)
         self.file_menu.addAction('&Import', self.import_file)
         self.file_menu.addAction('&Quit', self.fileQuit,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
@@ -94,7 +125,8 @@ class Application(QMainWindow):
         self.sheet_menu = QMenu('&Sheet', self)
         self.menuBar().addMenu(self.sheet_menu)
         self.sheet_menu.addAction('&Add', self.addSheet)
-        self.sheet_menu.addAction('&Rename', self.rename_sheet)
+        self.sheet_menu.addAction('&Rename', self.renameSheet)
+        self.sheet_menu.addAction('&Copy', self.copySheet)
 
         self.tools_menu = QMenu('&Tools', self)
         self.tools_menu.addAction('&Table Info', lambda: self._call('info'),
@@ -103,7 +135,7 @@ class Application(QMainWindow):
                 QtCore.Qt.CTRL + QtCore.Qt.Key_D)
         self.tools_menu.addAction('&Convert Numeric', lambda: self._call('convertNumeric'))
         self.tools_menu.addAction('&Convert Column Names', lambda: self._call('convertColumnNames'))
-        self.tools_menu.addAction('&Table to Text', lambda: self._call('convertColumnNames'),
+        self.tools_menu.addAction('&Table to Text', lambda: self._call('showAsText'),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_T)
         self.menuBar().addMenu(self.tools_menu)
 
@@ -140,6 +172,15 @@ class Application(QMainWindow):
             t=self.sheets[s]
             if t.filtered==True:
                 t.showAll()
+        return
+
+    def addRecentFile(self, fname):
+
+        if fname and fname not in self.recentFiles:
+            self.recentFiles.insert(0, fname)
+            if len(self.recentFiles) > 9:
+                self.recentFiles = self.recentFiles[:9]
+        self.menuRecentFiles.setEnabled(len(self.recentFiles))
         return
 
     def newProject(self, data=None):
@@ -180,8 +221,8 @@ class Application(QMainWindow):
 
         if filename == None:
             options = QFileDialog.Options()
-            filename, _ = QFileDialog.getOpenFileName(self,"Import File",
-                                                      "","Dxpl Files (*.dexpl);;All files (*.*)",
+            filename, _ = QFileDialog.getOpenFileName(self,"Open Project",
+                                                      "","tablexplore Files (*.txpl);;All files (*.*)",
                                                       options=options)
 
         if not filename:
@@ -191,7 +232,7 @@ class Application(QMainWindow):
             self.removeRecent(filename)
             return
         ext = os.path.splitext(filename)[1]
-        if ext != '.dexpl':
+        if ext != '.txpl':
             print ('does not appear to be a project file')
             return
         if os.path.isfile(filename):
@@ -206,36 +247,45 @@ class Application(QMainWindow):
         self.proj_label.setText(self.filename)
         self.projopen = True
         self.defaultsavedir = os.path.dirname(os.path.abspath(filename))
-        #self.addRecent(filename)
+        #self.addRecentFile(filename)
         return
 
-    def save_project(self, filename=None):
+    def saveAsProject(self):
+
+        options = QFileDialog.Options()
+        filename, _ = QFileDialog.getSaveFileName(self,"Save Project",
+                                                  "","tablexplore Files (*.txpl);;All files (*.*)",
+                                                  options=options)
+        if not filename:
+            return
+
+        self.filename = filename
+        self.do_saveProject(filename)
+        self.addRecentFile(filename)
+        return
+
+    def saveProject(self, filename=None):
         """Save as a new filename"""
 
+        if self.filename != None:
+            filename = self.filename
         if filename is None:
-            options = QFileDialog.Options()
-            filename, _ = QFileDialog.getSaveFileName(self,"Save Project",
-                                                      "","Dxpl Files (*.dexpl);;All files (*.*)",
-                                                      options=options)
+            self.saveAsProject()
         if not filename:
             return
         self.filename = filename
-        if not os.path.splitext(filename)[1] == '.dexpl':
-            self.filename += '.dexpl'
+        if not os.path.splitext(filename)[1] == '.txpl':
+            self.filename += '.txpl'
         self.defaultsavedir = os.path.dirname(os.path.abspath(filename))
-        self.do_save_project(self.filename)
-        #self.addRecent(filename)
-        print (self.filename)
+        self.do_saveProject(self.filename)
         return
 
-    def do_save_project(self, filename):
+    def do_saveProject(self, filename):
         """Save sheets as dict to pickle"""
 
-        #self._checkTables()
         data={}
-        print (self.sheets)
         for i in self.sheets:
-            print (i)
+            #print (i)
             tablewidget = self.sheets[i]
             table = tablewidget.table
             data[i] = {}
@@ -299,16 +349,42 @@ class Application(QMainWindow):
         self.main.setCurrentIndex(idx)
         return
 
-    def remove_sheet(self, index):
+    def removeSheet(self, index, ask=True):
         """Remove sheet"""
 
+        if ask == True:
+            reply = QMessageBox.question(self, 'Delete this sheet?',
+                                 'Are you sure?', QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.No:
+                return False
         name = self.main.tabText(index)
         del self.sheets[name]
         self.main.removeTab(index)
         return
 
-    def rename_sheet(self):
+    def renameSheet(self):
+        """Rename the current sheet"""
 
+        index = self.main.currentIndex()
+        name = self.main.tabText(index)
+        new, ok = QInputDialog.getText(self, 'New name', 'Name:',
+                    QLineEdit.Normal, name)
+        if ok:
+            self.sheets[new] = self.sheets[name]
+            del self.sheets[name]
+            self.main.setTabText(index, new)
+        return
+
+    def copySheet(self):
+        """Copy sheet"""
+
+        index = self.main.currentIndex()
+        name = self.main.tabText(index)
+        df = self.sheets[name].table.model.df
+        new, ok = QInputDialog.getText(self, 'New name', 'Name:',
+                    QLineEdit.Normal, name+'_copy')
+        if ok:
+            self.addSheet(new, df)
         return
 
     def load_dataframe(self, df, name=None, select=False):
@@ -338,6 +414,7 @@ class Application(QMainWindow):
         self.close()
 
     def closeEvent(self, ce):
+        self.saveSettings()
         self.fileQuit()
 
     def getSampleData(self, name, rows=None):
@@ -350,7 +427,7 @@ class Application(QMainWindow):
             if ok:
                 df = data.getSampleData(rows,5)
         else:
-            df = data.getIrisData()    
+            df = data.getIrisData()
         self.addSheet(None,df)
         return
 

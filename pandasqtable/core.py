@@ -134,6 +134,14 @@ class DataFrameWidget(QWidget):
         td = dialogs.TextDialog(self, buf.getvalue(), 'Info')
         return
 
+    def showAsText(self):
+        """Show selection as text"""
+
+        df = self.getSelectedDataFrame()
+        dlg = dialogs.TextDialog(self, df.to_string())
+        dlg.exec_()
+        return
+
     def clear(self):
         self.table.model.df = pd.DataFrame()
         self.table.refresh()
@@ -307,8 +315,8 @@ class DataFrameWidget(QWidget):
 
         self.closeSubtable()
         dock = QDockWidget(self.splitter)
-        self.setFeatures(QDockWidget.DockWidgetFloatable |
-                         QDockWidget.DockWidgetMovable)
+        #dock.setFeatures(QDockWidget.DockWidgetFloatable |
+                            #QDockWidget.DockWidgetMovable)
         self.splitter.addWidget(dock)
         newtable = SubTableWidget(dock, dataframe=df)
         dock.setWidget(newtable)
@@ -344,11 +352,14 @@ class DataFrameTable(QTableView):
         self.setSelectionBehavior(QTableView.SelectRows)
         #self.setSelectionBehavior(QTableView.SelectColumns)
         #self.horizontalHeader = ColumnHeader()
-        header = self.horizontalHeader()
-        #header.setResizeMode(QHeaderView.ResizeToContents)
+
         vh = self.verticalHeader()
         vh.setVisible(True)
         vh.setDefaultSectionSize(28)
+        vh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        vh.customContextMenuRequested.connect(self.rowHeaderMenu)
+        #vh.sectionClicked.connect(self.rowClicked)
+
         hh = self.horizontalHeader()
         hh.setVisible(True)
         #hh.setStretchLastSection(True)
@@ -459,6 +470,20 @@ class DataFrameTable(QTableView):
         for j in range(self.columnCount()):
             self.item(rowIndex, j).setBackground(color)
 
+    def rowHeaderMenu(self, pos):
+        """Row header popup menu"""
+
+        vheader = self.verticalHeader()
+        idx = vheader.logicalIndexAt(pos)
+        #row = self.model.df.columns[idx]
+        menu = QMenu(self)
+        resetIndexAction = menu.addAction("Reset Index")
+        action = menu.exec_(self.mapToGlobal(pos))
+        if action == resetIndexAction:
+            self.resetIndex()
+
+        return
+
     def columnHeaderMenu(self, pos):
 
         hheader = self.horizontalHeader()
@@ -466,11 +491,12 @@ class DataFrameTable(QTableView):
         column = self.model.df.columns[idx]
         #model = self.model
         menu = QMenu(self)
-        #setIndexAction = menu.addAction("Set as Index")
+        setIndexAction = menu.addAction("Set as Index")
         deleteColumnAction = menu.addAction("Delete Column")
         renameColumnAction = menu.addAction("Rename Column")
         addColumnAction = menu.addAction("Add Column")
-        exportAction = menu.addAction("Export Table")
+        datetimeAction = menu.addAction("Date/Time Conversion")
+
         #sortAction = menu.addAction("Sort By")
         action = menu.exec_(self.mapToGlobal(pos))
         if action == deleteColumnAction:
@@ -479,8 +505,9 @@ class DataFrameTable(QTableView):
             self.renameColumn(column)
         elif action == addColumnAction:
             self.addColumn()
-        elif action == exportAction:
-            self.exportTable()
+        elif action == setIndexAction:
+            self.setIndex(column)
+
         return
 
     def keyPressEvent(self, event):
@@ -506,7 +533,8 @@ class DataFrameTable(QTableView):
         menu = QMenu(self)
         copyAction = menu.addAction("Copy")
         colorAction = menu.addAction("Set Color")
-        importAction = menu.addAction("Import")
+        importAction = menu.addAction("Import File")
+        exportAction = menu.addAction("Export Table")
         plotAction = menu.addAction("Plot Selected")
         memAction = menu.addAction("Memory Usage")
         prefsAction = menu.addAction("Preferences")
@@ -516,6 +544,8 @@ class DataFrameTable(QTableView):
             self.copy()
         elif action == importAction:
             self.importFile()
+        elif action == exportAction:
+            self.exportTable()
         elif action == colorAction:
             pass
         elif action == plotAction:
@@ -525,8 +555,16 @@ class DataFrameTable(QTableView):
         elif action == prefsAction:
             config.PreferencesDialog(self)
 
-    def setIndex(self):
+    def resetIndex(self):
 
+        self.model.df.reset_index(inplace=True)
+        self.refresh()
+        return
+
+    def setIndex(self, column):
+
+        self.model.df.set_index(column, inplace=True)
+        self.refresh()
         return
 
     def addColumn(self):
