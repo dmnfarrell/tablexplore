@@ -155,6 +155,8 @@ class Application(QMainWindow):
         self.menuBar().addMenu(self.dataset_menu)
         self.dataset_menu.addAction('&Sample', lambda: self.getSampleData('sample'))
         self.dataset_menu.addAction('&Iris', lambda: self.getSampleData('iris'))
+        self.dataset_menu.addAction('&Titanic', lambda: self.getSampleData('titanic'))
+        self.dataset_menu.addAction('&Pima Diabetes', lambda: self.getSampleData('pima'))
 
         self.help_menu = QMenu('&Help', self)
         self.menuBar().addSeparator()
@@ -263,6 +265,7 @@ class Application(QMainWindow):
         return
 
     def saveAsProject(self):
+        """Save as a new project filename"""
 
         options = QFileDialog.Options()
         filename, _ = QFileDialog.getSaveFileName(self,"Save Project",
@@ -277,7 +280,7 @@ class Application(QMainWindow):
         return
 
     def saveProject(self, filename=None):
-        """Save as a new filename"""
+        """Save project"""
 
         if self.filename != None:
             filename = self.filename
@@ -438,9 +441,10 @@ class Application(QMainWindow):
                 rows, ok = QInputDialog.getInt(self, 'Rows', 'Rows:', 100)
             if ok:
                 df = data.getSampleData(rows,5)
+
         else:
-            df = data.getIrisData()
-        self.addSheet(None,df)
+            df = data.getPresetData(name)
+        self.addSheet(name,df)
         return
 
     def get_current_table(self):

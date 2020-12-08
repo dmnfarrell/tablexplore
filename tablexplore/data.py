@@ -45,9 +45,9 @@ def getSampleData(rows=400, cols=5):
     #df['date'] = pd.date_range('1/1/2014', periods=rows, freq='H')
     return df
 
-def getIrisData():
+def getPresetData(name):
     """Get iris dataset"""
 
     path = os.path.dirname(__file__)
-    df = pd.read_csv(os.path.join(path,'datasets','iris.csv'),index_col=0)
+    df = pd.read_csv(os.path.join(path,'datasets','%s.csv' %name),index_col=0)
     return df

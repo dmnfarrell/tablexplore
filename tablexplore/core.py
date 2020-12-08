@@ -102,6 +102,18 @@ class DataFrameWidget(QWidget):
             self.table.refresh()
         return
 
+    def importExcel(self):
+        """Import excel file"""
+
+        options = QFileDialog.Options()
+        filename, _ = QFileDialog.getOpenFileName(self,"Import Excel",
+                             "","xlsx files (*.xlsx);;xls Files (*.xls);;All Files (*)",
+                             options=options)
+        if filename:
+            self.table.model.df = pd.read_excel(filename)
+            self.table.refresh()
+        return
+
     def copy(self):
         """Copy to clipboard"""
 
@@ -251,12 +263,132 @@ class DataFrameWidget(QWidget):
         #self.tableChanged()
         return
 
-    def showasText(self):
+    def convertColumnNames(self):
 
         return
 
-    def convertColumnNames(self):
+    def convertDates(self, column):
+        """Convert single or multiple columns into datetime"""
 
+        df = self.table.model.df
+        #cols = list(df.columns[self.multiplecollist])
+        '''if len(cols) == 1:
+            colname = cols[0]
+            temp = df[colname]
+        else:
+            colname = '-'.join(cols)
+            temp = df[cols]'''
+
+        #ols = [column]
+        temp = df[column]
+        if temp.dtype == 'datetime64[ns]':
+            title = 'Date->string extract'
+        else:
+            title = 'String->datetime convert'
+            temp = pd.to_datetime(temp)
+        timeformats = ['infer','%d/%m/%Y','%Y/%m/%d','%Y/%d/%m',
+                        '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
+                        '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
+        props = ['day','month','hour','minute','second','year',
+                 'dayofyear','weekofyear','quarter']
+
+        opts = {'format':  {'type':'combobox','default':'int',
+                            'items':timeformats,'label':'Conversion format', 'tooltip':' '},
+                'prop':  {'type':'combobox','default':'int',
+                        'items':props,'label':'Extract from datetime', 'tooltip':' '},
+               }
+
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Convert Dates')
+        dlg.exec_()
+        if not dlg.accepted:
+            return
+        kwds = dlg.values
+
+        format = kwds['format']
+        prop = kwds['prop']
+
+        df = self.table.model.df
+        if format == 'infer':
+            format = None
+
+        df[prop] = getattr(temp.dt, prop)
+        try:
+            df[prop] = df[prop].astype(int)
+        except:
+            pass
+        self.table.refresh()
+        return
+
+    def applyStringMethod(self):
+        """Apply string operation to column(s)"""
+
+        df = self.model.df
+        cols = list(df.columns[self.multiplecollist])
+        col = cols[0]
+        funcs = ['','split','strip','lstrip','lower','upper','title','swapcase','len',
+                 'slice','replace','concat']
+        d = MultipleValDialog(title='Apply Function',
+                                initialvalues=(funcs,',',0,1,'','',1),
+                                labels=('Function:',
+                                        'Split sep:',
+                                        'Slice start:',
+                                        'Slice end:',
+                                        'Pattern:',
+                                        'Replace with:',
+                                        'In place:'),
+                                types=('combobox','string','int',
+                                       'int','string','string','checkbutton'),
+                                tooltips=(None,'separator for split or concat',
+                                          'start index for slice',
+                                          'end index for slice',
+                                          'characters or regular expression for replace',
+                                          'characters to replace with',
+                                          'replace column'),
+                                parent = self.parentframe)
+        if d.result == None:
+            return
+        self.storeCurrent()
+        func = d.results[0]
+        sep = d.results[1]
+        start = d.results[2]
+        end = d.results[3]
+        pat = d.results[4]
+        repl = d.results[5]
+        inplace = d.results[6]
+        if func == 'split':
+            new = df[col].str.split(sep).apply(pd.Series)
+            new.columns = [col+'_'+str(i) for i in new.columns]
+            self.model.df = pd.concat([df,new],1)
+            self.table.refresh()
+            return
+        elif func == 'strip':
+            x = df[col].str.strip()
+        elif func == 'lstrip':
+            x = df[col].str.lstrip(pat)
+        elif func == 'upper':
+            x = df[col].str.upper()
+        elif func == 'lower':
+            x = df[col].str.lower()
+        elif func == 'title':
+            x = df[col].str.title()
+        elif func == 'swapcase':
+            x = df[col].str.swapcase()
+        elif func == 'len':
+            x = df[col].str.len()
+        elif func == 'slice':
+            x = df[col].str.slice(start,end)
+        elif func == 'replace':
+            x = df[col].replace(pat, repl, regex=True)
+        elif func == 'concat':
+            x = df[col].str.cat(df[cols[1]].astype(str), sep=sep)
+        if inplace == 0:
+            newcol = col+'_'+func
+        else:
+            newcol = col
+        df[newcol] = x
+        if inplace == 0:
+            self.placeColumn(newcol,col)
+        self.table.refresh()
         return
 
     def merge(self):
@@ -351,7 +483,6 @@ class DataFrameTable(QTableView):
         #self.doubleClicked.connect(self.handleDoubleClick)
         self.setSelectionBehavior(QTableView.SelectRows)
         #self.setSelectionBehavior(QTableView.SelectColumns)
-        #self.horizontalHeader = ColumnHeader()
 
         vh = self.verticalHeader()
         vh.setVisible(True)
@@ -365,6 +496,7 @@ class DataFrameTable(QTableView):
         #hh.setStretchLastSection(True)
         #hh.setSectionResizeMode(QHeaderView.Interactive)
         hh.setSectionsMovable(True)
+        hh.setSelectionMode(QAbstractItemView.MultiSelection)
         hh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         hh.customContextMenuRequested.connect(self.columnHeaderMenu)
         hh.sectionClicked.connect(self.columnClicked)
@@ -412,6 +544,7 @@ class DataFrameTable(QTableView):
         return
 
     def getSelectedRows(self):
+
         rows=[]
         for idx in self.selectionModel().selectedRows():
             rows.append(idx.row())
@@ -475,13 +608,14 @@ class DataFrameTable(QTableView):
 
         vheader = self.verticalHeader()
         idx = vheader.logicalIndexAt(pos)
-        #row = self.model.df.columns[idx]
         menu = QMenu(self)
         resetIndexAction = menu.addAction("Reset Index")
+        deleteRowAction = menu.addAction("Delete Row")
         action = menu.exec_(self.mapToGlobal(pos))
         if action == resetIndexAction:
             self.resetIndex()
-
+        elif action == deleteRowAction:
+            self.deleteRows()
         return
 
     def columnHeaderMenu(self, pos):
@@ -507,6 +641,8 @@ class DataFrameTable(QTableView):
             self.addColumn()
         elif action == setIndexAction:
             self.setIndex(column)
+        elif action == datetimeAction:
+            self.parent.convertDates(column)
 
         return
 
@@ -591,12 +727,15 @@ class DataFrameTable(QTableView):
         return
 
     def deleteRows(self):
+        """Delete rows"""
 
         rows = self.getSelectedRows()
         reply = QMessageBox.question(self, 'Delete Rows?',
                              'Are you sure?', QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.No:
             return False
+        print (self.selectionModel().selectedRows())
+
         idx = self.model.df.index[rows]
         self.model.df = self.model.df.drop(idx)
         self.refresh()
@@ -738,7 +877,7 @@ class ToolBar(QWidget):
         """Toolbar buttons"""
 
         funcs = {'load':self.app.load,
-                 'importexcel': self.app.load,
+                 'importexcel': self.app.importExcel,
                  'save':self.app.save,
                  'copy':self.app.copy, 'paste':self.app.paste,
                  'plot':self.app.plot,
