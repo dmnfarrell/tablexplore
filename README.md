@@ -1,4 +1,5 @@
 <img align="right" src=https://raw.githubusercontent.com/dmnfarrell/pandasqtable/master/logo.png width=150px>
+
 # pandasqtable
 
 pandasqtable is a PySide2/Qt table based widget using pandas DataFrames. It also provides the **tablexplore** application for data analysis and plotting.
