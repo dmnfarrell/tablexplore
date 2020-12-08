@@ -29,9 +29,9 @@ a = Analysis(['main.py'],
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False,
-             datas=[ ('logo.png', 'pandasqtable/'),
-		     ('pandasqtable/icons/*.png','pandasqtable/icons/'),
-                     ('pandasqtable/datasets/*','pandasqtable/datasets/')  ])
+             datas=[ ('logo.png', 'tablexplore/'),
+		                 ('tablexplore/icons/*.png','tablexplore/icons/'),
+                     ('tablexplore/datasets/*','tablexplore/datasets/')  ])
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 

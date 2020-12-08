@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-    Some sample data sources for pandasqtable classes.
+    Some sample data sources for tablexplore classes.
     Created August 2020
     Copyright (C) Damien Farrell
 

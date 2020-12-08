@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-    Implements the utility methods for pandasqtable classes.
+    Implements the utility methods for tableexplore classes.
     Created August 2015
     Copyright (C) Damien Farrell
 
@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 
 def getEmptyData(rows=10,columns=4):
-    
+
     colnames = list(string.ascii_lowercase[:columns])
     df = pd.DataFrame(index=range(rows),columns=colnames)
     return df

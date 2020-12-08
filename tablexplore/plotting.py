@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-    Sample dataexplore2 plotting module
+    tableexplore plotting module
     Created May 2017
     Copyright (C) Damien Farrell
 

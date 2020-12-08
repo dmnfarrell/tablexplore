@@ -34,6 +34,8 @@ from .plotting import PlotViewer
 from . import util, data
 
 homepath = os.path.expanduser("~")
+module_path = os.path.dirname(os.path.abspath(__file__))
+stylepath = os.path.join(module_path, 'styles')
 
 class Application(QMainWindow):
     def __init__(self, project_file=None, csv_file=None):
@@ -67,6 +69,7 @@ class Application(QMainWindow):
         elif csv_file != None:
             self.import_file(csv_file)
         self.loadSettings()
+        #self.setStyle()
         return
 
     def loadSettings(self):
@@ -74,7 +77,8 @@ class Application(QMainWindow):
 
         s = self.settings = QtCore.QSettings('tablexplore','default')
         #self.settings.setValue("RecentFiles", recentFiles)
-
+        print(QStyleFactory.keys())
+        #self.setStyle(QStyleFactory.create('Fusion'))
         self.recentFiles = s.value("RecentFiles")
         try:
             self.resize(s.value('window size'))
@@ -82,6 +86,7 @@ class Application(QMainWindow):
             print ('set')
         except:
             pass
+
         return
 
     def saveSettings(self):
@@ -90,7 +95,14 @@ class Application(QMainWindow):
         self.settings.setValue('window size', self.size())
         self.settings.setValue('window position', self.pos())
         self.settings.sync()
+        return
 
+    def setStyle(self):
+
+        f = open(os.path.join(stylepath,'light.qss'), 'r')
+        self.style_data = f.read()
+        f.close()
+        self.setStyleSheet(self.style_data)
         return
 
     def createMenu(self):

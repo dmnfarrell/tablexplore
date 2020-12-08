@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-    Implements a core classes for pandasqtable
+    Implements core classes for tablexplore
     Created May 2017
     Copyright (C) Damien Farrell
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-    Implements some dialog utilities for pandasqtable
+    Implements some dialog utilities for tableexplore
     Created Feb 2019
     Copyright (C) Damien Farrell
 

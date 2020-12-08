@@ -1,13 +1,13 @@
 <img align="right" src=https://raw.githubusercontent.com/dmnfarrell/pandasqtable/master/logo.png width=150px>
 
-# pandasqtable
+# TablExplore
 
-pandasqtable is a PySide2/Qt table based widget using pandas DataFrames. It also provides the **tablexplore** application for data analysis and plotting.
+TablExplore is an application for data analysis and plotting built in Python using the PySide2/Qt toolkit.  It uses the pandas DataFrame class to store the table data. Pandas is an open source Python library providing high-performance data structures and data analysis tools.
 
 ## Installation
 
 ```
-pip install -e git+https://github.com/dmnfarrell/pandasqtable.git#egg=pandasqtable
+pip install -e git+https://github.com/dmnfarrell/tablexplore.git#egg=tablexplore
 ```
 
 ## Current features
