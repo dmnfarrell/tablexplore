@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-    Dataexplore2 table app
-    Created May 2017
+    TablExplore app
+    Created November 2020
     Copyright (C) Damien Farrell
 
     This program is free software; you can redistribute it and/or

@@ -21,17 +21,17 @@
 
 block_cipher = None
 
-
 a = Analysis(['main.py'],
              hookspath=[],
              runtime_hooks=[],
-             excludes=['PIL','tkinter','lib2to3','pywin.debugger', 'pywin.debugger.dbgcon'],
+             excludes=['tkinter','lib2to3','pywin.debugger', 'pywin.debugger.dbgcon'],
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher,
              noarchive=False,
-             datas=[ ('pandasqtable/logo.png', 'pandasqtable/'),
-                     ('pandasqtable/datasets/*')  ])
+             datas=[ ('logo.png', 'pandasqtable/'),
+		     ('pandasqtable/icons/*.png','pandasqtable/icons/'),
+                     ('pandasqtable/datasets/*','pandasqtable/datasets/')  ])
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 

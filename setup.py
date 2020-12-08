@@ -8,7 +8,7 @@ with open('description.txt') as f:
 setup(
     name = 'pandasqtable',
     version = '0.1.0',
-    description = 'Library for qt tables using pandas DataFrames',
+    description = 'Library for Qt tables using pandas DataFrames',
     long_description = long_description,
     url='https://github.com/dmnfarrell/pandasqtable',
     license='GPL v3',
@@ -17,10 +17,10 @@ setup(
     packages = ['pandasqtable'],
     package_data={'pandasqtable': ['../logo.png', '../description.txt',
                                   'datasets/*.csv']},
-    install_requires=['matplotlib>=2.0',
-                      'pandas>=0.20',
+    install_requires=['matplotlib>=3.0',
+                      'pandas>=1.1',
                       'PySide2',
-                      'xlrd>=0.9']
+                      'xlrd>=1.0']
     entry_points = { 'gui_scripts': [
                      'dataexplore2 = pandasqtable.app:main']},
     classifiers = ['Operating System :: OS Independent',
