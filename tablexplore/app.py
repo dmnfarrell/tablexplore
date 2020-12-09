@@ -61,7 +61,7 @@ class Application(QMainWindow):
         self.proj_label = QLabel("")
         self.statusbar.addWidget(self.proj_label, 1)
         self.proj_label.setStyleSheet('color: blue')
-
+        self.style = 'default'
         #self.statusBar().showMessage("Welcome", 3000)
         self.setStatusBar(self.statusbar)
         if project_file != None:
@@ -77,13 +77,13 @@ class Application(QMainWindow):
 
         s = self.settings = QtCore.QSettings('tablexplore','default')
         #self.settings.setValue("RecentFiles", recentFiles)
-        print(QStyleFactory.keys())
-        #self.setStyle(QStyleFactory.create('Fusion'))
+
         self.recentFiles = s.value("RecentFiles")
         try:
             self.resize(s.value('window size'))
             self.move(s.value('window position'))
-            print ('set')
+            self.setStyle(s.value('style'))
+            #print ('set')
         except:
             pass
 
@@ -94,15 +94,21 @@ class Application(QMainWindow):
 
         self.settings.setValue('window size', self.size())
         self.settings.setValue('window position', self.pos())
+        self.settings.setValue('style', self.style)
         self.settings.sync()
         return
 
-    def setStyle(self):
+    def setStyle(self, style='default'):
+        """Change interface style."""
 
-        f = open(os.path.join(stylepath,'light.qss'), 'r')
-        self.style_data = f.read()
-        f.close()
-        self.setStyleSheet(self.style_data)
+        if style == 'default':
+            	self.setStyleSheet("")
+        else:
+            f = open(os.path.join(stylepath,'%s.qss' %style), 'r')
+            self.style_data = f.read()
+            f.close()
+            self.setStyleSheet(self.style_data)
+        self.style = style
         return
 
     def createMenu(self):
@@ -125,7 +131,8 @@ class Application(QMainWindow):
 
         self.edit_menu = QMenu('&Edit', self)
         self.menuBar().addMenu(self.edit_menu)
-        self.edit_menu.addAction('&Undo', self.undo)
+        self.edit_menu.addAction('&Undo', self.undo,
+                QtCore.Qt.CTRL + QtCore.Qt.Key_Z)
 
         self.view_menu = QMenu('&View', self)
         self.menuBar().addMenu(self.view_menu)
@@ -133,6 +140,13 @@ class Application(QMainWindow):
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Equal)
         self.view_menu.addAction('&Zoom Out', self.zoomOut,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Minus)
+        self.view_menu.addAction('&Decrease Column Width', lambda: self.changeColumnWidths(.9))
+        self.view_menu.addAction('&Increase Column Width', self.changeColumnWidths)
+        self.style_menu = QMenu("Styles",  self.view_menu)
+        self.style_menu.addAction('&Default', self.setStyle)
+        self.style_menu.addAction('&Light', lambda: self.setStyle('light'))
+        self.style_menu.addAction('&Dark', lambda: self.setStyle('dark'))
+        self.view_menu.addAction(self.style_menu.menuAction())
 
         self.sheet_menu = QMenu('&Sheet', self)
         self.menuBar().addMenu(self.sheet_menu)
@@ -236,8 +250,8 @@ class Application(QMainWindow):
         if filename == None:
             options = QFileDialog.Options()
             filename, _ = QFileDialog.getOpenFileName(self,"Open Project",
-                                                      "","tablexplore Files (*.txpl);;All files (*.*)",
-                                                      options=options)
+                                  "","tablexplore Files (*.txpl);;All files (*.*)",
+                                  options=options)
 
         if not filename:
             return
@@ -359,6 +373,8 @@ class Application(QMainWindow):
         self.sheets[name] = dfw
         self.currenttable = dfw
         pf = dfw.createPlotViewer(sheet)
+        #pf = QWidget()
+        #pf.setStyleSheet("background-color: yellow")
         sheet.addWidget(pf)
         sheet.setSizes((500,1000))
         self.main.setCurrentIndex(idx)
@@ -466,6 +482,10 @@ class Application(QMainWindow):
         w = self.get_current_table()
         w.table.zoomOut()
         return
+
+    def changeColumnWidths(self, factor=1.1):
+        w = self.get_current_table()
+        w.table.changeColumnWidths(factor)
 
     def undo(self):
 

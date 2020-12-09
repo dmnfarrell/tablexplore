@@ -140,21 +140,24 @@ class DataFrameWidget(QWidget):
         return self.pf
 
     def info(self):
+        """Table info"""
 
         buf = io.StringIO()
         self.table.model.df.info(verbose=True,buf=buf,memory_usage=True)
-        td = dialogs.TextDialog(self, buf.getvalue(), 'Info')
+        td = dialogs.TextDialog(self, buf.getvalue(), 'Info', width=500, height=400)
         return
 
     def showAsText(self):
         """Show selection as text"""
 
         df = self.getSelectedDataFrame()
-        dlg = dialogs.TextDialog(self, df.to_string())
+        dlg = dialogs.TextDialog(self, df.to_string(), width=800, height=400)
         dlg.exec_()
         return
 
     def clear(self):
+        """Clear table"""
+
         self.table.model.df = pd.DataFrame()
         self.table.refresh()
         return
@@ -263,6 +266,14 @@ class DataFrameWidget(QWidget):
         #self.tableChanged()
         return
 
+    def convertTypes(self):
+
+        dlg = dialogs.ConvertTypesDialog(self, self.table.model.df)
+        dlg.exec_()
+        if not dlg.accepted:
+            return
+        return
+
     def convertColumnNames(self):
 
         return
@@ -289,7 +300,7 @@ class DataFrameWidget(QWidget):
         timeformats = ['infer','%d/%m/%Y','%Y/%m/%d','%Y/%d/%m',
                         '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
                         '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
-        props = ['day','month','hour','minute','second','year',
+        props = ['','day','month','hour','minute','second','year',
                  'dayofyear','weekofyear','quarter']
 
         opts = {'format':  {'type':'combobox','default':'int',
@@ -775,6 +786,12 @@ class DataFrameTable(QTableView):
         h = vh.defaultSectionSize()
         vh.setDefaultSectionSize(h-2)
         return
+
+    def changeColumnWidths(self, factor=1.1):
+
+        for col in range(len(self.model.df.columns)):
+            w=self.columnWidth(col)
+            self.setColumnWidth(col,w*factor)
 
 class DataFrameModel(QtCore.QAbstractTableModel):
     def __init__(self, dataframe=None, *args):

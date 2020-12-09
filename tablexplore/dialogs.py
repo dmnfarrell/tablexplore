@@ -21,7 +21,7 @@
 
 from __future__ import absolute_import, division, print_function
 import math, time
-import os, types
+import os, types, io
 import string, copy
 from collections import OrderedDict
 import pandas as pd
@@ -229,9 +229,9 @@ class PlainTextEditor(QPlainTextEdit):
 
 class TextDialog(QDialog):
     """Text edit dialog"""
-    def __init__(self, parent, text='', title='Text'):
+    def __init__(self, parent, text='', title='Text', width=400, height=300):
         super(TextDialog, self).__init__(parent)
-        self.setMinimumSize(440, 300)
+        self.resize(width, height)
         self.setWindowTitle(title)
         vbox = QVBoxLayout(self)
         b = self.textbox = PlainTextEditor(self)
@@ -433,7 +433,7 @@ class BasicDialog(QDialog):
         self.app = self.parent.app
         self.setWindowTitle(title)
         self.createWidgets()
-        self.setGeometry(QtCore.QRect(400, 300, 900, 600))
+        self.setGeometry(QtCore.QRect(400, 300, 1000, 600))
         self.show()
         return
 
@@ -766,6 +766,64 @@ class MergeDialog(BasicDialog):
                             right_on=righton,
                             suffixes=(self.left_suffw .text(),self.right_suffw.text())
                             )
+
+        self.table.model.df = res
+        self.table.refresh()
+        return
+
+class ConvertTypesDialog(BasicDialog):
+    """Dialog to melt table"""
+    def __init__(self, parent, df, title='Convert types'):
+
+        BasicDialog.__init__(self, parent, df, title)
+        return
+
+    def createButtons(self, parent):
+
+        bw = self.button_widget = QWidget(parent)
+        vbox = QVBoxLayout(bw)
+        vbox.setAlignment(QtCore.Qt.AlignTop)
+        button = QPushButton("Apply")
+        button.clicked.connect(self.apply)
+        vbox.addWidget(button)
+        button = QPushButton("Copy to new sheet")
+        button.clicked.connect(self.copy_to_sheet)
+        vbox.addWidget(button)
+        button = QPushButton("Close")
+        button.clicked.connect(self.close)
+        vbox.addWidget(button)
+        return bw
+
+    def createWidgets(self):
+        """Create widgets"""
+
+        cols = list(self.df.columns)
+
+        vbox = QHBoxLayout(self)
+        main = QWidget(self)
+        main.setMaximumWidth(300)
+        vbox.addWidget(main)
+
+        res = []
+        for col in self.df.columns:
+            res.append([col,str(self.df[col].dtype),''])
+        cols = ['name','type','convert']
+        info = pd.DataFrame(res, columns=cols)
+
+        from . import core
+        self.table = core.DataFrameTable(self, info)
+        vbox.addWidget(self.table)
+        bf = self.createButtons(self)
+        vbox.addWidget(bf)
+        return
+
+    def apply(self):
+        """Do the operation"""
+
+        idvars = [i.text() for i in self.idvarsw.selectedItems()]
+        value_vars =[i.text() for i in self.valuevarsw .selectedItems()]
+        varname = self.varnamew.text()
+        res = pd.melt(self.df, idvars, value_vars, varname)
 
         self.table.model.df = res
         self.table.refresh()

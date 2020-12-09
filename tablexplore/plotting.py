@@ -99,6 +99,15 @@ style = '''
     }
 '''
 
+class PlotWidget(FigureCanvas):
+    def __init__(self, parent=None, dpi=100, hold=False):
+        super(PlotWidget, self).__init__(Figure())
+        self.setParent(parent)
+        self.figure = Figure(dpi=dpi)
+        self.canvas = FigureCanvas(self.figure)
+        self.ax = self.figure.add_subplot(111)
+
+
 class PlotViewer(QWidget):
     """Plot viewer class"""
     def __init__(self, table, parent=None):
@@ -109,34 +118,35 @@ class PlotViewer(QWidget):
         self.currentdir = os.path.expanduser('~')
         sizepolicy = QSizePolicy()
         self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
+
         return
 
     def createWidgets(self):
         """Create widgets. Plot on left and dock for tools on right."""
 
-        self.main = QSplitter(Qt.Horizontal, self)
-
+        #self.main = QSplitter(Qt.Horizontal, self)
+        self.main = QWidget(self)
+        hbox = QHBoxLayout(self)
         left = QWidget(self.main)
-        self.main.addWidget(left)
-        vbox1 = QVBoxLayout(left)
+        hbox.addWidget(left)
+
+        vbox = QVBoxLayout(left)
         bw = self.createButtons(left)
-        vbox1.addWidget(bw)
-        self.fig, self.canvas = addFigure(left)
-        self.ax = self.fig.add_subplot(111)
-        vbox1.addWidget(self.canvas)
+        vbox.addWidget(bw)
+
+        self.canvas = PlotWidget(left)
+        self.fig = self.canvas.figure
+        self.ax = self.canvas.ax
+        #self.fig, self.canvas = addFigure(left)
+        #self.ax = self.fig.add_subplot(111)
+        vbox.addWidget(self.canvas)
 
         dock = QDockWidget('options',self)
-        #dock.setWindowFlags((dock.windowFlags() | Qt.WindowMaximizeButtonHint |
-        #        Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint))
-        #dock.setMaximumWidth(300)
-        self.main.addWidget(dock)
-
-        #self.main.setSizes((300,300))
-        #self.main.setStretchFactor(2, 0)
-
+        dock.setMaximumWidth(250)
+        dock.setMinimumWidth(200)
+        hbox.addWidget(dock)
         ow = self.createDialogs(dock)
         dock.setWidget(ow)
-
         return
 
     def createDialogs(self, parent):
@@ -213,9 +223,10 @@ class PlotViewer(QWidget):
             box.addWidget(btn)
 
         self.globalopts = GlobalOptions(parent=self)
-        dialog = self.globalopts.showDialog(bw, wrap=1)
+        dialog = self.globalopts.showDialog(bw, wrap=3)
         dialog.resize(200,200)
         box.addWidget(dialog)
+        bw.setMaximumHeight(60)
         return bw
 
     def simple_plot(self, df):
@@ -1073,14 +1084,6 @@ def addFigure(parent, figure=None, resize_callback=None):
                           QSizePolicy.Expanding)
     canvas.updateGeometry()
     return figure, canvas
-
-class PlotWidget(FigureCanvas):
-    def __init__(self, parent=None, dpi=100, hold=False):
-        super(MatplotlibWidget, self).__init__(Figure())
-        self.setParent(parent)
-        self.figure = Figure(dpi=dpi)
-        self.canvas = FigureCanvas(self.figure)
-        self.ax = self.figure.add_subplot(111)
 
 
 class BaseOptions(object):
