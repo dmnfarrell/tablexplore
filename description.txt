@@ -1,10 +1,19 @@
 Introduction
 ------------
 
-The pandastable2 library will provide a table widget for qt with
-plotting and data manipulation functionality. It uses the pandas
-DataFrame class to store table data. Pandas is an open source Python
-library providing high-performance data structures and data analysis
-tools.
+The tablexplore package provides a desktop application for
+plotting and tabular data analysis. It is implemented in PySide2 for Qt
+with the pandas DataFrame class as the table model backend. You can re-use the
+`DataFrameWidget` in your own PySide2 applications.
 
-Currently only an early test.
+Installation
+------------
+
+::
+  pip install -e git+https://github.com/dmnfarrell/tablexplore.git#egg=tablexplore
+
+
+Links
+-----
+
+[pandastable - Tkinter based version](https://github.com/dmnfarrell/pandastable)

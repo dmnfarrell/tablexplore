@@ -39,7 +39,7 @@ try:
 except AttributeError:
     def _fromUtf8(s):
         return s
-from . import config, dialogs, plotting, util
+from . import dialogs, plotting, util
 
 icons = {'load': 'open', 'save': 'export',
          'importexcel': 'excel',

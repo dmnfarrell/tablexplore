@@ -34,9 +34,26 @@ parts:
   tablexplore:
     plugin: python
     source: .
-    stage-packages:
-      [ttf-ubuntu-font-family,fontconfig]
-    after: [desktop-glib-only]
+    stage-packages:  
+      - libnss3
+      - libxcomposite1
+      - libxcursor1
+      - libxtst6
+      - libxrandr2
+      - libasound2
+      - libglu1-mesa
+      - libgles2-mesa
+      - fontconfig
+      - libxkbcommon0
+      - libxkbcommon-x11-0
+      - libxi6
+      - libegl1
+      - shared-mime-info
+      - libgdk-pixbuf2.0-0
+      - locales-all
+      - libxslt1.1
+      - xfonts-base
+      - xfonts-scalable
 
 #layout:
 #  /usr/share/fonts:
