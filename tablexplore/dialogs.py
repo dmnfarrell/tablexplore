@@ -35,6 +35,9 @@ from PySide2.QtWidgets import *
 from PySide2.QtGui import *
 from . import util
 
+font = 'monospace'
+fontsize = 12
+
 def dialogFromOptions(parent, opts, sections=None,
                       wrap=2, section_wrap=4,
                       style=None):
@@ -351,7 +354,7 @@ class ImportDialog(QDialog):
         main.addWidget(self.textarea)
         self.textarea.resize(200,200)
         from .core import DataFrameTable
-        t = self.previewtable = DataFrameTable(main)
+        t = self.previewtable = DataFrameTable(main, font=font)
         main.addWidget(t)
         self.setLayout(layout)
         return
@@ -550,7 +553,7 @@ class AggregateDialog(BasicDialog):
         l.addWidget(w)
 
         from . import core
-        self.table = core.DataFrameTable(self)
+        self.table = core.DataFrameTable(self, font=font)
         vbox.addWidget(self.table)
         bf = self.createButtons(self)
         vbox.addWidget(bf)
@@ -616,7 +619,7 @@ class PivotDialog(BasicDialog):
         l.addWidget(w)
 
         from . import core
-        self.table = core.DataFrameTable(self)
+        self.table = core.DataFrameTable(self, font=font)
         vbox.addWidget(self.table)
         bf = self.createButtons(self)
         vbox.addWidget(bf)
@@ -670,7 +673,7 @@ class MeltDialog(BasicDialog):
         l.addWidget(w)
 
         from . import core
-        self.table = core.DataFrameTable(self)
+        self.table = core.DataFrameTable(self, font=font)
         vbox.addWidget(self.table)
         bf = self.createButtons(self)
         vbox.addWidget(bf)
@@ -749,7 +752,7 @@ class MergeDialog(BasicDialog):
         l.addWidget(self.table2)
         hbox.addWidget(tableswidget)'''
         from . import core
-        self.table = core.DataFrameTable(self)
+        self.table = core.DataFrameTable(self, font=font)
         hbox.addWidget(self.table)
         bf = self.createButtons(self)
         hbox.addWidget(bf)
@@ -811,7 +814,9 @@ class ConvertTypesDialog(BasicDialog):
         info = pd.DataFrame(res, columns=cols)
 
         from . import core
-        self.table = core.DataFrameTable(self, info)
+        self.table = core.DataFrameTable(self, info, font=font)
+        types = ['int','float','categorical']
+
         vbox.addWidget(self.table)
         bf = self.createButtons(self)
         vbox.addWidget(bf)
@@ -827,4 +832,79 @@ class ConvertTypesDialog(BasicDialog):
 
         self.table.model.df = res
         self.table.refresh()
+        return
+
+class PreferencesDialog(QDialog):
+    """Preferences dialog from config parser options"""
+
+    def __init__(self, parent, options=None):
+
+        super(PreferencesDialog, self).__init__(parent)
+        self.parent = parent
+        self.setWindowTitle('Preferences')
+        self.resize(700, 200)
+        self.setGeometry(QtCore.QRect(300,300, 600, 200))
+        self.createWidgets()
+        self.show()
+        return
+
+    def createWidgets(self):
+        """create widgets"""
+
+        import pylab as plt
+        colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
+        self.opts = {'rowheight':{'type':'spinbox','default':18,'range':(5,50),'label':'row height'},
+                'cellwidth':{'type':'spinbox','default':80,'range':(10,300),'label':'cell width'},
+                'linewidth':{'type':'spinbox','default':1,'range':(1,10),'label':'grid line width'},
+                'align':{'type':'combobox','default':'w','items':['w','e','center'],'label':'text align'},
+                'font':{'type':'font','default':'Arial'},
+                'fontstyle':{'type':'combobox','default':'','items':['','bold','italic']},
+                'fontsize':{'type':'slider','default':12,'range':(5,40),'interval':1,'label':'font size'},
+                'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
+                }
+        sections = {'table':['align','rowheight','cellwidth','linewidth'],
+                    'formats':['font','fontstyle','fontsize','floatprecision']}
+
+        dialog, self.widgets = dialogFromOptions(self, self.opts, sections)
+
+        self.layout = QVBoxLayout(self)
+        self.layout.addWidget(dialog)
+        dialog.setFocus()
+        bw = self.createButtons(self)
+        self.layout.addWidget(bw)
+        return
+
+    def createButtons(self, parent):
+
+        bw = self.button_widget = QWidget(parent)
+        vbox = QHBoxLayout(bw)
+        #button = QPushButton("Save")
+        #button.clicked.connect(self.save)
+        #vbox.addWidget(button)
+        button = QPushButton("Apply")
+        button.clicked.connect(self.apply)
+        vbox.addWidget(button)
+        button = QPushButton("Close")
+        button.clicked.connect(self.close)
+        vbox.addWidget(button)
+        return bw
+
+    def apply(self):
+        """Apply options to current table"""
+
+        kwds = getWidgetValues(self.widgets)
+        from . import core
+        core.font = kwds['font']
+        core.fontsize = kwds['fontsize']
+        self.parent.refresh()
+        return
+
+    def save(self):
+        """Save from current dialog settings"""
+
+        #options = dialogs.getDictfromTkVars(self.opts, self.tkvars, self.widgets)
+        #print (options)
+        #update configparser and write
+        #cp = update_config(options)
+        cp.write(open(default_conf,'w'))
         return

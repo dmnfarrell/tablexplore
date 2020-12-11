@@ -22,7 +22,7 @@ pip install -e git+https://github.com/dmnfarrell/tablexplore.git#egg=tablexplore
 
 ## Screenshots
 
-<img src=img/scr1.png width=600px>
+<img src=docs/images/scr1.png width=600px>
 
 ## See also
 

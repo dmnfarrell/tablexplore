@@ -20,17 +20,19 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-from PySide2 import QtCore, QtGui
-from PySide2.QtCore import QObject#, pyqtSignal, pyqtSlot, QPoint
-from PySide2.QtWidgets import *
-from PySide2.QtGui import *
 import sys, os, io
 import numpy as np
 import pandas as pd
 import string
+from PySide2 import QtCore, QtGui
+from PySide2.QtCore import QObject#, pyqtSignal, pyqtSlot, QPoint
+from PySide2.QtWidgets import *
+from PySide2.QtGui import *
 
 module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
+font = 'monospace'
+fontsize = 12
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -64,26 +66,39 @@ class DataFrameWidget(QWidget):
         l = self.layout = QHBoxLayout()
         l.setSpacing(2)
         l.addWidget(self.splitter)
-        self.table = DataFrameTable(self, dataframe)
+        self.table = DataFrameTable(self, dataframe, font=font, fontsize=fontsize)
         self.splitter.addWidget(self.table)
         self.createToolbar()
         self.pf = None
         self.app = app
+
+        #if app != None:
+        #    self.applySettings(app.settings)
         return
 
     def createToolbar(self):
+        """Create toolbar"""
 
         self.toolbar = ToolBar(self)
         self.setLayout(self.layout)
         self.layout.addWidget(self.toolbar)
+        return
 
-    def load(self, filename=None):
+    def applySettings(self, settings):
+        """Settings"""
+
+        #self.table.setFont(font)
+
+        return
+
+    def load(self):
         return
 
     def save(self):
         return
 
     def importFile(self, filename=None, dialog=True, **kwargs):
+        """Import csv file"""
 
         if dialog is True and filename == None:
             options = QFileDialog.Options()
@@ -486,7 +501,8 @@ class DataFrameTable(QTableView):
     """
     QTableView with pandas DataFrame as model.
     """
-    def __init__(self, parent=None, dataframe=None, fontsize=12, *args):
+    def __init__(self, parent=None, dataframe=None, font='Arial',
+                    fontsize=12, *args):
 
         QTableView.__init__(self)
         self.parent = parent
@@ -511,17 +527,20 @@ class DataFrameTable(QTableView):
         hh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         hh.customContextMenuRequested.connect(self.columnHeaderMenu)
         hh.sectionClicked.connect(self.columnClicked)
+
+        #formats
         self.setDragEnabled(True)
-        #self.setSortingEnabled(True)
         self.viewport().setAcceptDrops(True)
         self.setDropIndicatorShown(True)
         self.resizeColumnsToContents()
+        self.resizeRowsToContents()
         self.setCornerButtonEnabled(True)
         self.setSortingEnabled(True)
-
-        self.font = QFont("Arial", fontsize)
-        #print (fontsize)
+        self.font = QFont(font, fontsize)
         self.setFont(self.font)
+        #self.setColumnWidth(2, 1040)
+        #vh.setDefaultAlignment(Qt.AlignLeft)
+
         tm = DataFrameModel(dataframe)
         self.setModel(tm)
         self.model = tm
@@ -531,6 +550,8 @@ class DataFrameTable(QTableView):
 
     def refresh(self):
 
+        self.font = QFont(font, fontsize)
+        self.setFont(self.font)
         self.model.beginResetModel()
         self.model.dataChanged.emit(0,0)
         self.model.endResetModel()
@@ -684,7 +705,7 @@ class DataFrameTable(QTableView):
         exportAction = menu.addAction("Export Table")
         plotAction = menu.addAction("Plot Selected")
         memAction = menu.addAction("Memory Usage")
-        prefsAction = menu.addAction("Preferences")
+        #prefsAction = menu.addAction("Preferences")
         action = menu.exec_(self.mapToGlobal(event.pos()))
 
         if action == copyAction:
@@ -925,7 +946,7 @@ class ToolBar(QWidget):
 
         layout=self.layout
         button = QPushButton(name)
-        button.setGeometry(QtCore.QRect(30,30,30,30))
+        button.setGeometry(QtCore.QRect(26,26,26,26))
         button.setText('')
         iconfile = os.path.join(iconpath,icon+'.png')
         if os.path.exists(iconfile):
@@ -933,11 +954,11 @@ class ToolBar(QWidget):
         else:
             iconw = QIcon.fromTheme(icon)
             button.setIcon(QIcon(iconw))
-        button.setIconSize(QtCore.QSize(26,26))
+        button.setIconSize(QtCore.QSize(24,24))
         if tooltip is not None:
             button.setToolTip(tooltip)
         button.clicked.connect(function)
-        button.setMinimumWidth(30)
+        button.setMinimumWidth(26)
         layout.addWidget(button)
         return
 

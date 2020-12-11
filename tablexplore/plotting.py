@@ -271,7 +271,6 @@ class PlotViewer(QWidget):
         else:
             self.data = data
 
-        #self.simple_plot(self.data)
         #self.updateStyle()
         self.applyPlotoptions()
         self.plotCurrent()
@@ -551,6 +550,7 @@ class PlotViewer(QWidget):
         elif type(axs) is list:
             self.ax = axs[0]
         self.fig.suptitle(kwds['title'], fontsize=kwds['fontsize']*1.2)
+
         '''layout = self.globalopts.kwds['grid layout']
         if layout == 0:
             for ax in self.fig.axes:

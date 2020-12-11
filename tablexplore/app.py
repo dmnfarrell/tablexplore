@@ -31,7 +31,7 @@ from PySide2.QtGui import *
 import pandas as pd
 from .core import DataFrameModel, DataFrameTable, DataFrameWidget
 from .plotting import PlotViewer
-from . import util, data
+from . import util, data, core
 
 homepath = os.path.expanduser("~")
 module_path = os.path.dirname(os.path.abspath(__file__))
@@ -53,7 +53,6 @@ class Application(QMainWindow):
         width, height = screen_resolution.width()*0.7, screen_resolution.height()*.7
         self.setGeometry(QtCore.QRect(200, 200, width, height))
 
-        self.newProject()
         self.main.setFocus()
         self.setCentralWidget(self.main)
         self.statusbar = QStatusBar()
@@ -62,28 +61,29 @@ class Application(QMainWindow):
         self.statusbar.addWidget(self.proj_label, 1)
         self.proj_label.setStyleSheet('color: blue')
         self.style = 'default'
+        self.font = 'monospace'
         #self.statusBar().showMessage("Welcome", 3000)
         self.setStatusBar(self.statusbar)
+        self.loadSettings()
         if project_file != None:
             self.openProject(project_file)
         elif csv_file != None:
             self.import_file(csv_file)
-        self.loadSettings()
-        #self.setStyle()
+        else:
+            self.newProject()
         return
 
     def loadSettings(self):
         """Load GUI settings"""
 
         s = self.settings = QtCore.QSettings('tablexplore','default')
-        #self.settings.setValue("RecentFiles", recentFiles)
-
         self.recentFiles = s.value("RecentFiles")
         try:
-            self.resize(s.value('window size'))
-            self.move(s.value('window position'))
+            self.resize(s.value('window_size'))
+            self.move(s.value('window_position'))
             self.setStyle(s.value('style'))
-            #print ('set')
+            core.font = dialogs.font = s.value("font")
+            core.fontsize = dialogs.fontsize = s.value("fontsize")
         except:
             pass
 
@@ -92,9 +92,11 @@ class Application(QMainWindow):
     def saveSettings(self):
         """Save GUI settings"""
 
-        self.settings.setValue('window size', self.size())
-        self.settings.setValue('window position', self.pos())
+        self.settings.setValue('window_size', self.size())
+        self.settings.setValue('window_position', self.pos())
         self.settings.setValue('style', self.style)
+        self.settings.setValue('font', core.font)
+        self.settings.setValue('fontsize', core.fontsize)
         self.settings.sync()
         return
 
@@ -133,6 +135,7 @@ class Application(QMainWindow):
         self.menuBar().addMenu(self.edit_menu)
         self.edit_menu.addAction('&Undo', self.undo,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Z)
+        self.edit_menu.addAction('&Preferences', self.preferences)
 
         self.view_menu = QMenu('&View', self)
         self.menuBar().addMenu(self.view_menu)
@@ -219,7 +222,7 @@ class Application(QMainWindow):
         self.filename = None
         self.projopen = True
         if data != None:
-            for s in sorted(data.keys()):
+            for s in data.keys():
                 if s == 'meta':
                     continue
                 df = data[s]['table']
@@ -489,6 +492,22 @@ class Application(QMainWindow):
 
     def undo(self):
 
+        return
+
+    def refresh(self):
+        """Refresh all tables"""
+
+        for s in self.sheets:
+            w = self.sheets[s].table
+            w.refresh()
+        return
+
+    def preferences(self):
+        """Preferences dialog"""
+
+        from . import dialogs
+        dlg = dialogs.PreferencesDialog(self)
+        dlg.exec_()
         return
 
     def online_documentation(self,event=None):

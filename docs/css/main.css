@@ -8,14 +8,14 @@
 
 
 @font-face {
-  font-family: 'monpspace';
+  font-family: 'sans-serif, lato';
 
 }
 
 html {
-  font-family: sans-serif; /* 1 */
-  -webkit-text-size-adjust: 100%; /* 2 */
-  -ms-text-size-adjust: 100%; /* 2 */
+  font-family: sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
 }
 
 /**
@@ -279,8 +279,8 @@ th {
 
 /* LAYOUT STYLES */
 body {
-  font-family: 'Droid Sans', Helvetica, Arial, serif;
-  font-size: 15px;
+  font-family: 'Lato', Helvetica, Arial, serif;
+  font-size: 18px;
   font-weight: 400;
   line-height: 1.5;
   color: #474747;
@@ -301,8 +301,12 @@ a:hover {
 header {
   padding-top: 15px;
   padding-bottom: 15px;
-  font-family: 'LeagueGothic', 'Helvetica Neue', Helvetica, Arial, serif;
-  background: #2e7bcf url(../images/header-bg.jpg) 0 0 repeat-x;
+  font-family: 'Lato','Helvetica Neue', Helvetica, Arial, serif;
+  background: #0077b3;
+  background-image:
+    linear-gradient(
+      #0077b3, #0052cc
+    );
   border-bottom: solid 1px #275da1;
 }
 
@@ -310,7 +314,7 @@ header h1 {
   width: 550px;
   margin-top: 0;
   margin-bottom: 0.2em;
-  font-family: 'Helvetica Neue', helvetica;
+
   font-size: 72px;
   font-weight: normal;
   line-height: 1;
@@ -322,7 +326,7 @@ header h2 {
   width: 580px;
   margin-top: 0;
   margin-bottom: 0;
-  font-size: 26px;
+  font-size: 30px;
   font-weight: normal;
   line-height: 1.3;
   color: #9ddcff;
@@ -333,6 +337,10 @@ header h2 {
   position: relative;
   width: 940px;
   margin: 0 auto;
+}
+
+.logo {
+  float: left;
 }
 
 #content-wrapper {
@@ -372,7 +380,7 @@ a.logo {
   height: 160px;
   padding-top: 22px;
   padding-left: 68px;
-  font-family: 'Droid Sans', 'Helvetica Neue', Helvetica, Arial, serif;
+  font-family: 'Lato', 'Helvetica Neue', Helvetica, Arial, serif;
   font-size: 23px;
   line-height: 1.2;
   color: #fff;
@@ -382,7 +390,7 @@ a.button {
   height: 58px;
   padding-top: 22px;
   padding-left: 68px;
-  font-family: 'Droid Sans', 'Helvetica Neue', Helvetica, Arial, serif;
+  font-family: 'Lato', 'Helvetica Neue', Helvetica, Arial, serif;
   font-size: 23px;
   line-height: 1.2;
   color: #fff;
@@ -395,13 +403,13 @@ header a.button {
   position: absolute;
   top: 0;
   right: 0;
-  background: transparent url(../images/github-button.png) 0 0 no-repeat;
+  background: transparent url(images/github-button.png) 0 0 no-repeat;
 }
 header a.logo {
   position: absolute;
   top: 0;
   right: 0;
-  background: transparent url(../images/logo.png) 0 0 no-repeat;
+  background: transparent url(images/logo.png) 0 0 no-repeat;
 }
 aside a.button {
   display: block;
@@ -409,7 +417,7 @@ aside a.button {
   padding-left: 74px;
   margin-bottom: 20px;
   font-size: 20px;
-  background: transparent url(../images/download-button.png) 0 0 no-repeat;
+  background: transparent url(images/download-button.png) 0 0 no-repeat;
 }
 
 code, pre {
@@ -481,8 +489,8 @@ form {
 #main-content h1 {
   margin-top: 0;
   margin-bottom: 0;
-  font-family: 'Droid Sans', Helvetica, Arial, serif;
-  font-size: 2.8em;
+  font-family: 'Lato', Helvetica, Arial, serif;
+  font-size: 3.0em;
   font-weight: normal;
   color: #474747;
   text-indent: 6px;
@@ -498,8 +506,8 @@ form {
 
 #main-content h2 {
   margin-bottom: 4px;
-  font-family: 'Droid Sans', Helvetica, Arial, serif;
-  font-size: 20px;
+  font-family: 'Lato', Helvetica, Arial, serif;
+  font-size: 26px;
   font-weight: bold;
   color: #474747;
   text-indent: 4px;
@@ -514,7 +522,7 @@ form {
 #main-content h3 {
   margin-top: 14px;
   margin-bottom: 8px;
-  font-family: 'Droid Sans', Helvetica, Arial, serif;
+  font-family: 'Lato', Helvetica, Arial, serif;
   font-size: 18px;
   font-weight: bold;
   color: #474747;
@@ -530,7 +538,7 @@ form {
 
 #main-content h4 {
   margin-bottom: 8px;
-  font-family: 'Droid Sans', Helvetica, Arial, serif;
+  font-family: 'Lato', Helvetica, Arial, serif;
   font-size: 15px;
   font-weight: bold;
   color: #474747;
@@ -546,7 +554,7 @@ h4:before {
 
 #main-content h5 {
   margin-bottom: 8px;
-  font-family: 'Droid Sans', Helvetica, Arial, serif;
+  font-family: 'Lato', Helvetica, Arial, serif;
   font-size: 14px;
   color: #474747;
   text-indent: 3px;
@@ -560,7 +568,7 @@ h5:before {
 
 #main-content h6 {
   margin-bottom: 8px;
-  font-family: 'Droid Sans', Helvetica, Arial, serif;
+  font-family: 'Lato', Helvetica, Arial, serif;
   font-size: .8em;
   color: #474747;
   text-indent: 3px;
@@ -626,7 +634,7 @@ footer a:hover {
 
 #sidebar
 h2 {
-  font-family: 'Droid Sans', helvetica, Arial, serif;
+  font-family: 'Lato', helvetica, Arial, serif;
   font-size: 18px;
 }
 
