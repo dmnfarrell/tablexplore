@@ -82,8 +82,8 @@ class Application(QMainWindow):
             self.resize(s.value('window_size'))
             self.move(s.value('window_position'))
             self.setStyle(s.value('style'))
-            core.font = dialogs.font = s.value("font")
-            core.fontsize = dialogs.fontsize = s.value("fontsize")
+            core.font = s.value("font")
+            core.fontsize = int(s.value("fontsize"))
         except:
             pass
 
@@ -166,6 +166,7 @@ class Application(QMainWindow):
         self.tools_menu.addAction('&Convert Column Names', lambda: self._call('convertColumnNames'))
         self.tools_menu.addAction('&Table to Text', lambda: self._call('showAsText'),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_T)
+        self.tools_menu.addAction('&Python Interpreter', self.interpreter)
         self.menuBar().addMenu(self.tools_menu)
 
         self.dataset_menu = QMenu('&Datasets', self)
@@ -184,7 +185,7 @@ class Application(QMainWindow):
     def _call(self, func, **args):
         """Call a table function from it's string name"""
 
-        table = self.get_current_table()
+        table = self.getCurrentTable()
         getattr(table, func)(**args)
         return
 
@@ -356,7 +357,7 @@ class Application(QMainWindow):
     def import_file(self, filename=None):
 
         self.addSheet()
-        w = self.get_current_table()
+        w = self.getCurrentTable()
         w.importFile(filename)
         return
 
@@ -466,28 +467,28 @@ class Application(QMainWindow):
         self.addSheet(name,df)
         return
 
-    def get_current_table(self):
+    def getCurrentTable(self):
+        """Return the currently used table"""
 
         idx = self.main.currentIndex()
         name= self.main.tabText(idx)
-
         table = self.sheets[name]
         return table
 
     def zoomIn(self):
 
-        w = self.get_current_table()
+        w = self.getCurrentTable()
         w.table.zoomIn()
         return
 
     def zoomOut(self):
 
-        w = self.get_current_table()
+        w = self.getCurrentTable()
         w.table.zoomOut()
         return
 
     def changeColumnWidths(self, factor=1.1):
-        w = self.get_current_table()
+        w = self.getCurrentTable()
         w.table.changeColumnWidths(factor)
 
     def undo(self):
@@ -500,6 +501,13 @@ class Application(QMainWindow):
         for s in self.sheets:
             w = self.sheets[s].table
             w.refresh()
+        return
+
+    def interpreter(self):
+        """Launch python interpreter"""
+
+        table = self.getCurrentTable()
+        table.showInterpreter()
         return
 
     def preferences(self):

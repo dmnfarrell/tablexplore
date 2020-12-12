@@ -33,10 +33,7 @@ from PySide2 import QtCore, QtGui
 from PySide2.QtCore import QObject
 from PySide2.QtWidgets import *
 from PySide2.QtGui import *
-from . import util
-
-font = 'monospace'
-fontsize = 12
+from . import util, core
 
 def dialogFromOptions(parent, opts, sections=None,
                       wrap=2, section_wrap=4,
@@ -104,8 +101,10 @@ def dialogFromOptions(parent, opts, sections=None,
             lbl.setStyleSheet(style)
             if t == 'combobox':
                 w = QComboBox()
+                index = w.findText(val)
+                #print (val,index)
                 w.addItems(opt['items'])
-                w.setCurrentIndex(0)
+                #w.setCurrentIndex(index)
             elif t == 'entry':
                 w = QLineEdit()
                 w.setText(str(val))
@@ -130,8 +129,9 @@ def dialogFromOptions(parent, opts, sections=None,
                 w.setChecked(val)
             elif t == 'font':
                 w = QFontComboBox()
-                w.resize(w.sizeHint())
-                w.setCurrentIndex(1)
+                index = w.findText(val)
+                #w.resize(w.sizeHint())
+                w.setCurrentIndex(index)
             col+=1
             gl.addWidget(w,row,col)
             w.setStyleSheet(style)
@@ -280,7 +280,6 @@ class ImportDialog(QDialog):
 
     def __init__(self, parent=None, filename=None):
 
-        from .core import DataFrameTable
         super(ImportDialog, self).__init__(parent)
         self.parent = parent
         self.filename = filename
@@ -353,8 +352,8 @@ class ImportDialog(QDialog):
         self.textarea = PlainTextEditor(main)
         main.addWidget(self.textarea)
         self.textarea.resize(200,200)
-        from .core import DataFrameTable
-        t = self.previewtable = DataFrameTable(main, font=font)
+
+        t = self.previewtable = core.DataFrameTable(main, font=font)
         main.addWidget(t)
         self.setLayout(layout)
         return
@@ -552,8 +551,7 @@ class AggregateDialog(BasicDialog):
         l.addWidget(QLabel('Functions'))
         l.addWidget(w)
 
-        from . import core
-        self.table = core.DataFrameTable(self, font=font)
+        self.table = core.DataFrameTable(self, font=core.font)
         vbox.addWidget(self.table)
         bf = self.createButtons(self)
         vbox.addWidget(bf)
@@ -618,8 +616,7 @@ class PivotDialog(BasicDialog):
         l.addWidget(QLabel('Aggregate function'))
         l.addWidget(w)
 
-        from . import core
-        self.table = core.DataFrameTable(self, font=font)
+        self.table = core.DataFrameTable(self, font=core.font)
         vbox.addWidget(self.table)
         bf = self.createButtons(self)
         vbox.addWidget(bf)
@@ -672,8 +669,7 @@ class MeltDialog(BasicDialog):
         l.addWidget(QLabel('Var name'))
         l.addWidget(w)
 
-        from . import core
-        self.table = core.DataFrameTable(self, font=font)
+        self.table = core.DataFrameTable(self, font=core.font)
         vbox.addWidget(self.table)
         bf = self.createButtons(self)
         vbox.addWidget(bf)
@@ -751,8 +747,8 @@ class MergeDialog(BasicDialog):
         l.addWidget(self.table1)
         l.addWidget(self.table2)
         hbox.addWidget(tableswidget)'''
-        from . import core
-        self.table = core.DataFrameTable(self, font=font)
+
+        self.table = core.DataFrameTable(self, font=core.font)
         hbox.addWidget(self.table)
         bf = self.createButtons(self)
         hbox.addWidget(bf)
@@ -813,8 +809,7 @@ class ConvertTypesDialog(BasicDialog):
         cols = ['name','type','convert']
         info = pd.DataFrame(res, columns=cols)
 
-        from . import core
-        self.table = core.DataFrameTable(self, info, font=font)
+        self.table = core.DataFrameTable(self, info, font=core.font)
         types = ['int','float','categorical']
 
         vbox.addWidget(self.table)
@@ -857,9 +852,9 @@ class PreferencesDialog(QDialog):
                 'cellwidth':{'type':'spinbox','default':80,'range':(10,300),'label':'cell width'},
                 'linewidth':{'type':'spinbox','default':1,'range':(1,10),'label':'grid line width'},
                 'align':{'type':'combobox','default':'w','items':['w','e','center'],'label':'text align'},
-                'font':{'type':'font','default':'Arial'},
+                'font':{'type':'font','default':'Arial','default':core.font},
                 'fontstyle':{'type':'combobox','default':'','items':['','bold','italic']},
-                'fontsize':{'type':'slider','default':12,'range':(5,40),'interval':1,'label':'font size'},
+                'fontsize':{'type':'slider','default':core.fontsize,'range':(5,40),'interval':1,'label':'font size'},
                 'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
                 }
         sections = {'table':['align','rowheight','cellwidth','linewidth'],

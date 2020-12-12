@@ -49,6 +49,7 @@ icons = {'load': 'open', 'save': 'export',
          'aggregate':'aggregate',
          'pivot': 'pivot',
          'melt':'melt', 'merge':'merge',
+         'interpreter':'interpreter',
          'subtable':'subtable','clear':'clear'
          }
 
@@ -71,7 +72,7 @@ class DataFrameWidget(QWidget):
         self.createToolbar()
         self.pf = None
         self.app = app
-
+        self.pyconsole = None
         #if app != None:
         #    self.applySettings(app.settings)
         return
@@ -129,6 +130,20 @@ class DataFrameWidget(QWidget):
             self.table.refresh()
         return
 
+    def exportTable(self):
+        """Export table"""
+        
+        options = QFileDialog.Options()
+        options.setDefaultSuffix('csv')
+        filename, _ = QFileDialog.getSaveFileName(self,"Export",
+                             "","csv files (*.csv);;xlsx files (*.xlsx);;xls Files (*.xls);;All Files (*)",
+                             options=options)
+        if not filename:
+            return
+        df = self.table.model.df
+        df.to_csv(filename)
+        return
+
     def copy(self):
         """Copy to clipboard"""
 
@@ -144,14 +159,21 @@ class DataFrameWidget(QWidget):
         return
 
     def plot(self):
+        """Plot from selection"""
+
+        if self.pf == None:
+            self.createPlotViewer()
+        self.pf.setVisible(True)
         self.pf.replot()
         return
 
-    def createPlotViewer(self, parent):
+    def createPlotViewer(self, parent=None):
         """Create a plot widget attached to this table"""
 
         if self.pf == None:
             self.pf = plotting.PlotViewer(table=self.table, parent=parent)
+        if parent == None:
+            self.pf.show()
         return self.pf
 
     def info(self):
@@ -473,8 +495,7 @@ class DataFrameWidget(QWidget):
 
         self.closeSubtable()
         dock = QDockWidget(self.splitter)
-        #dock.setFeatures(QDockWidget.DockWidgetFloatable |
-                            #QDockWidget.DockWidgetMovable)
+        dock.setFeatures(QDockWidget.DockWidgetClosable)
         self.splitter.addWidget(dock)
         newtable = SubTableWidget(dock, dataframe=df)
         dock.setWidget(newtable)
@@ -495,6 +516,18 @@ class DataFrameWidget(QWidget):
             w.deleteLater()
             self.subtable = None
 
+        return
+
+    def showInterpreter(self):
+        """Show the Python interpreter"""
+
+        if self.pyconsole == None:
+            from . import interpreter
+            dock = QDockWidget(self.splitter)
+            dock.setFeatures(QDockWidget.DockWidgetClosable)
+            self.splitter.addWidget(dock)
+            self.pyconsole = interpreter.TerminalPython(dock, table=self.table)
+            dock.setWidget(self.pyconsole)
         return
 
 class DataFrameTable(QTableView):
@@ -536,7 +569,8 @@ class DataFrameTable(QTableView):
         self.resizeRowsToContents()
         self.setCornerButtonEnabled(True)
         self.setSortingEnabled(True)
-        self.font = QFont(font, fontsize)
+        self.font = QFont(font)
+        self.font.setPointSize(int(fontsize))
         self.setFont(self.font)
         #self.setColumnWidth(2, 1040)
         #vh.setDefaultAlignment(Qt.AlignLeft)
@@ -550,7 +584,7 @@ class DataFrameTable(QTableView):
 
     def refresh(self):
 
-        self.font = QFont(font, fontsize)
+        self.font = QFont(font, int(fontsize))
         self.setFont(self.font)
         self.model.beginResetModel()
         self.model.dataChanged.emit(0,0)
@@ -700,28 +734,23 @@ class DataFrameTable(QTableView):
         # Show a context menu for empty space at bottom of table...
         menu = QMenu(self)
         copyAction = menu.addAction("Copy")
-        colorAction = menu.addAction("Set Color")
+        #colorAction = menu.addAction("Set Color")
         importAction = menu.addAction("Import File")
         exportAction = menu.addAction("Export Table")
         plotAction = menu.addAction("Plot Selected")
         memAction = menu.addAction("Memory Usage")
-        #prefsAction = menu.addAction("Preferences")
         action = menu.exec_(self.mapToGlobal(event.pos()))
 
         if action == copyAction:
-            self.copy()
+            self.parent.copy()
         elif action == importAction:
             self.importFile()
         elif action == exportAction:
-            self.exportTable()
-        elif action == colorAction:
-            pass
+            self.parent.exportTable()
         elif action == plotAction:
             self.parent.plot()
         elif action == memAction:
             self.memory_usage()
-        elif action == prefsAction:
-            config.PreferencesDialog(self)
 
     def resetIndex(self):
 
@@ -814,6 +843,7 @@ class DataFrameTable(QTableView):
             w=self.columnWidth(col)
             self.setColumnWidth(col,w*factor)
 
+
 class DataFrameModel(QtCore.QAbstractTableModel):
     def __init__(self, dataframe=None, *args):
         super(DataFrameModel, self).__init__()
@@ -835,7 +865,9 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         return len(self.df.columns.values)
 
     def data(self, index, role=QtCore.Qt.DisplayRole):
-        """Edir or display roles """
+        """Edit or display roles. Handles what happens when the Cells
+        are edited or what appears in each cell.
+        """
 
         i = index.row()
         j = index.column()
@@ -847,14 +879,17 @@ class DataFrameModel(QtCore.QAbstractTableModel):
                 return '{0}'.format(value)
         elif (role == QtCore.Qt.EditRole):
             value = self.df.iloc[i, j]
-            if value == '':
-                return np.nan
+            print (value, type(value))
+            if np.isnan(value):
+                return ''
             else:
                 return value
         elif role == QtCore.Qt.BackgroundRole:
             return QColor(self.bg)
 
     def headerData(self, col, orientation, role):
+        """What's displayed in the headers"""
+
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return self.df.columns[col]
         if orientation == QtCore.Qt.Vertical and role == QtCore.Qt.DisplayRole:
@@ -867,11 +902,12 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         i = index.row()
         j = index.column()
         curr = self.df.iloc[i,j]
-        #print (curr, value)
+        print (curr, value)
         self.df.iloc[i,j] = value
         return True
 
     def flags(self, index):
+
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable
 
     def sort(self, Ncol, order):
@@ -891,6 +927,7 @@ class SubTableWidget(DataFrameWidget):
         return
 
     def createToolbar(self):
+        """Override default toolbar"""
 
         self.toolbar = SubToolBar(self)
         self.setLayout(self.layout)
@@ -925,6 +962,7 @@ class ToolBar(QWidget):
                  'melt':self.app.melt,
                  'merge':self.app.merge,
                  'subtable':self.app.sub_table_from_selection,
+                 'interpreter':self.app.showInterpreter,
                  'clear':self.app.clear}
 
         tooltips = {'load':'load table', 'save':'export',
@@ -934,6 +972,7 @@ class ToolBar(QWidget):
                     'pivot':'pivot table','melt':'melt table',
                     'merge':'merge two tables',
                     'subtable':'sub-table from selection',
+                    'interpreter':'show python interpreter',
                     'clear':'clear table'}
         for name in funcs:
             tip=None
