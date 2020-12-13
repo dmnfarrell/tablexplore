@@ -89,9 +89,16 @@ class DataFrameWidget(QWidget):
         """Settings"""
 
         #self.table.setFont(font)
-
         return
 
+    def close(self):
+        """Close events"""
+
+        print (self.pyconsole)
+        if self.pyconsole != None:
+            self.pyconsole.closeEvent()
+        return
+    
     def load(self):
         return
 
@@ -517,7 +524,7 @@ class DataFrameWidget(QWidget):
             self.subtable = None
 
         return
-
+        
     def showInterpreter(self):
         """Show the Python interpreter"""
 
@@ -525,6 +532,7 @@ class DataFrameWidget(QWidget):
             from . import interpreter
             dock = QDockWidget(self.splitter)
             dock.setFeatures(QDockWidget.DockWidgetClosable)
+            dock.resize(200,100)
             self.splitter.addWidget(dock)
             self.pyconsole = interpreter.TerminalPython(dock, table=self.table)
             dock.setWidget(self.pyconsole)

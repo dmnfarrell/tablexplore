@@ -21,7 +21,7 @@
 """
 
 from PySide2.QtWidgets import *
-from pandasqtable import app
+from tablexplore import app
 
 def main():
     import sys, os

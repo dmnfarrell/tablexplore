@@ -19,9 +19,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-import os, sys
+import os, sys, platform
 import atexit
-import readline
+if platform.system() in ['Linux','Darwin']:
+    import readline
+elif platform.system() == 'Windows':
+    from pyreadline.rlmain import Readline
+    readline = Readline()
 import rlcompleter
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -30,9 +34,10 @@ AUTOCOMPLETE_SEPARATOR = "\n"
 
 style = '''
     QPlainTextEdit {
-        background-color: black;
+        background-color: #20262c;
         color: white;
-        font-family: monospace;
+        font-family: Consolas, Monaco, monospace;
+        font-size: 12px;
     }
     '''
 
@@ -79,6 +84,7 @@ class Terminal(QtWidgets.QPlainTextEdit):
         self.setWordWrapMode(QtGui.QTextOption.WrapAnywhere)
         self.setUndoRedoEnabled(False)
         self.document().setDefaultFont(QtGui.QFont("monospace", 10, QtGui.QFont.Normal))
+        
         self.prompt = None
         self.cursor_line = None
         self.hist_file = os.path.join(os.path.expanduser("~"), ".pyTermHist")
@@ -94,6 +100,7 @@ class Terminal(QtWidgets.QPlainTextEdit):
         self.setStyleSheet(style)
 
     def active_queue_thread(self, queue):
+        
         self.thread_q = QtCore.QThread()
         self.receiver = QueueReceiver(queue)
         self.receiver.sent.connect(self.write)
@@ -130,6 +137,7 @@ class Terminal(QtWidgets.QPlainTextEdit):
         :param data: str data to write.
         :return:
         """
+
         self.appendPlainText(data)
         self.moveCursor(QtGui.QTextCursor.End)
 
@@ -142,7 +150,6 @@ class Terminal(QtWidgets.QPlainTextEdit):
         import time
         time.sleep(4)
         self.appendPlainText(data)
-        # print(data)
         # self.moveCursor(QtGui.QTextCursor.End)
         # self.remove_last_line()
 
@@ -335,3 +342,9 @@ class Terminal(QtWidgets.QPlainTextEdit):
                 self.write_autocomplete(cmd)
             return
         super(Terminal, self).keyPressEvent(event)
+
+    def closeEvent(self, event):
+        
+        self.thread_q.stop()
+        self.thread_q.exit()
+        

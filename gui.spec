@@ -30,8 +30,9 @@ a = Analysis(['main.py'],
              cipher=block_cipher,
              noarchive=False,
              datas=[ ('logo.png', 'tablexplore/'),
-		                 ('tablexplore/icons/*.png','tablexplore/icons/'),
-                     ('tablexplore/datasets/*','tablexplore/datasets/')  ])
+		     ('tablexplore/icons/*.png','tablexplore/icons/'),
+                     ('tablexplore/styles/*.css,'tablexplore/styles/')
+                     ('tablexplore/datasets/*','tablexplore/datasets/') ])
 pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 

@@ -449,6 +449,11 @@ class Application(QMainWindow):
         self.close()
 
     def closeEvent(self, ce):
+        """Close event"""
+       
+        for s in self.sheets:
+            print (s)
+            self.sheets[s].close()
         self.saveSettings()
         self.fileQuit()
 
