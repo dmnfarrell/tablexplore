@@ -4,7 +4,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-TABLExplore is an application for data analysis and plotting built in Python using the PySide2/Qt toolkit.  It uses the pandas DataFrame class to store the table data. Pandas is an open source Python library providing high-performance data structures and data analysis tools.
+TABLExplore is an application for data analysis and plotting built in Python using the PySide2/Qt toolkit. It uses the pandas DataFrame class to store the table data. Pandas is an open source Python library providing high-performance data structures and data analysis tools.
 
 ## Installation
 
@@ -12,14 +12,17 @@ TABLExplore is an application for data analysis and plotting built in Python usi
 pip install -e git+https://github.com/dmnfarrell/tablexplore.git#egg=tablexplore
 ```
 
+A Windows standalone binary will be available soon.
+
 ## Current features
 
 * save and load projects
-* import csv
+* import csv/hdf/from urls
 * delete/add columns
 * groupby-aggregate/pivot/transpose/melt operations
 * merge tables
 * show sub-tables
+* python interpreter
 * plotting mostly works
 
 ## Screenshots
@@ -28,7 +31,7 @@ pip install -e git+https://github.com/dmnfarrell/tablexplore.git#egg=tablexplore
 
 ## Use the widget in Python
 
-```
+```python
 from PySide2 import QtCore
 from PySide2.QtWidgets import *
 from PySide2.QtGui import *

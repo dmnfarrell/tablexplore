@@ -252,11 +252,11 @@ class TextDialog(QDialog):
 
 class MultipleInputDialog(QDialog):
     """Qdialog with multiple inputs"""
-    def __init__(self, parent, options=None, title='Input'):
+    def __init__(self, parent, options=None, title='Input', width=400, height=200):
         super(MultipleInputDialog, self).__init__(parent)
         self.values = None
         self.accepted = False
-        self.setMinimumSize(500, 300)
+        self.setMinimumSize(width, height)
         self.setWindowTitle(title)
         dialog, self.widgets = dialogFromOptions(self, options)
         vbox = QVBoxLayout(self)
@@ -353,7 +353,7 @@ class ImportDialog(QDialog):
         main.addWidget(self.textarea)
         self.textarea.resize(200,200)
 
-        t = self.previewtable = core.DataFrameTable(main, font=font)
+        t = self.previewtable = core.DataFrameTable(main, font=core.font)
         main.addWidget(t)
         self.setLayout(layout)
         return
@@ -705,7 +705,7 @@ class MergeDialog(BasicDialog):
             cols2 = []
         cols = list(self.df.columns)
         ops = ['merge','concat']
-        how = ['inner','outer']
+        how = ['inner','outer','left','right']
         hbox = QHBoxLayout(self)
         main = QWidget(self)
         main.setMaximumWidth(300)

@@ -68,7 +68,7 @@ class Application(QMainWindow):
         if project_file != None:
             self.openProject(project_file)
         elif csv_file != None:
-            self.import_file(csv_file)
+            self.importFile(csv_file)
         else:
             self.newProject()
         return
@@ -126,7 +126,10 @@ class Application(QMainWindow):
         self.file_menu.addAction('&Save', self.saveProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_S)
         self.file_menu.addAction('&Save As', self.saveAsProject)
-        self.file_menu.addAction('&Import', self.import_file)
+        self.file_menu.addAction('&Import File', self.importFile)
+        self.file_menu.addAction('&Import HDF5', self.importHDF)
+        self.file_menu.addAction('&Import URL', self.importURL)
+        self.file_menu.addAction('&Export As', self.exportAs)
         self.file_menu.addAction('&Quit', self.fileQuit,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
         self.menuBar().addMenu(self.file_menu)
@@ -160,8 +163,8 @@ class Application(QMainWindow):
         self.tools_menu = QMenu('&Tools', self)
         self.tools_menu.addAction('&Table Info', lambda: self._call('info'),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_I)
-        self.tools_menu.addAction('&Clean Data', lambda: self._call('cleanData'),
-                QtCore.Qt.CTRL + QtCore.Qt.Key_D)
+        self.tools_menu.addAction('&Clean Data', lambda: self._call('cleanData'))
+        self.tools_menu.addAction('&Find Duplicates', lambda: self._call('findDuplicates'))
         self.tools_menu.addAction('&Convert Numeric', lambda: self._call('convertNumeric'))
         self.tools_menu.addAction('&Convert Column Names', lambda: self._call('convertColumnNames'))
         self.tools_menu.addAction('&Table to Text', lambda: self._call('showAsText'),
@@ -354,11 +357,43 @@ class Application(QMainWindow):
 
         return meta
 
-    def import_file(self, filename=None):
+    def importFile(self, filename=None):
 
         self.addSheet()
         w = self.getCurrentTable()
         w.importFile(filename)
+        return
+
+    def importHDF(self):
+
+        self.addSheet()
+        w = self.getCurrentTable()
+        w.importHDF()
+        return
+
+    def importURL(self):
+
+        self.addSheet()
+        w = self.getCurrentTable()
+        w.importURL()
+        return
+
+    def exportAs(self):
+        """Export as"""
+
+        options = QFileDialog.Options()
+        w = self.getCurrentTable()
+        filename, _ = QFileDialog.getSaveFileName(self,"Export",
+                             "","csv files (*.csv);;xlsx files (*.xlsx);;xls Files (*.xls);;hdf files (*.hdf5);;All Files (*)",
+                             options=options)
+        df = w.table.model.df
+        ext = os.path.splitext(filename)[1]
+        if ext == '.csv':
+            df.to_csv(filename)
+        elif ext == '.hdf5':
+            df.to_hdf(filename)
+        elif ext == '.xls':
+            df.to_excel(filename)
         return
 
     def addSheet(self, name=None, df=None, meta=None):
@@ -377,8 +412,6 @@ class Application(QMainWindow):
         self.sheets[name] = dfw
         self.currenttable = dfw
         pf = dfw.createPlotViewer(sheet)
-        #pf = QWidget()
-        #pf.setStyleSheet("background-color: yellow")
         sheet.addWidget(pf)
         sheet.setSizes((500,1000))
         self.main.setCurrentIndex(idx)
@@ -450,7 +483,7 @@ class Application(QMainWindow):
 
     def closeEvent(self, ce):
         """Close event"""
-       
+
         for s in self.sheets:
             print (s)
             self.sheets[s].close()
