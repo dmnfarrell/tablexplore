@@ -477,7 +477,7 @@ class BasicDialog(QDialog):
         """Do the operation"""
 
         df = self.table.model.df
-        self.parent.createSubTable(df)
+        self.parent.showSubTable(df)
         return
 
     def copy_to_sheet(self):

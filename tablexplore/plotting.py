@@ -256,6 +256,7 @@ class PlotViewer(QWidget):
         return
 
     def clear(self):
+
         self.canvas.axes.clear()
         self.canvas.draw()
         return
@@ -264,7 +265,8 @@ class PlotViewer(QWidget):
         self.replot()
 
     def replot(self, data=None):
-
+        """Replot with given dataframe"""
+        
         self.clear()
         if data is None:
             self.data = self.table.getSelectedDataFrame()

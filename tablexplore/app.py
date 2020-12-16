@@ -36,6 +36,7 @@ from . import util, data, core
 homepath = os.path.expanduser("~")
 module_path = os.path.dirname(os.path.abspath(__file__))
 stylepath = os.path.join(module_path, 'styles')
+iconpath = os.path.join(module_path, 'icons')
 
 class Application(QMainWindow):
     def __init__(self, project_file=None, csv_file=None):
@@ -52,11 +53,13 @@ class Application(QMainWindow):
         screen_resolution = QGuiApplication.primaryScreen().availableGeometry()
         width, height = screen_resolution.width()*0.7, screen_resolution.height()*.7
         self.setGeometry(QtCore.QRect(200, 200, width, height))
+        self.setMinimumSize(400,300)
 
         self.main.setFocus()
         self.setCentralWidget(self.main)
         self.statusbar = QStatusBar()
-        #self.statusbar.addWidget(lbl,1)
+        self.createToolBar()
+
         self.proj_label = QLabel("")
         self.statusbar.addWidget(self.proj_label, 1)
         self.proj_label.setStyleSheet('color: blue')
@@ -111,6 +114,33 @@ class Application(QMainWindow):
             f.close()
             self.setStyleSheet(self.style_data)
         self.style = style
+        return
+
+    def createToolBar(self):
+
+        items = {'new': {'action':self.newProject,'icon':'document-new'},
+                 'open': {'action':self.openProject,'icon':'document-open'},
+                 'save': {'action':self.saveProject,'icon':'document-save'},
+                 'quit': {'action':self.fileQuit,'icon':'application-exit'},
+                 'preferences': {'action':self.preferences,'icon':'preferences-system'},
+                 'zoom out': {'action':self.zoomOut,'icon':'zoom-out'},
+                 'zoom in': {'action':self.zoomIn,'icon':'zoom-in'},
+                 'add sheet': {'action':self.addSheet,'icon':'list-add'},
+                 'clean data': {'action':lambda: self._call('cleanData'),'file':'clean'},
+                }
+
+        toolbar = QToolBar("My main toolbar")
+        self.addToolBar(toolbar)
+        for i in items:
+            if 'file' in items[i]:
+                iconfile = os.path.join(iconpath,items[i]['file']+'.png')
+                icon = QIcon(iconfile)
+            else:
+                icon = QIcon.fromTheme(items[i]['icon'])
+            btn = QAction(icon, i, self)
+            btn.triggered.connect(items[i]['action'])
+            #btn.setCheckable(True)
+            toolbar.addAction(btn)
         return
 
     def createMenu(self):
@@ -485,7 +515,7 @@ class Application(QMainWindow):
         """Close event"""
 
         for s in self.sheets:
-            print (s)
+            #print (s)
             self.sheets[s].close()
         self.saveSettings()
         self.fileQuit()

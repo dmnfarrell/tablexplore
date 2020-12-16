@@ -77,6 +77,7 @@ class DataFrameWidget(QWidget):
         self.pf = None
         self.app = app
         self.pyconsole = None
+        self.subtabledock = None
         return
 
     def statusBar(self):
@@ -116,11 +117,12 @@ class DataFrameWidget(QWidget):
     def refresh(self):
 
         self.table.refresh()
-        self.updateStatusBar()
         return
 
     def updateStatusBar(self):
 
+        if not hasattr(self, 'size_label'):
+            return
         df = self.table.model.df
         s = '{r} rows x {c} columns'.format(r=len(df), c=len(df.columns))
         self.size_label.setText(s)
@@ -220,7 +222,8 @@ class DataFrameWidget(QWidget):
         if self.pf == None:
             self.createPlotViewer()
         self.pf.setVisible(True)
-        self.pf.replot()
+        df = self.getSelectedDataFrame()
+        self.pf.replot(df)
         return
 
     def createPlotViewer(self, parent=None):
@@ -280,7 +283,7 @@ class DataFrameWidget(QWidget):
             self.table.model.df = df.drop_duplicates(subset=cols,keep=keep)
             self.refresh()
         if len(new)>0:
-            self.createSubTable(new)
+            self.showSubTable(new)
         return
 
     def cleanData(self):
@@ -404,6 +407,7 @@ class DataFrameWidget(QWidget):
 
         df = self.table.model.df
         col = column
+        cols=[column]
         #cols = list(df.columns[self.multiplecollist])
         funcs = ['mean','std','max','min','log','exp','log10','log2',
                  'round','floor','ceil','trunc',
@@ -516,24 +520,15 @@ class DataFrameWidget(QWidget):
             colname = '-'.join(cols)
             temp = df[cols]'''
 
-        #ols = [column]
-        temp = df[column]
-        if temp.dtype == 'datetime64[ns]':
-            title = 'Date->string extract'
-        else:
-            title = 'String->datetime convert'
-            temp = pd.to_datetime(temp)
         timeformats = ['infer','%d/%m/%Y','%Y/%m/%d','%Y/%d/%m',
                         '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
                         '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
         props = ['','day','month','hour','minute','second','year',
                  'dayofyear','weekofyear','quarter']
-
         opts = {'format':  {'type':'combobox','default':'int',
-                            'items':timeformats,'label':'Conversion format', 'tooltip':' '},
+                            'items':timeformats,'label':'Conversion format'},
                 'prop':  {'type':'combobox','default':'int',
-                        'items':props,'label':'Extract from datetime', 'tooltip':' '},
-               }
+                        'items':props,'label':'Extract from datetime'} }
 
         dlg = dialogs.MultipleInputDialog(self, opts, title='Convert Dates')
         dlg.exec_()
@@ -543,16 +538,22 @@ class DataFrameWidget(QWidget):
 
         format = kwds['format']
         prop = kwds['prop']
-
-        df = self.table.model.df
         if format == 'infer':
             format = None
 
-        df[prop] = getattr(temp.dt, prop)
-        try:
-            df[prop] = df[prop].astype(int)
-        except:
-            pass
+        temp = df[column]
+        if temp.dtype != 'datetime64[ns]':
+            temp = pd.to_datetime(temp, format=format)
+
+        if prop != '':
+            new = getattr(temp.dt, prop)
+            try:
+                new = new.astype(int)
+            except:
+                pass
+            self.table.model.df[prop] = new
+        else:
+            self.table.model.df[column] = temp
         self.refresh()
         return
 
@@ -676,35 +677,36 @@ class DataFrameWidget(QWidget):
     def subTableFromSelection(self):
 
         df = self.getSelectedDataFrame()
-        self.createSubTable(df)
+        self.showSubTable(df)
         return
 
-    def createSubTable(self, df=None, title=None, index=False, out=False):
+    def showSubTable(self, df=None, title=None, index=False, out=False):
         """Add the child table"""
 
         self.closeSubtable()
-        dock = QDockWidget(self.splitter)
-        dock.setFeatures(QDockWidget.DockWidgetClosable)
-        self.splitter.addWidget(dock)
-        newtable = SubTableWidget(dock, dataframe=df, statusbar=False)
-        dock.setWidget(newtable)
-        newtable.show()
-        #self.splitter.addWidget(newtable)
+        if self.subtabledock == None:
+            self.subtabledock = dock = QDockWidget(self.splitter)
+            dock.setFeatures(QDockWidget.DockWidgetClosable)
+            self.splitter.addWidget(dock)
 
+        self.subtabledock.show()
+        newtable = SubTableWidget(self.subtabledock, dataframe=df, statusbar=False)
+        self.subtabledock.setWidget(newtable)
         self.subtable = newtable
+        newtable.show()
+
         if hasattr(self, 'pf'):
             newtable.pf = self.pf
-        if index == True:
-            newtable.showIndex()
+        #if index == True:
+        #    newtable.showIndex()
         return
 
     def closeSubtable(self):
 
         if hasattr(self, 'subtable'):
-            w = self.splitter.widget(1)
-            w.deleteLater()
+            #w = self.splitter.widget(1)
+            #w.deleteLater()
             self.subtable = None
-
         return
 
     def showInterpreter(self):
@@ -712,12 +714,14 @@ class DataFrameWidget(QWidget):
 
         if self.pyconsole == None:
             from . import interpreter
-            dock = QDockWidget(self.splitter)
+            self.consoledock = dock = QDockWidget(self.splitter)
             dock.setFeatures(QDockWidget.DockWidgetClosable)
             dock.resize(200,100)
             self.splitter.addWidget(dock)
             self.pyconsole = interpreter.TerminalPython(dock, table=self.table)
             dock.setWidget(self.pyconsole)
+        else:
+            self.consoledock.show()
         return
 
 class DataFrameTable(QTableView):
@@ -731,7 +735,7 @@ class DataFrameTable(QTableView):
         self.parent = parent
         self.clicked.connect(self.showSelection)
         #self.doubleClicked.connect(self.handleDoubleClick)
-        self.setSelectionBehavior(QTableView.SelectRows)
+        #self.setSelectionBehavior(QTableView.SelectRows)
         #self.setSelectionBehavior(QTableView.SelectColumns)
 
         vh = self.verticalHeader()
@@ -746,10 +750,10 @@ class DataFrameTable(QTableView):
         #hh.setStretchLastSection(True)
         #hh.setSectionResizeMode(QHeaderView.Interactive)
         hh.setSectionsMovable(True)
-        hh.setSelectionMode(QAbstractItemView.MultiSelection)
+        hh.setSelectionMode(QAbstractItemView.ExtendedSelection)
         hh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         hh.customContextMenuRequested.connect(self.columnHeaderMenu)
-        hh.sectionClicked.connect(self.columnClicked)
+        hh.sectionClicked.connect(self.columnSelected)
 
         #formats
         self.setDragEnabled(True)
@@ -762,8 +766,6 @@ class DataFrameTable(QTableView):
         self.font = QFont(font)
         self.font.setPointSize(int(fontsize))
         self.setFont(self.font)
-        #self.setColumnWidth(2, 1040)
-        #vh.setDefaultAlignment(Qt.AlignLeft)
 
         tm = DataFrameModel(dataframe)
         self.setModel(tm)
@@ -773,12 +775,15 @@ class DataFrameTable(QTableView):
         return
 
     def refresh(self):
+        """Refresh table if dataframe is changed"""
 
         self.font = QFont(font, int(fontsize))
         self.setFont(self.font)
         self.model.beginResetModel()
         self.model.dataChanged.emit(0,0)
         self.model.endResetModel()
+        if hasattr(self.parent,'statusbar'):
+            self.parent.updateStatusBar()
         return
 
     def memory_usage(self):
@@ -793,7 +798,7 @@ class DataFrameTable(QTableView):
     def showSelection(self, item):
 
         cellContent = item.data()
-        print(cellContent)  # test
+        #print(cellContent)  # test
         row = item.row()
         model = item.model()
         columnsTotal= model.columnCount(None)
@@ -807,23 +812,20 @@ class DataFrameTable(QTableView):
         return rows
 
     def getSelectedColumns(self):
-        #indexes = self.selectionModel().selectedIndexes()
+
         return self.selectionModel().selectedColumns()
 
     def getSelectedDataFrame(self):
         """Get selection as a dataframe"""
 
         df = self.model.df
-        rows=[]
-        for idx in self.selectionModel().selectedRows():
-            rows.append(idx.row())
-        cols=[]
-        return df.iloc[rows]
+        rows = list(set([(i.row()) for i in self.selectionModel().selectedIndexes()]))
+        cols = list(set([(i.column()) for i in self.selectionModel().selectedIndexes()]))
+        return df.iloc[rows,cols]
 
     def handleDoubleClick(self, item):
 
         cellContent = item.data()
-        print (item)
         return
 
     def columnClicked(self, col):
@@ -831,6 +833,15 @@ class DataFrameTable(QTableView):
         hheader = self.horizontalHeader()
         df = self.model.df
         self.model.df = df.sort_values(df.columns[col])
+        return
+
+    def columnSelected(self, col):
+        hheader = self.horizontalHeader()
+
+    def sort(self, col):
+
+        df = self.model.df
+        self.model.df = df.sort_values(col)
         return
 
     def storeCurrent(self):
@@ -850,9 +861,6 @@ class DataFrameTable(QTableView):
         self.storeCurrent()
         print (rows, cols)
         self.model.df.iloc[rows,cols] = np.nan
-        return
-
-    def editCell(self, item):
         return
 
     def setRowColor(self, rowIndex, color):
@@ -880,6 +888,10 @@ class DataFrameTable(QTableView):
         column = self.model.df.columns[idx]
         #model = self.model
         menu = QMenu(self)
+
+        sortAction = menu.addAction("Sort ")
+        iconw = QIcon.fromTheme("open")
+        sortAction.setIcon(iconw)
         setIndexAction = menu.addAction("Set as Index")
 
         colmenu = QMenu("Column",menu)
@@ -893,7 +905,9 @@ class DataFrameTable(QTableView):
 
         #sortAction = menu.addAction("Sort By")
         action = menu.exec_(self.mapToGlobal(pos))
-        if action == deleteColumnAction:
+        if action == sortAction:
+            self.sort(column)
+        elif action == deleteColumnAction:
             self.deleteColumn(column)
         elif action == renameColumnAction:
             self.renameColumn(column)
@@ -928,7 +942,7 @@ class DataFrameTable(QTableView):
         # Map the logical row index to a real index for the source model
         df = self.model.df
         if len(df) > 1:
-            row = df.loc[row]
+            row = df.iloc[row]
         else:
             row = None
         # Show a context menu for empty space at bottom of table...
@@ -1098,8 +1112,11 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         j = index.column()
         if role == QtCore.Qt.DisplayRole:
             value = self.df.iloc[i, j]
-            if type(value) != str and np.isnan(value):
-                return ''
+            if type(value) != str:
+                if type(value) == float and np.isnan(value):
+                    return ''
+                else:
+                    return (str(value))
             else:
                 return '{0}'.format(value)
         elif (role == QtCore.Qt.EditRole):
@@ -1135,11 +1152,11 @@ class DataFrameModel(QtCore.QAbstractTableModel):
 
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable
 
-    def sort(self, Ncol, order):
+    def sort(self, idx, order):
         """Sort table by given column number """
 
         self.layoutAboutToBeChanged.emit()
-        col = self.df.columns[Ncol]
+        col = self.df.columns[idx]
         self.df = self.df.sort_values(col)
         self.layoutChanged.emit()
         return
