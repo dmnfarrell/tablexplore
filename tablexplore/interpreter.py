@@ -26,10 +26,10 @@ from contextlib import redirect_stdout
 from . import terminal
 
 class TerminalPython(terminal.Terminal):
-    def __init__(self, parent=None, table=None):
+    def __init__(self, parent=None, table=None, app=None):
         super(TerminalPython, self).__init__(parent=parent)
         # Init interpreter and add globals to context that give access from it.
-        self.interpreter = Interpreter(extra_context=globals().copy(), table=table,
+        self.interpreter = Interpreter(extra_context=globals().copy(), table=table, app=app,
                             stream_err=True, stream_out=True)
         # active queue thread with queue interpreter
         self.active_queue_thread(self.interpreter.queue)
@@ -56,7 +56,7 @@ class Streamer(object):
 
 class Interpreter(code.InteractiveConsole):
     def __init__(self, extra_context=dict(), stream_out=True, stream_err=True,
-            table=None):
+            table=None, app=None):
         """
         Init an interpreter, get globals and locals from current context.
         Define classic python prompt style.
@@ -86,6 +86,7 @@ class Interpreter(code.InteractiveConsole):
         self.prompt = sys.ps1
         #reference to table
         self.table = table
+        self.app = app
         context.update({'df':table.model.df})
         return
 

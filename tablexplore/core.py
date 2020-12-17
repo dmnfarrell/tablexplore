@@ -78,6 +78,7 @@ class DataFrameWidget(QWidget):
         self.app = app
         self.pyconsole = None
         self.subtabledock = None
+        self.subtable = None
         return
 
     def statusBar(self):
@@ -718,7 +719,7 @@ class DataFrameWidget(QWidget):
             dock.setFeatures(QDockWidget.DockWidgetClosable)
             dock.resize(200,100)
             self.splitter.addWidget(dock)
-            self.pyconsole = interpreter.TerminalPython(dock, table=self.table)
+            self.pyconsole = interpreter.TerminalPython(dock, table=self.table, app=self.app)
             dock.setWidget(self.pyconsole)
         else:
             self.consoledock.show()
@@ -1218,6 +1219,7 @@ class ToolBar(QWidget):
                     'clear':'clear table'}
         for name in funcs:
             tip=None
+            shortcut=None
             if name in tooltips:
                 tip=tooltips[name]
             self.addButton(name, funcs[name], icons[name], tip)

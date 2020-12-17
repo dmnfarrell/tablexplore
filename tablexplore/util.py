@@ -25,6 +25,7 @@ import os, types
 import string, copy
 import numpy as np
 import pandas as pd
+import matplotlib
 
 def getEmptyData(rows=10,columns=4):
 
@@ -44,7 +45,7 @@ def getAttributes(obj):
     """Get non hidden and built-in type object attributes that can be persisted"""
 
     d={}
-    allowed = [str,int,float,list,tuple,bool]
+    allowed = [str,int,float,list,tuple,bool,matplotlib.figure.Figure]
     for key in obj.__dict__:
         if key.startswith('_'):
             continue

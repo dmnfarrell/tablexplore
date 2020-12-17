@@ -37,7 +37,6 @@ style = '''
         background-color: #20262c;
         color: white;
         font-family: Consolas, Monaco, monospace;
-        font-size: 12px;
     }
     '''
 
@@ -73,21 +72,27 @@ class Terminal(QtWidgets.QPlainTextEdit):
     # signal to connect at the interpreter run code
     press_enter = QtCore.Signal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, hist_file=None):
         """
         Micmic python terminal interpreter from a QPlainTextEdit. Can be override for app integration.
-        Readline history is implemented, it's possible to change hist file path by define Terminal.hist_file attr.
+        Readline history is implemented, it's possible to change hist file path by define
+        Terminal.hist_file attr.
         :param parent: parent widget
         """
         QtWidgets.QPlainTextEdit.__init__(self, parent)
         self.setGeometry(50, 75, 600, 400)
-        self.setWordWrapMode(QtGui.QTextOption.WrapAnywhere)
+        #self.setWordWrapMode(QtGui.QTextOption.WrapAnywhere)
         self.setUndoRedoEnabled(False)
-        self.document().setDefaultFont(QtGui.QFont("monospace", 10, QtGui.QFont.Normal))
-        
+        font = QtGui.QFont("Monospace")
+        font.setPointSize(10)
+        self.setFont(font)
+
         self.prompt = None
         self.cursor_line = None
-        self.hist_file = os.path.join(os.path.expanduser("~"), ".pyTermHist")
+        if hist_file == None:
+            self.hist_file = os.path.join(os.path.expanduser("~"), ".pyTermHist")
+        else:
+            self.hist_file = hist_file
         self.init_history(self.hist_file)
         self.history_index = readline.get_current_history_length()
         self.completer = rlcompleter.Completer()
@@ -98,9 +103,10 @@ class Terminal(QtWidgets.QPlainTextEdit):
         # connect press enter
         self.press_enter.connect(self.exec_code)
         self.setStyleSheet(style)
+        return
 
     def active_queue_thread(self, queue):
-        
+
         self.thread_q = QtCore.QThread()
         self.receiver = QueueReceiver(queue)
         self.receiver.sent.connect(self.write)
@@ -108,6 +114,37 @@ class Terminal(QtWidgets.QPlainTextEdit):
         self.thread_q.started.connect(self.receiver.run)
         self.thread_q.start()
 
+    def contextMenuEvent(self, event):
+
+        menu = QtWidgets.QMenu(self)
+        menu.addAction("Copy", lambda: self.copy())
+        menu.addAction("Paste", lambda: self.paste())
+        menu.addAction("Clear", lambda: self.clear())
+        menu.addSeparator()
+        menu.addAction("Zoom In", lambda: self.zoom(1))
+        menu.addAction("Zoom Out", lambda: self.zoom(-1))
+        style_menu = QtWidgets.QMenu("Style", menu)
+        menu.addAction(style_menu.menuAction())
+        style_menu.addAction('Light', lambda: self.setStyle('light'))
+        style_menu.addAction('Dark', lambda: self.setStyle('dark'))
+        action = menu.exec_(self.mapToGlobal(event.pos()))
+
+    def setStyle(self, style='default'):
+
+        if style == 'light':
+            ss = """background-color: #FBFBF8;
+                        color: black;"""
+        else:
+            ss = """background-color: #20262c;
+                        color: white;"""
+        self.setStyleSheet(ss)
+        return
+
+    def zoom(self, delta):
+        if delta < 0:
+            self.zoomOut(1)
+        elif delta > 0:
+            self.zoomIn(1)
 
     def init_history(self, hist_file):
         """
@@ -344,7 +381,6 @@ class Terminal(QtWidgets.QPlainTextEdit):
         super(Terminal, self).keyPressEvent(event)
 
     def closeEvent(self, event):
-        
+
         self.thread_q.stop()
         self.thread_q.exit()
-        

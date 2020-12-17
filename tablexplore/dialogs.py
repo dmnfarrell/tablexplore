@@ -124,6 +124,9 @@ def dialogFromOptions(parent, opts, sections=None,
             elif t == 'spinbox':
                 w = QSpinBox()
                 w.setValue(val)
+                if 'range' in opt:
+                    min,max=opt['range']
+                    w.setRange(min,max)
             elif t == 'checkbox':
                 w = QCheckBox()
                 w.setChecked(val)
@@ -189,7 +192,8 @@ def setWidgetValues(widgets, values):
             elif type(w) is QPlainTextEdit:
                 w.insertPlainText(str(val))
             elif type(w) is QComboBox or type(w) is QFontComboBox:
-                w.setCurrentIndex(1)
+                index = w.findText(val)
+                w.setCurrentIndex(index)
             elif type(w) is QCheckBox:
                 w.setChecked(val)
             elif type(w) is QSlider:

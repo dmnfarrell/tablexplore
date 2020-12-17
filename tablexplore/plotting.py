@@ -31,6 +31,7 @@ except ImportError:
     from pandas.tools import plotting
 import matplotlib as mpl
 from matplotlib.backends.backend_qt5agg import FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -100,8 +101,11 @@ style = '''
 '''
 
 class PlotWidget(FigureCanvas):
-    def __init__(self, parent=None, dpi=100, hold=False):
-        super(PlotWidget, self).__init__(Figure())
+    def __init__(self, parent=None, figure=None, dpi=100, hold=False):
+
+        if figure == None:
+            figure = Figure()
+        super(PlotWidget, self).__init__(figure)
         self.setParent(parent)
         self.figure = Figure(dpi=dpi)
         self.canvas = FigureCanvas(self.figure)
@@ -127,16 +131,18 @@ class PlotViewer(QWidget):
         #self.main = QSplitter(Qt.Horizontal, self)
         self.main = QWidget(self)
         hbox = QHBoxLayout(self)
-        left = QWidget(self.main)
+        self.left = left = QWidget(self.main)
         hbox.addWidget(left)
 
-        vbox = QVBoxLayout(left)
-        bw = self.createButtons(left)
-        vbox.addWidget(bw)
+        self.vbox = vbox = QVBoxLayout(left)
+        #bw = self.createButtons(left)
+        #vbox.addWidget(bw)
 
         self.canvas = PlotWidget(left)
         self.fig = self.canvas.figure
         self.ax = self.canvas.ax
+        self.toolbar = NavigationToolbar(self.canvas, left)
+        vbox.addWidget(self.toolbar)
         #self.fig, self.canvas = addFigure(left)
         #self.ax = self.fig.add_subplot(111)
         vbox.addWidget(self.canvas)
@@ -147,6 +153,15 @@ class PlotViewer(QWidget):
         hbox.addWidget(dock)
         ow = self.createDialogs(dock)
         dock.setWidget(ow)
+        return
+
+    def setFigure(self, figure):
+        """Recreate canvas with given figure"""
+
+        self.canvas.figure = figure
+        self.fig = self.canvas.figure
+        self.ax = self.canvas.ax
+        self.canvas.draw()
         return
 
     def createDialogs(self, parent):
@@ -266,7 +281,7 @@ class PlotViewer(QWidget):
 
     def replot(self, data=None):
         """Replot with given dataframe"""
-        
+
         self.clear()
         if data is None:
             self.data = self.table.getSelectedDataFrame()
@@ -299,11 +314,11 @@ class PlotViewer(QWidget):
         """Apply the current plotter/options"""
 
         self.generalopts.applyOptions()
-        self.globalopts.applyOptions()
+        #self.globalopts.applyOptions()
         #self.mplopts3d.applyOptions()
         self.labelopts.applyOptions()
         self.axesopts.applyOptions()
-        mpl.rcParams['savefig.dpi'] = self.globalopts.kwds['dpi']
+        mpl.rcParams['savefig.dpi'] = self.generalopts.kwds['dpi']
         return
 
     def clear(self):
@@ -346,8 +361,7 @@ class PlotViewer(QWidget):
 
         from matplotlib.gridspec import GridSpec
         layout = 0 #self.globalopts.kwds['grid layout']
-        plot3d = self.globalopts.kwds['3D plot']
-
+        plot3d = self.generalopts.kwds['3D plot']
         style = self.generalopts.kwds['style']
         self.setStyle(style)
         #plot layout should be tracked by plotlayoutoptions
@@ -973,7 +987,8 @@ class PlotViewer(QWidget):
             clr = cmap(float(i)/cols)
             y = df[d]
             x = np.random.normal(i+1, 0.04, len(y))
-            ax.plot(x, y, c=clr, mec='k', ms=ms, marker=marker, alpha=alpha, mew=lw, linestyle="None")
+            ax.plot(x, y, c=clr, mec='k', ms=ms, marker=marker, alpha=alpha,
+                    mew=lw, linestyle="None")
         if kwds['logy'] == 1:
             ax.set_yscale('log')
         return ax
@@ -1127,6 +1142,12 @@ class BaseOptions(object):
         self.applyOptions()
         return
 
+    def updateWidgets(self, kwds):
+
+        for k in kwds:
+            setWidgetValues(self.widgets, {k: kwds[k]})
+        return
+
     def increment(self, key, inc):
         """Increase the value of a widget"""
 
@@ -1174,11 +1195,11 @@ class MPLBaseOptions(BaseOptions):
                     style for style in plt.style.available if style != 'classic')
         grps = {'data':['by','by2','labelcol','pointsizes'],
                 'formats':['marker','ms','linestyle','linewidth','alpha'],
-                #'sizes':[],
+                'global':['dpi','3D plot'],
                 'general':['kind','bins','stacked','subplots','use_index','errorbars'],
                 'axes':['grid','legend','showxlabels','showylabels','sharex','sharey','logx','logy'],
                 'colors':['style','colormap','bw','clrcol','cscale','colorbar']}
-        order = ['general','data','axes','formats','colors']
+        order = ['general','data','axes','formats','colors','global']
         self.groups = OrderedDict((key, grps[key]) for key in order)
         opts = self.opts = {
                 'style':{'type':'combobox','default':'','items': style_list},
@@ -1207,11 +1228,13 @@ class MPLBaseOptions(BaseOptions):
                 'alpha':{'type':'spinbox','default':9,'range':(1,10),'interval':1,'label':'alpha'},
                 'subplots':{'type':'checkbox','default':0,'label':'multiple subplots'},
                 'colormap':{'type':'combobox','default':'Spectral','items':colormaps},
-                'bins':{'type':'spinbox','default':20,'width':10},
+                'bins':{'type':'spinbox','default':20,'width':5},
                 'by':{'type':'combobox','items':datacols,'label':'group by','default':''},
                 'by2':{'type':'combobox','items':datacols,'label':'group by 2','default':''},
                 'labelcol':{'type':'combobox','items':datacols,'label':'point labels','default':''},
                 'pointsizes':{'type':'combobox','items':datacols,'label':'point sizes','default':''},
+                 'dpi': {'type':'spinbox','default':80,'width':4,'range':(10,300)},
+                 '3D plot': {'type':'checkbox','default':0,'label':'3D plot'}
                 }
         self.kwds = {}
         return

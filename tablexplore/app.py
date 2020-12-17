@@ -65,6 +65,7 @@ class Application(QMainWindow):
         self.proj_label.setStyleSheet('color: blue')
         self.style = 'default'
         self.font = 'monospace'
+        self.recentFiles = []
         #self.statusBar().showMessage("Welcome", 3000)
         self.setStatusBar(self.statusbar)
         self.loadSettings()
@@ -121,12 +122,16 @@ class Application(QMainWindow):
         items = {'new': {'action':self.newProject,'icon':'document-new'},
                  'open': {'action':self.openProject,'icon':'document-open'},
                  'save': {'action':self.saveProject,'icon':'document-save'},
-                 'quit': {'action':self.fileQuit,'icon':'application-exit'},
-                 'preferences': {'action':self.preferences,'icon':'preferences-system'},
                  'zoom out': {'action':self.zoomOut,'icon':'zoom-out'},
                  'zoom in': {'action':self.zoomIn,'icon':'zoom-in'},
+                 'decrease columns': {'action': lambda: self.changeColumnWidths(.9),'icon':'go-previous'},
+                 'increase columns': {'action': self.changeColumnWidths,'icon':'go-next'},
                  'add sheet': {'action':self.addSheet,'icon':'list-add'},
                  'clean data': {'action':lambda: self._call('cleanData'),'file':'clean'},
+                 'table to text': {'action':lambda: self._call('showAsText'),'file':'tabletotext'},
+                 'table info': {'action':lambda: self._call('info'),'file':'tableinfo'},
+                 'preferences': {'action':self.preferences,'icon':'preferences-system'},
+                 'quit': {'action':self.fileQuit,'icon':'application-exit'}
                 }
 
         toolbar = QToolBar("My main toolbar")
@@ -213,6 +218,10 @@ class Application(QMainWindow):
         self.menuBar().addSeparator()
         self.menuBar().addMenu(self.help_menu)
         self.help_menu.addAction('&About', self.about)
+
+        #plot shortcut
+        self.plotshc = QShortcut(QKeySequence('Ctrl+P'), self)
+        self.plotshc.activated.connect(self.replot)
         return
 
     def _call(self, func, **args):
@@ -251,6 +260,8 @@ class Application(QMainWindow):
     def newProject(self, data=None):
         """New project"""
 
+        if not type(data) is dict:
+            data = None
         self.main.clear()
         self.sheets = OrderedDict()
         self.filename = None
@@ -356,18 +367,20 @@ class Application(QMainWindow):
             table = tablewidget.table
             data[i] = {}
             data[i]['table'] = table.model.df
-            #data[i]['meta'] = self.saveMeta(tablewidget)
+            data[i]['meta'] = self.saveMeta(tablewidget)
 
         file = gzip.GzipFile(filename, 'w')
         pickle.dump(data, file)
         return
 
     def saveMeta(self, tablewidget):
-        """Save meta data such as current plot options"""
+        """Save meta data such as current plot options and certain table attributes.
+         These are re-loaded when the sheet is opened."""
 
         meta = {}
         pf = tablewidget.pf
-        table =  tablewidget.table
+        pf.applyPlotoptions()
+        table = tablewidget.table
         #save plot options
         meta['generalopts'] = pf.generalopts.kwds
         #meta['mplopts3d'] = pf.mplopts3d.kwds
@@ -381,11 +394,59 @@ class Application(QMainWindow):
         #meta['table']['rowcolors'] = table.rowcolors
 
         #save child table if present
-        #if table.child != None:
-        #    meta['childtable'] = table.child.model.df
+        if tablewidget.subtable != None:
+            meta['subtable'] = tablewidget.subtable.table.model.df
         #    meta['childselected'] = util.getAttributes(table.child)
 
         return meta
+
+    def loadMeta(self, table, meta):
+        """Load meta data for a sheet/table, this includes plot options and
+        table selections"""
+
+        tablesettings = meta['table']
+        if 'subtable' in meta:
+            subtable = meta['subtable']
+            #childsettings = meta['childselected']
+        else:
+            subtable = None
+        #load plot options
+        opts = {'generalopts': table.pf.generalopts,
+                #'mplopts3d': table.pf.mplopts3d,
+                'labelopts': table.pf.labelopts
+                }
+        for m in opts:
+            if m in meta and meta[m] is not None:
+                #util.setAttributes(opts[m], meta[m])
+                #print (m,meta[m])
+                opts[m].updateWidgets(meta[m])
+                #check options loaded for missing values
+                #avoids breaking file saves when options changed
+                #defaults = plotting.get_defaults(m)
+                #for key in defaults:
+                #    if key not in opts[m].opts:
+                #        opts[m].opts[key] = defaults[key]
+
+        #load table settings
+        util.setAttributes(table, tablesettings)
+        #load plotviewer
+        if 'plotviewer' in meta:
+            #print (meta['plotviewer'])
+            fig = meta['plotviewer']['fig']
+            table.pf.setFigure(fig)
+            table.pf.canvas.draw()
+            #util.setAttributes(table.pf, meta['plotviewer'])
+            #table.pf.updateWidgets()
+
+        if subtable is not None:
+            table.showSubTable(df=subtable)
+            #util.setAttributes(table.child, childsettings)
+
+        #redraw col selections
+        #if type(table.multiplecollist) is tuple:
+        #    table.multiplecollist = list(table.multiplecollist)
+        #table.drawMultipleCols()
+        return
 
     def importFile(self, filename=None):
 
@@ -444,6 +505,9 @@ class Application(QMainWindow):
         pf = dfw.createPlotViewer(sheet)
         sheet.addWidget(pf)
         sheet.setSizes((500,1000))
+        #reload attributes of table and plotter if present
+        if meta != None:
+            self.loadMeta(dfw, meta)
         self.main.setCurrentIndex(idx)
         return
 
@@ -542,6 +606,11 @@ class Application(QMainWindow):
         name= self.main.tabText(idx)
         table = self.sheets[name]
         return table
+
+    def replot(self):
+        w = self.getCurrentTable()
+        pf = w.pf
+        pf.replot()
 
     def zoomIn(self):
 
