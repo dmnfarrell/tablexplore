@@ -119,19 +119,19 @@ class Application(QMainWindow):
 
     def createToolBar(self):
 
-        items = {'new': {'action':self.newProject,'icon':'document-new'},
-                 'open': {'action':self.openProject,'icon':'document-open'},
-                 'save': {'action':self.saveProject,'icon':'document-save'},
-                 'zoom out': {'action':self.zoomOut,'icon':'zoom-out'},
-                 'zoom in': {'action':self.zoomIn,'icon':'zoom-in'},
-                 'decrease columns': {'action': lambda: self.changeColumnWidths(.9),'icon':'go-previous'},
-                 'increase columns': {'action': self.changeColumnWidths,'icon':'go-next'},
-                 'add sheet': {'action':self.addSheet,'icon':'list-add'},
+        items = {'new': {'action':self.newProject,'file':'document-new'},
+                 'open': {'action':self.openProject,'file':'document-open'},
+                 'save': {'action':self.saveProject,'file':'save'},
+                 'zoom out': {'action':self.zoomOut,'file':'zoom-out'},
+                 'zoom in': {'action':self.zoomIn,'file':'zoom-in'},
+                 'decrease columns': {'action': lambda: self.changeColumnWidths(.9),'file':'decrease-width'},
+                 'increase columns': {'action': self.changeColumnWidths,'file':'increase-width'},
+                 'add sheet': {'action':self.addSheet,'file':'add'},
                  'clean data': {'action':lambda: self._call('cleanData'),'file':'clean'},
                  'table to text': {'action':lambda: self._call('showAsText'),'file':'tabletotext'},
                  'table info': {'action':lambda: self._call('info'),'file':'tableinfo'},
                  'preferences': {'action':self.preferences,'icon':'preferences-system'},
-                 'quit': {'action':self.fileQuit,'icon':'application-exit'}
+                 'quit': {'action':self.fileQuit,'file':'application-exit'}
                 }
 
         toolbar = QToolBar("My main toolbar")
@@ -202,6 +202,7 @@ class Application(QMainWindow):
         self.tools_menu.addAction('&Find Duplicates', lambda: self._call('findDuplicates'))
         self.tools_menu.addAction('&Convert Numeric', lambda: self._call('convertNumeric'))
         self.tools_menu.addAction('&Convert Column Names', lambda: self._call('convertColumnNames'))
+        self.tools_menu.addAction('&Time Series Resample', lambda: self._call('resample'))
         self.tools_menu.addAction('&Table to Text', lambda: self._call('showAsText'),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_T)
         self.tools_menu.addAction('&Python Interpreter', self.interpreter)
@@ -608,6 +609,7 @@ class Application(QMainWindow):
         return table
 
     def replot(self):
+
         w = self.getCurrentTable()
         pf = w.pf
         pf.replot()

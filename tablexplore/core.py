@@ -630,6 +630,42 @@ class DataFrameWidget(QWidget):
         self.refresh()
         return
 
+    def resample(self):
+        """Table time series resampling dialog. Should set a datetime index first."""
+
+        df = self.table.model.df
+        if not isinstance(df.index, pd.DatetimeIndex):
+            msg = QMessageBox(None, "No datetime index",'Your date/time column should be the index.')
+            msg.exec_()
+            return
+
+        conv = ['start','end']
+        freqs = ['M','W','D','H','min','S','Q','A','AS','L','U']
+        funcs = ['mean','sum','count','max','min','std','first','last']
+
+        opts = {'freq':  {'type':'combobox','default':'M',
+                            'items':freqs,'label':'Frequency'},
+                'period':  {'type':'entry','default':1,
+                            'label':'Period'},
+                'func':  {'type':'combobox','default':'mean',
+                        'items':funcs,'label':'Function'} }
+
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Resample', width=300)
+        dlg.exec_()
+        if not dlg.accepted:
+            return
+        kwds = dlg.values
+
+        freq = kwds['freq']
+        period = kwds['period']
+        func = kwds['func']
+
+        rule = str(period)+freq
+        new = df.resample(rule).apply(func)
+        self.showSubTable(new, index=True)
+        return
+
+
     def merge(self):
 
         dlg = dialogs.MergeDialog(self, self.table.model.df)
@@ -708,6 +744,13 @@ class DataFrameWidget(QWidget):
             #w = self.splitter.widget(1)
             #w.deleteLater()
             self.subtable = None
+        return
+
+    def runScript(self):
+        """Run a set of python commands on the table"""
+
+        script = ['df = df[:10]']
+
         return
 
     def showInterpreter(self):
