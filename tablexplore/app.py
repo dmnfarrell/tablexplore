@@ -28,6 +28,7 @@ from collections import OrderedDict
 from PySide2 import QtCore
 from PySide2.QtWidgets import *
 from PySide2.QtGui import *
+from PySide2.QtCore import QObject, Signal, Slot
 import pandas as pd
 from .core import DataFrameModel, DataFrameTable, DataFrameWidget
 from .plotting import PlotViewer
@@ -119,7 +120,7 @@ class Application(QMainWindow):
 
     def createToolBar(self):
 
-        items = {'new': {'action':self.newProject,'file':'document-new'},
+        items = {'new': {'action': lambda: self.newProject(ask=True),'file':'document-new'},
                  'open': {'action':self.openProject,'file':'document-open'},
                  'save': {'action':self.saveProject,'file':'save'},
                  'zoom out': {'action':self.zoomOut,'file':'zoom-out'},
@@ -151,7 +152,7 @@ class Application(QMainWindow):
     def createMenu(self):
 
         self.file_menu = QMenu('&File', self)
-        self.file_menu.addAction('&New', self.newProject,
+        self.file_menu.addAction('&New', lambda: self.newProject(ask=True),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_N)
         self.file_menu.addAction('&Open', self.openProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_O)
@@ -171,8 +172,9 @@ class Application(QMainWindow):
 
         self.edit_menu = QMenu('&Edit', self)
         self.menuBar().addMenu(self.edit_menu)
-        self.edit_menu.addAction('&Undo', self.undo,
+        self.undo_item = self.edit_menu.addAction('&Undo', self.undo,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Z)
+        self.undo_item.setDisabled(True)
         self.edit_menu.addAction('&Preferences', self.preferences)
 
         self.view_menu = QMenu('&View', self)
@@ -249,6 +251,10 @@ class Application(QMainWindow):
                 t.showAll()
         return
 
+    @Slot(str)
+    def stateChanged(self, bool):
+        print(bool)
+
     def addRecentFile(self, fname):
 
         if fname and fname not in self.recentFiles:
@@ -258,9 +264,14 @@ class Application(QMainWindow):
         self.menuRecentFiles.setEnabled(len(self.recentFiles))
         return
 
-    def newProject(self, data=None):
+    def newProject(self, data=None, ask=False):
         """New project"""
 
+        if ask == True:
+            reply = QMessageBox.question(self, 'Are you sure?',
+                                 'Close current project?', QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.saveProject()
         if not type(data) is dict:
             data = None
         self.main.clear()
@@ -279,7 +290,6 @@ class Application(QMainWindow):
                 self.addSheet(s, df, meta)
         else:
             self.addSheet('dataset1')
-
         return
 
     def closeProject(self):
@@ -579,11 +589,16 @@ class Application(QMainWindow):
     def closeEvent(self, ce):
         """Close event"""
 
+        reply = QMessageBox.question(self, 'Save Project?',
+                                 'Save current project?',
+                                 QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.No:
+            return False
         for s in self.sheets:
-            #print (s)
             self.sheets[s].close()
         self.saveSettings()
         self.fileQuit()
+        return
 
     def getSampleData(self, name, rows=None):
         """Sample table"""
@@ -632,6 +647,9 @@ class Application(QMainWindow):
 
     def undo(self):
 
+        w = self.getCurrentTable()
+        w.table.undo()
+        w.refresh()
         return
 
     def refresh(self):

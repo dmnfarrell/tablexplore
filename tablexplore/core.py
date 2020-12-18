@@ -21,11 +21,12 @@
 """
 
 import sys, os, io
+import tempfile
 import numpy as np
 import pandas as pd
 import string
 from PySide2 import QtCore, QtGui
-from PySide2.QtCore import QObject#, pyqtSignal, pyqtSlot, QPoint
+from PySide2.QtCore import QObject, Signal, Slot
 from PySide2.QtWidgets import *
 from PySide2.QtGui import *
 
@@ -53,6 +54,9 @@ icons = {'load': 'open', 'save': 'export',
          'subtable':'subtable','clear':'clear'
          }
 
+class Communicate(QObject):
+    speak = Signal()
+
 class ColumnHeader(QHeaderView):
     def __init__(self):
         super(QHeaderView, self).__init__()
@@ -79,7 +83,13 @@ class DataFrameWidget(QWidget):
         self.pyconsole = None
         self.subtabledock = None
         self.subtable = None
+        self.updatesignal = Communicate()
+        self.updatesignal.speak.connect(self.stateChanged)
         return
+
+    @Slot(bool)
+    def stateChanged(self):
+        print('changed')
 
     def statusBar(self):
         """Status bar at bottom"""
@@ -665,7 +675,6 @@ class DataFrameWidget(QWidget):
         self.showSubTable(new, index=True)
         return
 
-
     def merge(self):
 
         dlg = dialogs.MergeDialog(self, self.table.model.df)
@@ -816,6 +825,9 @@ class DataFrameTable(QTableView):
         self.model = tm
         #self.resizeColumnsToContents()
         self.setWordWrap(False)
+        #temp file for undo
+        file, self.undo_file = tempfile.mkstemp(suffix='.pkl')
+        os.remove(self.undo_file)
         return
 
     def refresh(self):
@@ -828,6 +840,23 @@ class DataFrameTable(QTableView):
         self.model.endResetModel()
         if hasattr(self.parent,'statusbar'):
             self.parent.updateStatusBar()
+        return
+
+    def storeCurrent(self):
+        """Store current version of the table before a major change is made"""
+
+        self.prevdf = self.model.df#.copy()
+        self.prevdf.to_pickle(self.undo_file)
+        self.parent.updatesignal.speak.emit()
+        return
+
+    def undo(self):
+        """Undo last change to table"""
+
+        if os.path.exists(self.undo_file):
+            self.model.df = pd.read_pickle(self.undo_file)
+            self.refresh()
+            os.remove(self.undo_file)
         return
 
     def memory_usage(self):
@@ -886,12 +915,6 @@ class DataFrameTable(QTableView):
 
         df = self.model.df
         self.model.df = df.sort_values(col)
-        return
-
-    def storeCurrent(self):
-        """Store current version of the table before a major change is made"""
-
-        self.prevdf = self.model.df.copy()
         return
 
     def deleteCells(self, rows, cols, answer=None):
@@ -1049,6 +1072,7 @@ class DataFrameTable(QTableView):
                              'Are you sure?', QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.No:
             return False
+        self.storeCurrent()
         self.model.df = self.model.df.drop(columns=[column])
         self.refresh()
         return
