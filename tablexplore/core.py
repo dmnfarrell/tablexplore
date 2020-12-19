@@ -62,6 +62,11 @@ class ColumnHeader(QHeaderView):
         super(QHeaderView, self).__init__()
         return
 
+class RowHeader(QHeaderView):
+    def __init__(self):
+        super(QHeaderView, self).__init__()
+        return
+
 class DataFrameWidget(QWidget):
     """Widget containing a tableview and toolbars"""
     def __init__(self, parent=None, dataframe=None, app=None,
@@ -422,7 +427,7 @@ class DataFrameWidget(QWidget):
         #cols = list(df.columns[self.multiplecollist])
         funcs = ['mean','std','max','min','log','exp','log10','log2',
                  'round','floor','ceil','trunc',
-                 'sum','subtract','divide','mod','remainder','convolve',
+                 'sum','subtract','divide','mod','remainder','convolve','diff',
                  'negative','sign','power',
                  'sin','cos','tan','degrees','radians']
 
@@ -453,15 +458,16 @@ class DataFrameWidget(QWidget):
 
         if funcname in ['subtract','divide','mod','remainder','convolve']:
             newcol = cols[0]+' '+ funcname +' '+cols[1]
-            df[newcol] = df[cols[0]].combine(df[cols[1]], func=func)
+            result = df[cols[0]].combine(df[cols[1]], func=func)
         else:
             if inplace == True:
                 newcol = col#s[0]
-            df[newcol] = df[col].apply(func, 1)
-        #self.table.model.df[column] = data
+            result = df[col].apply(func, 1)
 
         #if inplace == False:
-        #    self.placeColumn(newcol,cols[-1])
+            #self.placeColumn(newcol,cols[-1])
+        idx = df.columns.get_loc(col)
+        df.insert(idx, newcol, result)
         #else:
         self.refresh()
         return
@@ -790,10 +796,12 @@ class DataFrameTable(QTableView):
         #self.doubleClicked.connect(self.handleDoubleClick)
         #self.setSelectionBehavior(QTableView.SelectRows)
         #self.setSelectionBehavior(QTableView.SelectColumns)
-
+        #vh = self.vheader = RowHeader()
+        #self.setVerticalHeader(vh)
         vh = self.verticalHeader()
         vh.setVisible(True)
-        vh.setDefaultSectionSize(28)
+        vh.setDefaultSectionSize(30)
+        vh.setMinimumWidth(50)
         vh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         vh.customContextMenuRequested.connect(self.rowHeaderMenu)
         #vh.sectionClicked.connect(self.rowClicked)
@@ -802,6 +810,7 @@ class DataFrameTable(QTableView):
         hh.setVisible(True)
         #hh.setStretchLastSection(True)
         #hh.setSectionResizeMode(QHeaderView.Interactive)
+        hh.setSelectionBehavior(QTableView.SelectColumns)
         hh.setSectionsMovable(True)
         hh.setSelectionMode(QAbstractItemView.ExtendedSelection)
         hh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -815,7 +824,7 @@ class DataFrameTable(QTableView):
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
         self.setCornerButtonEnabled(True)
-        self.setSortingEnabled(True)
+        #self.setSortingEnabled(True)
         self.font = QFont(font)
         self.font.setPointSize(int(fontsize))
         self.setFont(self.font)
@@ -910,11 +919,15 @@ class DataFrameTable(QTableView):
 
     def columnSelected(self, col):
         hheader = self.horizontalHeader()
+        self.selectColumn(col)
 
     def sort(self, col):
 
         df = self.model.df
-        self.model.df = df.sort_values(col)
+        idx = df.columns.get_loc(col)
+        print (idx)
+        self.model.sort(idx, order=Qt.DescendingOrder)
+        #self.model.df = df.sort_values(col)
         return
 
     def deleteCells(self, rows, cols, answer=None):
@@ -1203,7 +1216,7 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return self.df.columns[col]
         if orientation == QtCore.Qt.Vertical and role == QtCore.Qt.DisplayRole:
-            return self.df.index[col]
+            return str(self.df.index[col])
         return None
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):

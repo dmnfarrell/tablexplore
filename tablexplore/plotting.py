@@ -46,6 +46,7 @@ from .dialogs import *
 import logging
 from . import util
 
+homepath = os.path.expanduser("~")
 module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
 
@@ -122,7 +123,7 @@ class PlotViewer(QWidget):
         self.currentdir = os.path.expanduser('~')
         sizepolicy = QSizePolicy()
         self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
-
+        self.style = None
         return
 
     def createWidgets(self):
@@ -288,7 +289,7 @@ class PlotViewer(QWidget):
         else:
             self.data = data
 
-        #self.updateStyle()
+        self.setStyle()
         self.applyPlotoptions()
         self.plotCurrent()
         return
@@ -298,13 +299,13 @@ class PlotViewer(QWidget):
 
         #layout = self.globalopts['grid layout']
         #gridmode = self.layoutopts.modevar.get()
-        #plot3d = self.globalopts['3D plot']
+        plot3d = self.generalopts.kwds['3D plot']
         self._initFigure()
         #if layout == 1 and gridmode == 'multiviews':
         #    self.plotMultiViews()
         #elif layout == 1 and gridmode == 'splitdata':
         #    self.plotSplitData()
-        #elif plot3d == 1:
+        #if plot3d == 1:
         #    self.plot3D(redraw=redraw)
         #else:
         self.plot2D(redraw=redraw)
@@ -318,6 +319,7 @@ class PlotViewer(QWidget):
         #self.mplopts3d.applyOptions()
         self.labelopts.applyOptions()
         self.axesopts.applyOptions()
+        self.style = self.generalopts.kwds['style']
         mpl.rcParams['savefig.dpi'] = self.generalopts.kwds['dpi']
         return
 
@@ -362,8 +364,6 @@ class PlotViewer(QWidget):
         from matplotlib.gridspec import GridSpec
         layout = 0 #self.globalopts.kwds['grid layout']
         plot3d = self.generalopts.kwds['3D plot']
-        style = self.generalopts.kwds['style']
-        self.setStyle(style)
         #plot layout should be tracked by plotlayoutoptions
         #gl = self.layoutopts
 
@@ -766,12 +766,12 @@ class PlotViewer(QWidget):
         self._setAxisTickFormat()
         return axs
 
-    def setStyle(self, style=None):
+    def setStyle(self):
 
-        if style == None:
+        if self.style == None:
             mpl.rcParams.update(mpl.rcParamsDefault)
         else:
-            plt.style.use(style)
+            plt.style.use(self.style)
         return
 
     def _setAxisRanges(self):
@@ -1094,7 +1094,7 @@ def addFigure(parent, figure=None, resize_callback=None):
     """Create a tk figure and canvas in the parent frame"""
 
     if figure == None:
-        figure = Figure(figsize=(8,4), dpi=80, facecolor='white')
+        figure = Figure(figsize=(8,4), dpi=100, facecolor='white')
 
     canvas = FigureCanvas(figure=figure)
     canvas.setSizePolicy( QSizePolicy.Expanding,
@@ -1163,7 +1163,7 @@ class GlobalOptions(BaseOptions):
 
         self.parent = parent
         self.groups = {'global': ['dpi','3D plot']}
-        self.opts = OrderedDict({ 'dpi': {'type':'spinbox','default':80,'width':4},
+        self.opts = OrderedDict({ 'dpi': {'type':'spinbox','default':100,'width':4},
                                  #'grid layout': {'type':'checkbox','default':0,'label':'grid layout'},
                                  '3D plot': {'type':'checkbox','default':0,'label':'3D plot'}  })
         self.kwds = {}
@@ -1177,7 +1177,6 @@ class MPLBaseOptions(BaseOptions):
              'heatmap', 'area', 'hexbin', 'contour', 'imshow', 'scatter_matrix', 'density', 'radviz', 'venn']
     legendlocs = ['best','upper right','upper left','lower left','lower right','right','center left',
                 'center right','lower center','upper center','center']
-    defaultfont = 'monospace'
 
     def __init__(self, parent=None):
         """Setup variables"""
@@ -1202,7 +1201,7 @@ class MPLBaseOptions(BaseOptions):
         order = ['general','data','axes','formats','colors','global']
         self.groups = OrderedDict((key, grps[key]) for key in order)
         opts = self.opts = {
-                'style':{'type':'combobox','default':'','items': style_list},
+                'style':{'type':'combobox','default':'default','items': style_list},
                 'marker':{'type':'combobox','default':'','items': markers},
                 'linestyle':{'type':'combobox','default':'-','items': linestyles},
                 'ms':{'type':'slider','default':5,'range':(1,80),'interval':1,'label':'marker size'},
@@ -1224,7 +1223,7 @@ class MPLBaseOptions(BaseOptions):
                 #'loc':{'type':'combobox','default':'best','items':self.legendlocs,'label':'legend loc'},
                 'kind':{'type':'combobox','default':'line','items':self.kinds,'label':'plot type'},
                 'stacked':{'type':'checkbox','default':0,'label':'stacked'},
-                'linewidth':{'type':'slider','default':2,'range':(0,10),'interval':0.1,'label':'line width'},
+                'linewidth':{'type':'slider','default':2,'range':(0,10),'interval':1,'label':'line width'},
                 'alpha':{'type':'spinbox','default':9,'range':(1,10),'interval':1,'label':'alpha'},
                 'subplots':{'type':'checkbox','default':0,'label':'multiple subplots'},
                 'colormap':{'type':'combobox','default':'Spectral','items':colormaps},
@@ -1233,7 +1232,7 @@ class MPLBaseOptions(BaseOptions):
                 'by2':{'type':'combobox','items':datacols,'label':'group by 2','default':''},
                 'labelcol':{'type':'combobox','items':datacols,'label':'point labels','default':''},
                 'pointsizes':{'type':'combobox','items':datacols,'label':'point sizes','default':''},
-                 'dpi': {'type':'spinbox','default':80,'width':4,'range':(10,300)},
+                 'dpi': {'type':'spinbox','default':100,'width':4,'range':(10,300)},
                  '3D plot': {'type':'checkbox','default':0,'label':'3D plot'}
                 }
         self.kwds = {}
@@ -1266,7 +1265,7 @@ class AnnotationOptions(BaseOptions):
         fillpatterns = ['-', '+', 'x', '\\', '*', 'o', 'O', '.']
         bstyles = ['square','round','round4','circle','rarrow','larrow','sawtooth']
         fonts = util.getFonts()
-        defaultfont = 'monospace'
+        defaultfont = 'Arial'
         fontweights = ['normal','bold','heavy','light','ultrabold','ultralight']
         alignments = ['left','center','right']
 
@@ -1341,4 +1340,100 @@ class AxesOptions(BaseOptions):
                             'date format':{'type':'combobox','items':datefmts,'default':''}
                             }
         self.kwds = {}
+        return
+
+class PlotGallery(QWidget):
+    """Plot gallery class"""
+    def __init__(self, parent=None):
+        super(PlotGallery, self).__init__(parent)
+        self.parent = parent
+        self.setMinimumSize(400,300)
+        self.setGeometry(QtCore.QRect(300, 200, 800, 600))
+        self.setWindowTitle("Saved Figures")
+        self.createWidgets()
+        sizepolicy = QSizePolicy()
+        self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
+        self.plots = {}
+        return
+
+    def createWidgets(self):
+        """Create widgets. Plot on left and dock for tools on right."""
+
+        self.main = QTabWidget(self)
+        self.main.setTabsClosable(True)
+        self.main.tabCloseRequested.connect(lambda index: self.remove(index))
+        layout = QVBoxLayout(self)
+        toolbar = QToolBar("toolbar")
+        layout.addWidget(toolbar)
+        items = { 'save': {'action':self.save,'file':'save'},
+                  'save all': {'action':self.saveAll,'file':'save-all'},
+                  'clear': {'action':self.clear,'file':'clear'}
+                    }
+        for i in items:
+            if 'file' in items[i]:
+                iconfile = os.path.join(iconpath,items[i]['file']+'.png')
+                icon = QIcon(iconfile)
+            else:
+                icon = QIcon.fromTheme(items[i]['icon'])
+            btn = QAction(icon, i, self)
+            btn.triggered.connect(items[i]['action'])
+            toolbar.addAction(btn)
+        layout.addWidget(self.main)
+        return
+
+    def update(self, plots):
+        """Display a dict of stored mpl figures"""
+
+        self.main.clear()
+        for name in plots:
+            fig = plots[name]
+            #fig.savefig(name+'.png')
+            pw = PlotWidget(self.main)
+            self.main.addTab(pw, name)
+            pw.figure = fig
+            pw.draw()
+            plt.tight_layout()
+        self.plots = plots
+        return
+
+    def remove(self, idx):
+        """Remove selected tab and figure"""
+
+        index = self.main.currentIndex()
+        name = self.main.tabText(index)
+        del self.plots[name]
+        self.main.removeTab(index)
+        return
+
+    def save(self):
+        """Save selected figure"""
+
+        index = self.main.currentIndex()
+        name = self.main.tabText(index)
+        suff = "PNG files (*.png);;JPG files (*.jpg);;PDF files (*.pdf);;All files (*.*)"
+        filename, _ = QFileDialog.getSaveFileName(self, "Save Figure", name, suff)
+        if not filename:
+            return
+
+        fig = self.plots[name]
+        fig.savefig(filename+'.png', dpi=100)
+        return
+
+    def saveAll(self):
+        """Save all figures in a folder"""
+        
+        dir =  QFileDialog.getExistingDirectory(self, "Save Folder",
+                                             homepath, QFileDialog.ShowDirsOnly)
+        if not dir:
+            return
+        for name in self.plots:
+            fig = self.plots[name]
+            fig.savefig(os.path.join(dir,name+'.png'), dpi=100)
+        return
+
+    def clear(self):
+        """Clear plots"""
+
+        self.plots.clear()
+        self.main.clear()
         return

@@ -101,10 +101,11 @@ def dialogFromOptions(parent, opts, sections=None,
             lbl.setStyleSheet(style)
             if t == 'combobox':
                 w = QComboBox()
+                w.addItems(opt['items'])
                 index = w.findText(val)
                 #print (val,index)
-                w.addItems(opt['items'])
-                #w.setCurrentIndex(index)
+                if index != -1:
+                    w.setCurrentIndex(index)
             elif t == 'entry':
                 w = QLineEdit()
                 w.setText(str(val))

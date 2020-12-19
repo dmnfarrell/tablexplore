@@ -22,7 +22,7 @@
 """
 
 from __future__ import absolute_import, division, print_function
-import sys,os,platform
+import sys,os,platform,time
 import pickle, gzip
 from collections import OrderedDict
 from PySide2 import QtCore
@@ -59,6 +59,7 @@ class Application(QMainWindow):
         self.main.setFocus()
         self.setCentralWidget(self.main)
         self.statusbar = QStatusBar()
+        self.setStatusBar(self.statusbar)
         self.createToolBar()
 
         self.proj_label = QLabel("")
@@ -67,8 +68,8 @@ class Application(QMainWindow):
         self.style = 'default'
         self.font = 'monospace'
         self.recentFiles = []
-        #self.statusBar().showMessage("Welcome", 3000)
-        self.setStatusBar(self.statusbar)
+        self.plots = {}
+
         self.loadSettings()
         if project_file != None:
             self.openProject(project_file)
@@ -102,6 +103,8 @@ class Application(QMainWindow):
         self.settings.setValue('style', self.style)
         self.settings.setValue('font', core.font)
         self.settings.setValue('fontsize', core.fontsize)
+        if hasattr(self, 'plotgallery'):
+            self.settings.setValue('plotgallery_size',self.plotgallery.size())
         self.settings.sync()
         return
 
@@ -126,12 +129,12 @@ class Application(QMainWindow):
                  'zoom out': {'action':self.zoomOut,'file':'zoom-out'},
                  'zoom in': {'action':self.zoomIn,'file':'zoom-in'},
                  'decrease columns': {'action': lambda: self.changeColumnWidths(.9),'file':'decrease-width'},
-                 'increase columns': {'action': self.changeColumnWidths,'file':'increase-width'},
+                 'increase columns': {'action': lambda: self.changeColumnWidths(1.1),'file':'increase-width'},
                  'add sheet': {'action':self.addSheet,'file':'add'},
                  'clean data': {'action':lambda: self._call('cleanData'),'file':'clean'},
                  'table to text': {'action':lambda: self._call('showAsText'),'file':'tabletotext'},
                  'table info': {'action':lambda: self._call('info'),'file':'tableinfo'},
-                 'preferences': {'action':self.preferences,'icon':'preferences-system'},
+                 'preferences': {'action':self.preferences,'file':'preferences-system'},
                  'quit': {'action':self.fileQuit,'file':'application-exit'}
                 }
 
@@ -217,6 +220,11 @@ class Application(QMainWindow):
         self.dataset_menu.addAction('&Titanic', lambda: self.getSampleData('titanic'))
         self.dataset_menu.addAction('&Pima Diabetes', lambda: self.getSampleData('pima'))
 
+        self.plots_menu = QMenu('&Plots', self)
+        self.menuBar().addMenu(self.plots_menu)
+        self.plots_menu.addAction('&Store Plot', lambda: self.storePlot())
+        self.plots_menu.addAction('&Show Plots', lambda: self.showPlotGallery())
+
         self.help_menu = QMenu('&Help', self)
         self.menuBar().addSeparator()
         self.menuBar().addMenu(self.help_menu)
@@ -280,7 +288,7 @@ class Application(QMainWindow):
         self.projopen = True
         if data != None:
             for s in data.keys():
-                if s == 'meta':
+                if s in ['meta','plots']:
                     continue
                 df = data[s]['table']
                 if 'meta' in data[s]:
@@ -290,6 +298,8 @@ class Application(QMainWindow):
                 self.addSheet(s, df, meta)
         else:
             self.addSheet('dataset1')
+        if 'plots' in data:
+            self.plots = data['plots']
         return
 
     def closeProject(self):
@@ -379,7 +389,7 @@ class Application(QMainWindow):
             data[i] = {}
             data[i]['table'] = table.model.df
             data[i]['meta'] = self.saveMeta(tablewidget)
-
+        data['plots'] = self.plots
         file = gzip.GzipFile(filename, 'w')
         pickle.dump(data, file)
         return
@@ -592,11 +602,13 @@ class Application(QMainWindow):
         reply = QMessageBox.question(self, 'Save Project?',
                                  'Save current project?',
                                  QMessageBox.Yes, QMessageBox.No)
-        if reply == QMessageBox.No:
-            return False
+        if reply == QMessageBox.Yes:
+            self.saveProject()
         for s in self.sheets:
             self.sheets[s].close()
         self.saveSettings()
+        if hasattr(self,'plotgallery'):
+            self.plotgallery.close()
         self.fileQuit()
         return
 
@@ -604,15 +616,18 @@ class Application(QMainWindow):
         """Sample table"""
 
         ok = True
+        sheetname = name
+        if name in self.sheets:
+            i = len(self.sheets)
+            sheetname = name + '-' + str(i)
         if name == 'sample':
             if rows is None:
                 rows, ok = QInputDialog.getInt(self, 'Rows', 'Rows:', 100)
             if ok:
                 df = data.getSampleData(rows,5)
-
         else:
             df = data.getPresetData(name)
-        self.addSheet(name,df)
+        self.addSheet(sheetname,df)
         return
 
     def getCurrentTable(self):
@@ -658,6 +673,36 @@ class Application(QMainWindow):
         for s in self.sheets:
             w = self.sheets[s].table
             w.refresh()
+        return
+
+    def storePlot(self):
+        """Cache the current plot so it can be viewed later"""
+
+        w = self.getCurrentTable()
+        index = self.main.currentIndex()
+        name = self.main.tabText(index)
+
+        fig = w.pf.fig
+        t = time.strftime("%H:%M:%S")
+        label = name+'-'+t
+        self.plots[label] = fig
+        if hasattr(self, 'plotgallery'):
+            self.plotgallery.update(self.plots)
+        return
+
+    def showPlotGallery(self):
+        """Show stored plot figures"""
+
+        from . import plotting
+        if not hasattr(self, 'plotgallery'):
+            self.plotgallery = plotting.PlotGallery()
+            try:
+                self.plotgallery.resize(self.settings.value('plotgallery_size'))
+            except:
+                pass
+        self.plotgallery.update(self.plots)
+        self.plotgallery.show()
+        self.plotgallery.activateWindow()
         return
 
     def interpreter(self):
