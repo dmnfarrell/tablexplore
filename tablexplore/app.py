@@ -45,7 +45,7 @@ class Application(QMainWindow):
         QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle("Tablexplore")
-        self.setWindowIcon(QIcon('logo.png'))
+        self.setWindowIcon(QIcon(os.path.join(module_path,'logo.png')))
 
         self.createMenu()
         self.main = QTabWidget(self)
@@ -134,6 +134,7 @@ class Application(QMainWindow):
                  'clean data': {'action':lambda: self._call('cleanData'),'file':'clean'},
                  'table to text': {'action':lambda: self._call('showAsText'),'file':'tabletotext'},
                  'table info': {'action':lambda: self._call('info'),'file':'tableinfo'},
+                 'plot gallery': {'action': self.showPlotGallery,'file':'plot-gallery'},
                  'preferences': {'action':self.preferences,'file':'preferences-system'},
                  'quit': {'action':self.fileQuit,'file':'application-exit'}
                 }
@@ -177,7 +178,7 @@ class Application(QMainWindow):
         self.menuBar().addMenu(self.edit_menu)
         self.undo_item = self.edit_menu.addAction('&Undo', self.undo,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Z)
-        self.undo_item.setDisabled(True)
+        #self.undo_item.setDisabled(True)
         self.edit_menu.addAction('&Preferences', self.preferences)
 
         self.view_menu = QMenu('&View', self)
@@ -286,6 +287,7 @@ class Application(QMainWindow):
         self.sheets = OrderedDict()
         self.filename = None
         self.projopen = True
+        self.plots = {}
         if data != None:
             for s in data.keys():
                 if s in ['meta','plots']:
@@ -296,10 +298,10 @@ class Application(QMainWindow):
                 else:
                     meta=None
                 self.addSheet(s, df, meta)
+            if 'plots' in data:
+                self.plots = data['plots']
         else:
             self.addSheet('dataset1')
-        if 'plots' in data:
-            self.plots = data['plots']
         return
 
     def closeProject(self):
@@ -681,8 +683,10 @@ class Application(QMainWindow):
         w = self.getCurrentTable()
         index = self.main.currentIndex()
         name = self.main.tabText(index)
-
+        #get the current figure and make a copy of it by using pickle
         fig = w.pf.fig
+        p = pickle.dumps(fig)
+        fig = pickle.loads(p)
         t = time.strftime("%H:%M:%S")
         label = name+'-'+t
         self.plots[label] = fig
@@ -736,7 +740,7 @@ class Application(QMainWindow):
         mplver = matplotlib.__version__
         qtver = PySide2.QtCore.__version__
 
-        text='TablExplore Application\n'\
+        text='Tablexplore Application\n'\
                 +'Version '+__version__+'\n'\
                 +'Copyright (C) Damien Farrell 2018-\n'\
                 +'This program is free software; you can redistribute it and/or\n'\

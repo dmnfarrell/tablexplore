@@ -15,7 +15,7 @@ setup(
     author = 'Damien Farrell',
     author_email = 'farrell.damien@gmail.com',
     packages = ['tablexplore'],
-    package_data={'tablexplore': ['../logo.png', '../description.txt',
+    package_data={'tablexplore': ['logo.png', '../description.txt',
                                   'styles/*.css','icons/*.png',
                                   'datasets/*.csv']},
     install_requires=['matplotlib>=3.0',

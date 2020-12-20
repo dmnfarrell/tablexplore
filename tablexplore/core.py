@@ -95,6 +95,8 @@ class DataFrameWidget(QWidget):
     @Slot(bool)
     def stateChanged(self):
         print('changed')
+        #if self.app != None:
+        #    self.app.undo_item.setDisabled(False)
 
     def statusBar(self):
         """Status bar at bottom"""
@@ -112,9 +114,25 @@ class DataFrameWidget(QWidget):
     def createToolbar(self):
         """Create toolbar"""
 
-        self.toolbar = ToolBar(self)
         self.setLayout(self.layout)
-        self.layout.addWidget(self.toolbar,1,2)
+        items = {'load': {'action': self.load,'file':'open'},
+                 'importexcel': {'action':self.importExcel,'file':'excel'},
+                 'copy': {'action':self.copy,'file':'copy'},
+                 'paste': {'action':self.paste,'file':'paste'},
+                 'plot': {'action':self.plot,'file':'plot'},
+                 'transpose': {'action':self.transpose,'file':'transpose'},
+                 'aggregate': {'action':self.aggregate,'file':'aggregate'},
+                 'pivot': {'action':self.pivot,'file':'pivot'},
+                 'melt': {'action':self.melt,'file':'melt'},
+                 'interpreter': {'action':self.showInterpreter  ,'file':'interpreter'},
+                 'subtable': {'action':self.subTableFromSelection,'file':'subtable'},
+                 'clear': {'action':self.clear,'file':'clear'},
+                 }
+
+        toolbar = QToolBar("Toolbar")
+        toolbar.setOrientation(Qt.Vertical)
+        dialogs.addToolBarItems(toolbar, self, items)
+        self.layout.addWidget(toolbar,1,2)
         return
 
     def applySettings(self, settings):
@@ -228,6 +246,7 @@ class DataFrameWidget(QWidget):
     def paste(self):
         """Paste from clipboard"""
 
+        self.table.storeCurrent()
         self.table.model.df = pd.read_clipboard(sep='\t')
         self.refresh()
         return
@@ -270,6 +289,7 @@ class DataFrameWidget(QWidget):
     def clear(self):
         """Clear table"""
 
+        self.table.storeCurrent()
         self.table.model.df = pd.DataFrame()
         self.refresh()
         return
@@ -521,6 +541,7 @@ class DataFrameWidget(QWidget):
             step = (high-low)/len(df)
             data = pd.Series(np.arange(low,high,step))
 
+        self.table.storeCurrent()
         self.table.model.df[column] = data
         self.refresh()
         return
@@ -836,7 +857,10 @@ class DataFrameTable(QTableView):
         self.setWordWrap(False)
         #temp file for undo
         file, self.undo_file = tempfile.mkstemp(suffix='.pkl')
-        os.remove(self.undo_file)
+        try:
+            os.remove(self.undo_file)
+        except:
+            pass
         return
 
     def refresh(self):
@@ -856,13 +880,14 @@ class DataFrameTable(QTableView):
 
         self.prevdf = self.model.df#.copy()
         self.prevdf.to_pickle(self.undo_file)
-        self.parent.updatesignal.speak.emit()
+        #self.parent.updatesignal.speak.emit()
         return
 
     def undo(self):
         """Undo last change to table"""
 
         if os.path.exists(self.undo_file):
+            print ('undo-ing')
             self.model.df = pd.read_pickle(self.undo_file)
             self.refresh()
             os.remove(self.undo_file)
@@ -1252,93 +1277,14 @@ class SubTableWidget(DataFrameWidget):
     def createToolbar(self):
         """Override default toolbar"""
 
-        self.toolbar = SubToolBar(self)
         self.setLayout(self.layout)
-        self.layout.addWidget(self.toolbar, 1, 2)
-        return
-
-class ToolBar(QWidget):
-    """Toolbar class for side buttons"""
-    def __init__(self, app, parent=None):
-        super(ToolBar, self).__init__(parent)
-        self.parent = parent
-        self.app = app
-        self.layout = QVBoxLayout()
-        self.layout.setAlignment(QtCore.Qt.AlignTop)
-        self.layout.setContentsMargins(2,2,2,2)
-        self.setLayout(self.layout)
-        self.createButtons()
-        self.setMaximumWidth(40)
-        return
-
-    def createButtons(self):
-        """Toolbar buttons"""
-
-        funcs = {'load':self.app.load,
-                 'importexcel': self.app.importExcel,
-                 'save':self.app.save,
-                 'copy':self.app.copy, 'paste':self.app.paste,
-                 'plot':self.app.plot,
-                 'transpose':self.app.transpose,
-                 'aggregate':self.app.aggregate,
-                 'pivot':self.app.pivot,
-                 'melt':self.app.melt,
-                 'merge':self.app.merge,
-                 'subtable':self.app.subTableFromSelection,
-                 'interpreter':self.app.showInterpreter,
-                 'clear':self.app.clear}
-
-        tooltips = {'load':'load table', 'save':'export',
-                    'importexcel':'import excel file',
-                    'copy':'copy','paste':'paste',
-                    'transpose':'transpose table', 'aggregate':'groupby-aggregate',
-                    'pivot':'pivot table','melt':'melt table',
-                    'merge':'merge two tables',
-                    'subtable':'sub-table from selection',
-                    'interpreter':'show python interpreter',
-                    'clear':'clear table'}
-        for name in funcs:
-            tip=None
-            shortcut=None
-            if name in tooltips:
-                tip=tooltips[name]
-            self.addButton(name, funcs[name], icons[name], tip)
-
-    def addButton(self, name, function, icon, tooltip=None):
-        """Add named button"""
-
-        layout=self.layout
-        button = QPushButton(name)
-        button.setGeometry(QtCore.QRect(26,26,26,26))
-        button.setText('')
-        iconfile = os.path.join(iconpath,icon+'.png')
-        if os.path.exists(iconfile):
-            button.setIcon(QIcon(iconfile))
-        else:
-            iconw = QIcon.fromTheme(icon)
-            button.setIcon(QIcon(iconw))
-        button.setIconSize(QtCore.QSize(24,24))
-        if tooltip is not None:
-            button.setToolTip(tooltip)
-        button.clicked.connect(function)
-        button.setMinimumWidth(26)
-        layout.addWidget(button)
-        return
-
-class SubToolBar(ToolBar):
-    def __init__(self, app, parent=None):
-        ToolBar.__init__(self, app, parent)
-        return
-
-    def createButtons(self):
-        funcs = {'copy': self.app.copy,
-                 'paste':self.app.paste,
-                 'transpose':self.app.transpose,
-                 'plot':self.app.plot}
-        tooltips = {'plot':'plot','copy':'copy selection','paste':'paste selection'}
-        for name in funcs:
-            tip=None
-            if name in tooltips:
-                tip=tooltips[name]
-            self.addButton(name, funcs[name], icons[name], tip)
+        items = {'copy': {'action':self.copy,'file':'copy'},
+                 'paste': {'action':self.paste,'file':'paste'},
+                 'plot': {'action':self.plot,'file':'plot'},
+                 'transpose': {'action':self.transpose,'file':'transpose'}
+                 }
+        toolbar = QToolBar("Toolbar")
+        toolbar.setOrientation(Qt.Vertical)
+        dialogs.addToolBarItems(toolbar, self, items)
+        self.layout.addWidget(toolbar,1,2)
         return

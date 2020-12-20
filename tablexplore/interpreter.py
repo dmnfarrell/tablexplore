@@ -47,7 +47,7 @@ class Streamer(object):
 
     def write(self, text):
         if bool(text and text.strip()):
-            text = text.replace("\n", "")
+            #text = text.replace("\n", "")
             self.queue.put(text)
 
     def flush(self):

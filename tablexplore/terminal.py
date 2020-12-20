@@ -98,6 +98,7 @@ class Terminal(QtWidgets.QPlainTextEdit):
         self.completer = rlcompleter.Completer()
         self.def_to_run_code = None
         self.thread = None
+        self.setTabStopWidth(4)
         # connection cursor line position
         self.cursorPositionChanged.connect(self.count_cursor_lines)
         # connect press enter
@@ -377,6 +378,8 @@ class Terminal(QtWidgets.QPlainTextEdit):
             cmd = self.get_command()
             if bool(cmd and cmd.strip()):
                 self.write_autocomplete(cmd)
+            #else:
+            #    self.write_prompt("    ")
             return
         super(Terminal, self).keyPressEvent(event)
 

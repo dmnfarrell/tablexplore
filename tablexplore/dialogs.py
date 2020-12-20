@@ -35,6 +35,9 @@ from PySide2.QtWidgets import *
 from PySide2.QtGui import *
 from . import util, core
 
+module_path = os.path.dirname(os.path.abspath(__file__))
+iconpath = os.path.join(module_path, 'icons')
+
 def dialogFromOptions(parent, opts, sections=None,
                       wrap=2, section_wrap=4,
                       style=None):
@@ -202,6 +205,21 @@ def setWidgetValues(widgets, values):
             elif type(w) is QSpinBox:
                 w.setValue(val)
     return
+
+def addToolBarItems(toolbar, parent, items):
+    """Populate toolbar from dict of items"""
+
+    for i in items:
+        if 'file' in items[i]:
+            iconfile = os.path.join(iconpath,items[i]['file']+'.png')
+            icon = QIcon(iconfile)
+        else:
+            icon = QIcon.fromTheme(items[i]['icon'])
+        btn = QAction(icon, i, parent)
+        btn.triggered.connect(items[i]['action'])
+        #btn.setCheckable(True)
+        toolbar.addAction(btn)
+    return toolbar
 
 class PlainTextEditor(QPlainTextEdit):
     def __init__(self, parent=None, **kwargs):

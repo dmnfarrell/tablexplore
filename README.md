@@ -1,10 +1,10 @@
-<img align="right" src=https://raw.githubusercontent.com/dmnfarrell/pandasqtable/master/logo.png width=150px>
+<img align="right" src=tablexplore/logo.png width=150px>
 
-# TABLExplore
+# Tablexplore
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-TABLExplore is an application for data analysis and plotting built in Python using the PySide2/Qt toolkit. It uses the pandas DataFrame class to store the table data. Pandas is an open source Python library providing high-performance data structures and data analysis tools.
+Tablexplore is an application for data analysis and plotting built in Python using the PySide2/Qt toolkit. It uses the pandas DataFrame class to store the table data. Pandas is an open source Python library providing high-performance data structures and data analysis tools.
 
 ## Installation
 
