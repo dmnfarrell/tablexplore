@@ -726,8 +726,9 @@ class Application(QMainWindow):
 
     def online_documentation(self,event=None):
         """Open the online documentation"""
+
         import webbrowser
-        link='https://pandastable.readthedocs.io/en/latest/'
+        link='https://github.com/dmnfarrell/tablexplore'
         webbrowser.open(link,autoraise=1)
         return
 

@@ -34,6 +34,8 @@ module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
 font = 'monospace'
 fontsize = 12
+fontstyle = ''
+textalignment = None
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -77,7 +79,8 @@ class DataFrameWidget(QWidget):
         l = self.layout = QGridLayout()
         l.setSpacing(2)
         l.addWidget(self.splitter,1,1)
-        self.table = DataFrameTable(self, dataframe, font=font, fontsize=fontsize)
+        self.table = DataFrameTable(self, dataframe, font=font,
+                                    fontsize=fontsize, align=textalignment)
         self.splitter.addWidget(self.table)
         if toolbar == True:
             self.createToolbar()
@@ -809,7 +812,7 @@ class DataFrameTable(QTableView):
     QTableView with pandas DataFrame as model.
     """
     def __init__(self, parent=None, dataframe=None, font='Arial',
-                    fontsize=12, *args):
+                    fontsize=12, align=None, *args):
 
         QTableView.__init__(self)
         self.parent = parent
@@ -1221,17 +1224,23 @@ class DataFrameModel(QtCore.QAbstractTableModel):
             if type(value) != str:
                 if type(value) == float and np.isnan(value):
                     return ''
+                elif type(value) == np.float:
+                    return value
                 else:
                     return (str(value))
             else:
                 return '{0}'.format(value)
         elif (role == QtCore.Qt.EditRole):
             value = self.df.iloc[i, j]
-            print (value, type(value))
+            #print (value, type(value))
             if np.isnan(value):
                 return ''
             else:
-                return value
+                try:
+                    return float(value)
+                except:
+                    return str(value)
+
         elif role == QtCore.Qt.BackgroundRole:
             return QColor(self.bg)
 

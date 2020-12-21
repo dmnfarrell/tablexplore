@@ -862,6 +862,8 @@ class PreferencesDialog(QDialog):
         self.setWindowTitle('Preferences')
         self.resize(700, 200)
         self.setGeometry(QtCore.QRect(300,300, 600, 200))
+        self.setMaximumWidth(600)
+        self.setMaximumHeight(300)
         self.createWidgets()
         self.show()
         return
@@ -872,16 +874,15 @@ class PreferencesDialog(QDialog):
         import pylab as plt
         colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
         self.opts = {'rowheight':{'type':'spinbox','default':18,'range':(5,50),'label':'row height'},
-                'cellwidth':{'type':'spinbox','default':80,'range':(10,300),'label':'cell width'},
-                'linewidth':{'type':'spinbox','default':1,'range':(1,10),'label':'grid line width'},
-                'align':{'type':'combobox','default':'w','items':['w','e','center'],'label':'text align'},
+                #'cellwidth':{'type':'spinbox','default':80,'range':(10,300),'label':'cell width'},
+                'alignment':{'type':'combobox','default':'w','items':['left','right','center'],'label':'text align'},
                 'font':{'type':'font','default':'Arial','default':core.font},
-                'fontstyle':{'type':'combobox','default':'','items':['','bold','italic']},
+                #'fontstyle':{'type':'combobox','default':'','items':['','bold','italic']},
                 'fontsize':{'type':'slider','default':core.fontsize,'range':(5,40),'interval':1,'label':'font size'},
                 'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
                 }
-        sections = {'table':['align','rowheight','cellwidth','linewidth'],
-                    'formats':['font','fontstyle','fontsize','floatprecision']}
+        sections = {'table':['alignment','rowheight'],
+                    'formats':['font','fontsize','floatprecision']}
 
         dialog, self.widgets = dialogFromOptions(self, self.opts, sections)
 
@@ -896,9 +897,6 @@ class PreferencesDialog(QDialog):
 
         bw = self.button_widget = QWidget(parent)
         vbox = QHBoxLayout(bw)
-        #button = QPushButton("Save")
-        #button.clicked.connect(self.save)
-        #vbox.addWidget(button)
         button = QPushButton("Apply")
         button.clicked.connect(self.apply)
         vbox.addWidget(button)
@@ -914,6 +912,8 @@ class PreferencesDialog(QDialog):
         from . import core
         core.font = kwds['font']
         core.fontsize = kwds['fontsize']
+        core.textalignment = kwds['alignment']
+        #core.fontstyle = kwds['fontstyle']
         self.parent.refresh()
         return
 
