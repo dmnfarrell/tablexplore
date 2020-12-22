@@ -7,7 +7,7 @@ with open('description.txt') as f:
 
 setup(
     name = 'tablexplore',
-    version = '0.1.0',
+    version = '0.2.0',
     description = 'Library for Qt tables using pandas DataFrames',
     long_description = long_description,
     url='https://github.com/dmnfarrell/tablexplore',
