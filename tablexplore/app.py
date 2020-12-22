@@ -131,7 +131,7 @@ class Application(QMainWindow):
                  'decrease columns': {'action': lambda: self.changeColumnWidths(.9),'file':'decrease-width'},
                  'increase columns': {'action': lambda: self.changeColumnWidths(1.1),'file':'increase-width'},
                  'add sheet': {'action':self.addSheet,'file':'add'},
-                 'lock': {'action':self.lockTable,'file':'lock'},
+                 #'lock': {'action':self.lockTable,'file':'lock'},
                  'clean data': {'action':lambda: self._call('cleanData'),'file':'clean'},
                  'table to text': {'action':lambda: self._call('showAsText'),'file':'tabletotext'},
                  'table info': {'action':lambda: self._call('info'),'file':'tableinfo'},
@@ -648,14 +648,6 @@ class Application(QMainWindow):
         w = self.getCurrentTable()
         pf = w.pf
         pf.replot()
-
-    def lockTable(self):
-        """Lock table"""
-
-        w = self.getCurrentTable()
-        w.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-
-        return
 
     def zoomIn(self):
 

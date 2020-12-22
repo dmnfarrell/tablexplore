@@ -36,6 +36,7 @@ font = 'monospace'
 fontsize = 12
 fontstyle = ''
 textalignment = None
+MODES = ['default','spreadsheet','locked']
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -91,8 +92,9 @@ class DataFrameWidget(QWidget):
         self.pyconsole = None
         self.subtabledock = None
         self.subtable = None
-        self.updatesignal = Communicate()
-        self.updatesignal.speak.connect(self.stateChanged)
+        self.mode = 'default'
+        #self.updatesignal = Communicate()
+        #self.updatesignal.speak.connect(self.stateChanged)
         return
 
     @Slot(bool)
@@ -785,6 +787,20 @@ class DataFrameWidget(QWidget):
             self.subtable = None
         return
 
+    def editMode(self, evt=None):
+        """Change table edit mode"""
+
+        index = self.sender().data()
+        mode = MODES[index]
+        if mode == 'default':
+            self.table.setEditTriggers(QAbstractItemView.DoubleClicked)
+        elif mode == 'spreadsheet':
+            self.table.setEditTriggers(QAbstractItemView.AllEditTriggers)
+        else:
+            self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.mode = mode
+        return
+
     def runScript(self):
         """Run a set of python commands on the table"""
 
@@ -1063,7 +1079,18 @@ class DataFrameTable(QTableView):
         menu.addAction(rowsmenu.menuAction())
         deleteRowsAction = rowsmenu.addAction("Delete Rows")
         addRowsAction = rowsmenu.addAction("Add Rows")
-
+        modemenu = QMenu("Mode",menu)
+        menu.addAction(modemenu.menuAction())
+        modegroup = QActionGroup(self)
+        for i,mode in enumerate(MODES):
+            action = QAction(mode, self)
+            action = modemenu.addAction(mode)
+            action.setCheckable(True)
+            action.setData(i)
+            action.setActionGroup(modegroup)
+            action.triggered.connect(self.parent.editMode)
+        modegroup.setExclusive(True)
+        
         memAction = menu.addAction("Memory Usage")
         action = menu.exec_(self.mapToGlobal(event.pos()))
 
@@ -1160,6 +1187,7 @@ class DataFrameTable(QTableView):
         return
 
     def zoomIn(self, fontsize=None):
+        """Zoom in table"""
 
         if fontsize == None:
             s = self.font.pointSize()+1
@@ -1173,6 +1201,7 @@ class DataFrameTable(QTableView):
         return
 
     def zoomOut(self, fontsize=None):
+        """Zoom out table"""
 
         if fontsize == None:
             s = self.font.pointSize()-1
@@ -1190,7 +1219,6 @@ class DataFrameTable(QTableView):
         for col in range(len(self.model.df.columns)):
             w=self.columnWidth(col)
             self.setColumnWidth(col,w*factor)
-
 
 class DataFrameModel(QtCore.QAbstractTableModel):
     def __init__(self, dataframe=None, *args):
