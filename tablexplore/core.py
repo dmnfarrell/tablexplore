@@ -32,11 +32,11 @@ from PySide2.QtGui import *
 
 module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
-font = 'monospace'
-fontsize = 12
-fontstyle = ''
 textalignment = None
 MODES = ['default','spreadsheet','locked']
+FONT = 'monospace'
+FONTSIZE = 12
+FONTSTYLE = ''
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -73,7 +73,7 @@ class RowHeader(QHeaderView):
 class DataFrameWidget(QWidget):
     """Widget containing a tableview and toolbars"""
     def __init__(self, parent=None, dataframe=None, app=None,
-                 toolbar=True, statusbar=True, *args):
+                 toolbar=True, statusbar=True, font='Arial', fontsize=12, *args):
 
         super(DataFrameWidget, self).__init__()
         self.splitter = QSplitter(Qt.Vertical, self)
@@ -217,15 +217,20 @@ class DataFrameWidget(QWidget):
             self.refresh()
         return
 
-    def importURL(self):
+    def importURL(self, recent):
         """Import hdf5 file"""
 
-        url, ok = QInputDialog().getText(self, "Enter URL",
-                                             "Name:", QLineEdit.Normal)
-        if ok and url:
-            self.table.model.df = pd.read_csv(url)
-            self.refresh()
-        return
+        opts = {'url':{'label':'Address','type':'combobox','default':'',
+                     'items':recent, 'editable': True, 'width':300 }
+                }
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Import URL', width=500)
+        dlg.exec_()
+        if not dlg.accepted:
+            return False
+        url = dlg.values['url']
+        self.table.model.df = pd.read_csv(url)
+        self.refresh()
+        return url
 
     def exportTable(self):
         """Export table"""
@@ -768,7 +773,7 @@ class DataFrameWidget(QWidget):
             self.splitter.addWidget(dock)
 
         self.subtabledock.show()
-        newtable = SubTableWidget(self.subtabledock, dataframe=df, statusbar=False)
+        newtable = SubTableWidget(self.subtabledock, dataframe=df, statusbar=False, font=FONT)
         self.subtabledock.setWidget(newtable)
         self.subtable = newtable
         newtable.show()
@@ -832,6 +837,8 @@ class DataFrameTable(QTableView):
 
         QTableView.__init__(self)
         self.parent = parent
+        self.font = font
+        self.fontsize = fontsize
         self.clicked.connect(self.showSelection)
         #self.doubleClicked.connect(self.handleDoubleClick)
         #self.setSelectionBehavior(QTableView.SelectRows)
@@ -860,14 +867,14 @@ class DataFrameTable(QTableView):
         #formats
         self.setDragEnabled(True)
         self.viewport().setAcceptDrops(True)
+
+        self.setDragDropMode(QAbstractItemView.InternalMove)
         self.setDropIndicatorShown(True)
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
         self.setCornerButtonEnabled(True)
         #self.setSortingEnabled(True)
-        self.font = QFont(font)
-        self.font.setPointSize(int(fontsize))
-        self.setFont(self.font)
+        self.updateFont()
 
         tm = DataFrameModel(dataframe)
         self.setModel(tm)
@@ -882,11 +889,31 @@ class DataFrameTable(QTableView):
             pass
         return
 
+    '''def dragEnterEvent(self, event):
+        event.accept()
+
+    def dragMoveEvent(self, event):
+        print('drop')
+        event.accept()
+
+    def dropEvent(self, event):
+        print('drop')
+        point = event.pos()
+        self.model().moveColumns(QModelIndex(), 1, 1, QModelIndex(), 0)
+        event.accept()'''
+
+    def updateFont(self):
+        """Update the font"""
+
+        font = QFont(self.font)
+        font.setPointSize(int(self.fontsize))
+        self.setFont(font)
+        return
+
     def refresh(self):
         """Refresh table if dataframe is changed"""
 
-        self.font = QFont(font, int(fontsize))
-        self.setFont(self.font)
+        self.updateFont()
         self.model.beginResetModel()
         self.model.dataChanged.emit(0,0)
         self.model.endResetModel()
@@ -924,7 +951,6 @@ class DataFrameTable(QTableView):
     def showSelection(self, item):
 
         cellContent = item.data()
-        #print(cellContent)  # test
         row = item.row()
         model = item.model()
         columnsTotal= model.columnCount(None)
@@ -932,21 +958,29 @@ class DataFrameTable(QTableView):
 
     def getSelectedRows(self):
 
-        rows=[]
-        for idx in self.selectionModel().selectedRows():
-            rows.append(idx.row())
+        sm = self.selectionModel()
+        rows = [(i.row()) for i in sm.selectedIndexes()]
+        rows = list(dict.fromkeys(rows).keys())
         return rows
 
     def getSelectedColumns(self):
 
-        return self.selectionModel().selectedColumns()
+        sm = self.selectionModel()
+        cols = [(i.column()) for i in sm.selectedIndexes()]
+        cols = list(dict.fromkeys(cols).keys())
+        return cols
 
     def getSelectedDataFrame(self):
         """Get selection as a dataframe"""
 
         df = self.model.df
-        rows = list(set([(i.row()) for i in self.selectionModel().selectedIndexes()]))
-        cols = list(set([(i.column()) for i in self.selectionModel().selectedIndexes()]))
+        sm = self.selectionModel()
+        rows = [(i.row()) for i in sm.selectedIndexes()]
+        cols = [(i.column()) for i in sm.selectedIndexes()]
+        #get unique rows/cols keeping order
+        rows = list(dict.fromkeys(rows).keys())
+        cols = list(dict.fromkeys(cols).keys())
+
         return df.iloc[rows,cols]
 
     def handleDoubleClick(self, item):
@@ -1090,7 +1124,7 @@ class DataFrameTable(QTableView):
             action.setActionGroup(modegroup)
             action.triggered.connect(self.parent.editMode)
         modegroup.setExclusive(True)
-        
+
         memAction = menu.addAction("Memory Usage")
         action = menu.exec_(self.mapToGlobal(event.pos()))
 
@@ -1170,8 +1204,6 @@ class DataFrameTable(QTableView):
                              'Are you sure?', QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.No:
             return False
-        print (self.selectionModel().selectedRows())
-
         idx = self.model.df.index[rows]
         self.model.df = self.model.df.drop(idx)
         self.refresh()
@@ -1189,12 +1221,8 @@ class DataFrameTable(QTableView):
     def zoomIn(self, fontsize=None):
         """Zoom in table"""
 
-        if fontsize == None:
-            s = self.font.pointSize()+1
-        else:
-            s = fontsize
-        self.font.setPointSize(s)
-        self.setFont(self.font)
+        self.fontsize += 1
+        self.updateFont()
         vh = self.verticalHeader()
         h = vh.defaultSectionSize()
         vh.setDefaultSectionSize(h+2)
@@ -1203,22 +1231,31 @@ class DataFrameTable(QTableView):
     def zoomOut(self, fontsize=None):
         """Zoom out table"""
 
-        if fontsize == None:
-            s = self.font.pointSize()-1
-        else:
-            s = fontsize
-        self.font.setPointSize(s)
-        self.setFont(self.font)
+        self.fontsize -= 1
+        self.updateFont()
         vh = self.verticalHeader()
         h = vh.defaultSectionSize()
         vh.setDefaultSectionSize(h-2)
         return
 
     def changeColumnWidths(self, factor=1.1):
+        """Set column widths"""
 
         for col in range(len(self.model.df.columns)):
-            w=self.columnWidth(col)
-            self.setColumnWidth(col,w*factor)
+            wi = self.columnWidth(col)
+            self.setColumnWidth(col,wi*factor)
+
+    def setColumnWidths(self, widths):
+
+        for col in range(len(self.model.df.columns)):
+            self.setColumnWidth(col,widths[col])
+
+    def getColumnWidths(self):
+
+        widths=[]
+        for col in range(len(self.model.df.columns)):
+            widths.append(self.columnWidth(col))
+        return widths
 
 class DataFrameModel(QtCore.QAbstractTableModel):
     def __init__(self, dataframe=None, *args):
@@ -1287,9 +1324,17 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         i = index.row()
         j = index.column()
         curr = self.df.iloc[i,j]
-        print (curr, value)
+        #print (curr, value)
         self.df.iloc[i,j] = value
         return True
+
+    '''def dragMoveEvent(self, event):
+        print (event)
+        event.setDropAction(QtCore.Qt.MoveAction)
+        event.accept()
+
+    def supportedDropActions(self):
+        return Qt.MoveAction '''
 
     def flags(self, index):
 

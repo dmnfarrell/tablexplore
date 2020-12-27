@@ -297,14 +297,8 @@ class PlotViewer(QWidget):
     def plotCurrent(self, redraw=True):
         """Plot the current data"""
 
-        #layout = self.globalopts['grid layout']
-        #gridmode = self.layoutopts.modevar.get()
         plot3d = self.generalopts.kwds['3D plot']
         self._initFigure()
-        #if layout == 1 and gridmode == 'multiviews':
-        #    self.plotMultiViews()
-        #elif layout == 1 and gridmode == 'splitdata':
-        #    self.plotSplitData()
         #if plot3d == 1:
         #    self.plot3D(redraw=redraw)
         #else:
@@ -374,9 +368,9 @@ class PlotViewer(QWidget):
         if layout == 0:
             #default layout is just a single axis
             self.fig.clear()
-            self.gridaxes={}
+            self.gridaxes = {}
             self.ax = self.fig.add_subplot(111, projection=proj)
-        else:
+        '''else:
             #get grid layout from layout opt
             rows = gl.rows
             cols = gl.cols
@@ -402,7 +396,7 @@ class PlotViewer(QWidget):
             self.ax = self.fig.add_subplot(gs[r:r+rowspan,c:c+colspan], projection=proj)
             self.gridaxes[name] = self.ax
             #update the axes widget
-            self.layoutopts.updateAxesList()
+            self.layoutopts.updateAxesList()'''
         return
 
     def plot2D(self, redraw=True):
@@ -419,7 +413,10 @@ class PlotViewer(QWidget):
 
         #get all options from the mpl options object
         kwds = self.generalopts.kwds
+        axes_layout = kwds['axes_layout']
         lkwds = self.labelopts.kwds.copy()
+        axkwds = self.axesopts.kwds
+
         kind = kwds['kind']
         by = kwds['by']
         by2 = kwds['by2']
@@ -427,6 +424,9 @@ class PlotViewer(QWidget):
         useindex = kwds['use_index']
         bw = kwds['bw']
         style = kwds['style']
+
+        nrows = axkwds['rows']
+        ncols = axkwds['cols']
 
         if self._checkNumeric(data) == False and kind != 'venn':
             self.showWarning('no numeric data to plot')
@@ -448,14 +448,16 @@ class PlotViewer(QWidget):
                 by = [by,by2]
             g = data.groupby(by)
 
-            if kwargs['subplots'] == True:
+            if axes_layout == 'multiple':
                 i=1
                 if len(g) > 30:
                     self.showWarning('%s is too many subplots' %len(g))
                     return
                 size = len(g)
-                nrows = round(np.sqrt(size),0)
-                ncols = np.ceil(size/nrows)
+                if nrows == 0:
+                    nrows = round(np.sqrt(size),0)
+                    ncols = np.ceil(size/nrows)
+
                 self.ax.set_visible(False)
                 kwargs['subplots'] = None
                 for n,df in g:
@@ -466,8 +468,8 @@ class PlotViewer(QWidget):
                         ax = self.fig.add_subplot(nrows,ncols,i)
                     kwargs['legend'] = False #remove axis legends
                     d = df.drop(by,1) #remove grouping columns
-                    axs = self._doplot(d, ax, kind, False,  errorbars, useindex,
-                                  bw=bw, yerr=None, kwargs=kwargs)
+                    axs = self._doplot(d, ax, kind, 'single',  errorbars, useindex,
+                                  bw=bw, yerr=None, nrows=0, ncols=0, kwargs=kwargs)
                     ax.set_title(n)
                     handles, labels = ax.get_legend_handles_labels()
                     i+=1
@@ -481,17 +483,19 @@ class PlotViewer(QWidget):
                 axs = self.fig.get_axes()
 
             else:
+                kwargs['subplots'] = 0
                 #single plot grouped only apply to some plot kinds
                 #the remainder are not supported
                 axs = self.ax
                 labels = []; handles=[]
                 cmap = plt.cm.get_cmap(kwargs['colormap'])
                 #handle as pivoted data for some line, bar
+                data = data.apply( lambda x: pd.to_numeric(x,errors='ignore',downcast='float') )
                 if kind in ['line','bar','barh']:
                     df = pd.pivot_table(data,index=by)
                     errs = data.groupby(by).std()
-                    self._doplot(df, axs, kind, False, errorbars, useindex=None, yerr=errs,
-                                      bw=bw, kwargs=kwargs)
+                    self._doplot(df, axs, kind, axes_layout, errorbars, useindex=None, yerr=errs,
+                                      bw=bw, nrows=0, ncols=0, kwargs=kwargs)
                 elif kind == 'scatter':
                     #we plot multiple groups and series in different colors
                     #this logic could be placed in the scatter method?
@@ -524,14 +528,52 @@ class PlotViewer(QWidget):
                     self.showWarning('single grouped plots not supported for %s\n'
                                      'try using multiple subplots' %kind)
         else:
-            #non-grouped plot
-            try:
-                axs = self._doplot(data, ax, kind, kwds['subplots'], errorbars,
-                                 useindex, bw=bw, yerr=None, kwargs=kwargs)
-            except Exception as e:
-                self.showWarning(e)
-                logging.error("Exception occurred", exc_info=True)
-                return
+            #special case of twin axes
+            print (axes_layout)
+            if axes_layout == 'twin axes':
+
+                cols = list(data.columns)
+                x = cols[0]
+                ax = self.fig.add_subplot(111)
+                twinaxes = [ax]
+                for i in range(len(cols)-1):
+                    twinaxes.append(ax.twinx())
+                i=0
+                styles = []
+                cmap = plt.cm.get_cmap(kwds['colormap'])
+                print (cmap)
+                #kwargs['legend']=False
+                for c in data.columns[1:]:
+                    scols = [x,c]
+                    d = data[scols]
+
+                    cax = twinaxes[i]
+                    #clr = cmap(float(i)/(len(twinaxes)))
+                    #print (clr)
+                    #axs=self._doplot(d, cax, kind, 'single',  errorbars, useindex,
+                    #              bw=bw, yerr=None, nrows=0, ncols=0, kwargs=kwargs)
+                    axs = d.plot(ax=cax, kind='line', color=clr, style=styles, legend=False)
+                    i+=1
+
+                ax.legend()
+
+                '''for c in data.columns[1:]:
+                    y = data[c]
+                    cax = twinaxes[i]
+                    clr = cmap(float(i)/(len(twinaxes)))
+                    axs = cax.plot(x, y, color=clr, linewidth=1, style=styles, legend=False)
+                    i+=1'''
+
+            else:
+                #default plot - mostly uses pandas so we directly call _doplot
+                try:
+                    axs = self._doplot(data, ax, kind, axes_layout, errorbars,
+                                       useindex, bw=bw, yerr=None, nrows=nrows, ncols=ncols,
+                                       kwargs=kwargs)
+                except Exception as e:
+                    self.showWarning(e)
+                    logging.error("Exception occurred", exc_info=True)
+                    return
 
         #set options general for all plot types
         #annotation optons are separate
@@ -566,13 +608,6 @@ class PlotViewer(QWidget):
         elif type(axs) is list:
             self.ax = axs[0]
         self.fig.suptitle(kwds['title'], fontsize=kwds['fontsize']*1.2)
-
-        '''layout = self.globalopts.kwds['grid layout']
-        if layout == 0:
-            for ax in self.fig.axes:
-                self.setAxisLabels(ax, kwds)
-        else:
-            self.setAxisLabels(self.ax, kwds)'''
         return
 
     def setAxisLabels(self, ax, kwds):
@@ -622,18 +657,18 @@ class PlotViewer(QWidget):
                 kwargs[k] = None
         return kwargs
 
-    def _doplot(self, data, ax, kind, subplots, errorbars, useindex, bw, yerr, kwargs):
+    def _doplot(self, data, ax, kind, axes_layout, errorbars, useindex, bw, yerr,
+                nrows, ncols, kwargs):
         """Core plotting method where the individual plot functions are called"""
 
         kwargs = kwargs.copy()
         kwargs['alpha'] = kwargs['alpha']/10
-        #if self.style != None:
-        #    kwargs = self._clearArgs(kwargs)
 
         cols = data.columns
         if kind == 'line':
             data = data.sort_index()
 
+        #calculate required rows
         rows = int(round(np.sqrt(len(data.columns)),0))
         if len(data.columns) == 1 and kind not in ['pie']:
             kwargs['subplots'] = 0
@@ -652,17 +687,21 @@ class PlotViewer(QWidget):
             if 'linestyle' in kwargs:
                 del kwargs['linestyle']
 
-        if subplots == 0:
+        if axes_layout == 'single':
             layout = None
+        elif nrows != 0:
+            #override automatic rows/cols with widget options
+            layout = (nrows,ncols)
+            kwargs['subplots'] = 1
         else:
-            layout=(rows,-1)
+            layout = (rows,-1)
+            kwargs['subplots'] = 1
 
         if errorbars == True and yerr == None:
             yerr = data[data.columns[1::2]]
             data = data[data.columns[0::2]]
             yerr.columns = data.columns
             plt.rcParams['errorbar.capsize']=4
-            #kwargs['elinewidth'] = 1
 
         if kind == 'bar' or kind == 'barh':
             if len(data) > 50:
@@ -671,7 +710,7 @@ class PlotViewer(QWidget):
                 self.showWarning('too many bars to plot')
                 return
         if kind == 'scatter':
-            axs, sc = self.scatter(data, ax, **kwargs)
+            axs, sc = self.scatter(data, ax, axes_layout, **kwargs)
             if kwargs['sharey'] == 1:
                 lims = self.fig.axes[0].get_ylim()
                 for a in self.fig.axes:
@@ -744,7 +783,6 @@ class PlotViewer(QWidget):
             axs = pd.plotting.radviz(data, col, ax=ax, **kwargs)
         else:
             #line, bar and area plots
-            #print (data)
             if useindex == False:
                 x=data.columns[0]
                 data.set_index(x,inplace=True)
@@ -775,6 +813,7 @@ class PlotViewer(QWidget):
         return
 
     def _setAxisRanges(self):
+
         kwds = self.axesopts.kwds
         ax = self.ax
         try:
@@ -830,7 +869,7 @@ class PlotViewer(QWidget):
             ax.xaxis.set_major_formatter(mdates.DateFormatter(dateformat))
         return
 
-    def scatter(self, df, ax, alpha=0.8, marker='o', color=None, **kwds):
+    def scatter(self, df, ax, axes_layout='single', alpha=0.8, marker='o', color=None, **kwds):
         """A custom scatter plot rather than the pandas one. By default this
         plots the first column selected versus the others"""
 
@@ -866,7 +905,7 @@ class PlotViewer(QWidget):
         plots = len(cols)
         if marker == '':
             marker = 'o'
-        if kwds['subplots'] == 1:
+        if axes_layout == 'multiple':
             size = plots-1
             nrows = round(np.sqrt(size),0)
             ncols = np.ceil(size/nrows)
@@ -894,7 +933,7 @@ class PlotViewer(QWidget):
             if marker in ['x','+'] and bw == False:
                 ec = clr
 
-            if kwds['subplots'] == 1:
+            if axes_layout == 'multiple':
                 ax = self.fig.add_subplot(nrows,ncols,i)
             if pointsizes != '' and pointsizes in df.columns:
                 ms = df[pointsizes]
@@ -920,7 +959,7 @@ class PlotViewer(QWidget):
                 ax.set_ylim((x.min()+.1,x.max()))
             if grid == 1:
                 ax.grid(True)
-            if kwds['subplots'] == 1:
+            if axes_layout == 'multiple':
                 ax.set_title(cols[i])
             if colormap is not None and kwds['colorbar'] == True:
                 self.fig.colorbar(scplt, ax=ax)
@@ -936,7 +975,7 @@ class PlotViewer(QWidget):
                         ax.annotate(txt, (x[i],y[i]), xycoords='data',
                                     xytext=(5, 5), textcoords='offset points',)
 
-        if kwds['legend'] == 1 and kwds['subplots'] == 0:
+        if kwds['legend'] == 1 and axes_layout == 'single':
             ax.legend(cols[1:])
 
         return ax, handles
@@ -1086,7 +1125,7 @@ class PlotViewer(QWidget):
         """Get only numeric data that can be plotted"""
 
         x = df.apply( lambda x: pd.to_numeric(x,errors='ignore',downcast='float') )
-        if x.empty==True:
+        if x.empty == True:
             return False
 
 
@@ -1189,13 +1228,14 @@ class MPLBaseOptions(BaseOptions):
         else:
             datacols=[]
 
+        layouts = ['single','multiple','twin axes']
         scales = ['linear','log']
         style_list = ['default', 'classic'] + sorted(
                     style for style in plt.style.available if style != 'classic')
         grps = {'data':['by','by2','labelcol','pointsizes'],
                 'formats':['marker','ms','linestyle','linewidth','alpha'],
                 'global':['dpi','3D plot'],
-                'general':['kind','bins','stacked','subplots','use_index','errorbars'],
+                'general':['kind','axes_layout','bins','stacked','use_index','errorbars'],
                 'axes':['grid','legend','showxlabels','showylabels','sharex','sharey','logx','logy'],
                 'colors':['style','colormap','bw','clrcol','cscale','colorbar']}
         order = ['general','data','axes','formats','colors','global']
@@ -1208,7 +1248,6 @@ class MPLBaseOptions(BaseOptions):
                 'grid':{'type':'checkbox','default':0,'label':'show grid'},
                 'logx':{'type':'checkbox','default':0,'label':'log x'},
                 'logy':{'type':'checkbox','default':0,'label':'log y'},
-                #'rot':{'type':'entry','default':0, 'label':'xlabel angle'},
                 'use_index':{'type':'checkbox','default':1,'label':'use index'},
                 'errorbars':{'type':'checkbox','default':0,'label':'errorbar column'},
                 'clrcol':{'type':'combobox','items':datacols,'label':'color by value','default':''},
@@ -1225,7 +1264,8 @@ class MPLBaseOptions(BaseOptions):
                 'stacked':{'type':'checkbox','default':0,'label':'stacked'},
                 'linewidth':{'type':'slider','default':2,'range':(0,10),'interval':1,'label':'line width'},
                 'alpha':{'type':'spinbox','default':9,'range':(1,10),'interval':1,'label':'alpha'},
-                'subplots':{'type':'checkbox','default':0,'label':'multiple subplots'},
+                #'subplots':{'type':'checkbox','default':0,'label':'multiple subplots'},
+                'axes_layout':{'type':'combobox','default':'single','items':layouts,'label':'axes layout'},
                 'colormap':{'type':'combobox','default':'Spectral','items':colormaps},
                 'bins':{'type':'spinbox','default':20,'width':5},
                 'by':{'type':'combobox','items':datacols,'label':'group by','default':''},
@@ -1319,14 +1359,15 @@ class AxesOptions(BaseOptions):
         self.styles = sorted(plt.style.available)
         formats = ['auto','percent','eng','sci notation']
         datefmts = ['','%d','%b %d,''%Y-%m-%d','%d-%m-%Y',"%d-%m-%Y %H:%M"]
-        self.groups = grps = {'axis ranges':['xmin','xmax','ymin','ymax'],
+        self.groups = grps = OrderedDict({'layout':['rows','cols'],
+                              'axis ranges':['xmin','xmax','ymin','ymax'],
                               'axis tick positions':['major x-ticks','major y-ticks',
                                                    'minor x-ticks','minor y-ticks'],
                               'tick label format':['formatter','symbol','precision','date format'],
-                              #'tables':['table']
-                             }
-        self.groups = OrderedDict(sorted(grps.items()))
-        opts = self.opts = {'xmin':{'type':'entry','default':'','label':'x min'},
+                             })
+        opts = self.opts = {'rows':{'type':'spinbox','default':0},
+                            'cols':{'type':'spinbox','default':0},
+                            'xmin':{'type':'entry','default':'','label':'x min'},
                             'xmax':{'type':'entry','default':'','label':'x max'},
                             'ymin':{'type':'entry','default':'','label':'y min'},
                             'ymax':{'type':'entry','default':'','label':'y max'},
@@ -1421,7 +1462,7 @@ class PlotGallery(QWidget):
 
     def saveAll(self):
         """Save all figures in a folder"""
-        
+
         dir =  QFileDialog.getExistingDirectory(self, "Save Folder",
                                              homepath, QFileDialog.ShowDirsOnly)
         if not dir:

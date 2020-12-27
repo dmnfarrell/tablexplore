@@ -32,7 +32,7 @@ from PySide2.QtCore import QObject, Signal, Slot
 import pandas as pd
 from .core import DataFrameModel, DataFrameTable, DataFrameWidget
 from .plotting import PlotViewer
-from . import util, data, core
+from . import util, data, core, dialogs
 
 homepath = os.path.expanduser("~")
 module_path = os.path.dirname(os.path.abspath(__file__))
@@ -67,10 +67,12 @@ class Application(QMainWindow):
         self.proj_label.setStyleSheet('color: blue')
         self.style = 'default'
         self.font = 'monospace'
-        self.recentFiles = []
+        self.recent_files = ['']
+        self.recent_urls = []
         self.plots = {}
 
         self.loadSettings()
+        self.showRecentFiles()
         if project_file != None:
             self.openProject(project_file)
         elif csv_file != None:
@@ -83,13 +85,18 @@ class Application(QMainWindow):
         """Load GUI settings"""
 
         s = self.settings = QtCore.QSettings('tablexplore','default')
-        self.recentFiles = s.value("RecentFiles")
         try:
             self.resize(s.value('window_size'))
             self.move(s.value('window_position'))
             self.setStyle(s.value('style'))
-            core.font = s.value("font")
-            core.fontsize = int(s.value("fontsize"))
+            core.FONT = s.value("font")
+            core.FONTSIZE = int(s.value("fontsize"))
+            r = s.value("recent_files")
+            if r != '':
+                self.recent_files = r.split(',')
+            r = s.value("recent_urls")
+            if r != '':
+                self.recent_urls = r.split('^^')
         except:
             pass
 
@@ -101,8 +108,10 @@ class Application(QMainWindow):
         self.settings.setValue('window_size', self.size())
         self.settings.setValue('window_position', self.pos())
         self.settings.setValue('style', self.style)
-        self.settings.setValue('font', core.font)
-        self.settings.setValue('fontsize', core.fontsize)
+        self.settings.setValue('font', core.FONT)
+        self.settings.setValue('fontsize', core.FONTSIZE)
+        self.settings.setValue('recent_files',','.join(self.recent_files))
+        self.settings.setValue('recent_urls','^^'.join(self.recent_urls))
         if hasattr(self, 'plotgallery'):
             self.settings.setValue('plotgallery_size',self.plotgallery.size())
         self.settings.sync()
@@ -162,9 +171,9 @@ class Application(QMainWindow):
                 QtCore.Qt.CTRL + QtCore.Qt.Key_N)
         self.file_menu.addAction('&Open', self.openProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_O)
-        self.menuRecentFiles = QMenu("Open Recent Files",
+        self.recent_files_menu = QMenu("Recent Projects",
             self.file_menu)
-        self.file_menu.addAction(self.menuRecentFiles.menuAction())
+        self.file_menu.addAction(self.recent_files_menu.menuAction())
         self.file_menu.addAction('&Save', self.saveProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_S)
         self.file_menu.addAction('&Save As', self.saveAsProject)
@@ -266,13 +275,25 @@ class Application(QMainWindow):
     def stateChanged(self, bool):
         print(bool)
 
-    def addRecentFile(self, fname):
+    def showRecentFiles(self):
+        """Populate recent files menu"""
 
-        if fname and fname not in self.recentFiles:
-            self.recentFiles.insert(0, fname)
-            if len(self.recentFiles) > 9:
-                self.recentFiles = self.recentFiles[:9]
-        self.menuRecentFiles.setEnabled(len(self.recentFiles))
+        from functools import partial
+        if self.recent_files == None:
+            return
+        for fname in self.recent_files:
+            self.recent_files_menu.addAction(fname, partial(self.openProject, fname))
+        self.recent_files_menu.setEnabled(len(self.recent_files))
+        return
+
+    def addRecentFile(self, fname):
+        """Add file to recent if not present"""
+
+        if fname and fname not in self.recent_files:
+            self.recent_files.insert(0, fname)
+            if len(self.recent_files) > 5:
+                self.recent_files.pop()
+        self.recent_files_menu.setEnabled(len(self.recent_files))
         return
 
     def newProject(self, data=None, ask=False):
@@ -348,7 +369,7 @@ class Application(QMainWindow):
         self.proj_label.setText(self.filename)
         self.projopen = True
         self.defaultsavedir = os.path.dirname(os.path.abspath(filename))
-        #self.addRecentFile(filename)
+        self.addRecentFile(filename)
         return
 
     def saveAsProject(self):
@@ -410,9 +431,11 @@ class Application(QMainWindow):
         meta['generalopts'] = pf.generalopts.kwds
         #meta['mplopts3d'] = pf.mplopts3d.kwds
         meta['labelopts'] = pf.labelopts.kwds
+        meta['axesopts'] = pf.axesopts.kwds
 
         #save table selections
         meta['table'] = util.getAttributes(table)
+        meta['table']['column_widths'] = table.getColumnWidths()
         meta['plotviewer'] = util.getAttributes(pf)
         #print (meta['plotviewer'])
         #save row colors since its a dataframe and isn't picked up by getattributes currently
@@ -438,7 +461,8 @@ class Application(QMainWindow):
         #load plot options
         opts = {'generalopts': table.pf.generalopts,
                 #'mplopts3d': table.pf.mplopts3d,
-                'labelopts': table.pf.labelopts
+                'labelopts': table.pf.labelopts,
+                'axesopts': table.pf.axesopts,
                 }
         for m in opts:
             if m in meta and meta[m] is not None:
@@ -453,7 +477,10 @@ class Application(QMainWindow):
                 #        opts[m].opts[key] = defaults[key]
 
         #load table settings
-        util.setAttributes(table, tablesettings)
+        util.setAttributes(table.table, tablesettings)
+        if 'column_widths' in tablesettings:
+            table.table.setColumnWidths(tablesettings['column_widths'])
+        table.refresh()
         #load plotviewer
         if 'plotviewer' in meta:
             #print (meta['plotviewer'])
@@ -488,10 +515,14 @@ class Application(QMainWindow):
         return
 
     def importURL(self):
+        """Import from URL"""
 
         self.addSheet()
         w = self.getCurrentTable()
-        w.importURL()
+        recent = self.recent_urls
+        url = w.importURL(recent)
+        if url != False and url not in self.recent_urls:
+            self.recent_urls.append(url)
         return
 
     def exportAs(self):
@@ -522,7 +553,8 @@ class Application(QMainWindow):
         sheet = QSplitter(self.main)
         idx = self.main.addTab(sheet, name)
         #provide reference to self to dataframewidget
-        dfw = DataFrameWidget(sheet, dataframe=df, app=self)
+        dfw = DataFrameWidget(sheet, dataframe=df, app=self,
+                                font=core.FONT, fontsize=core.FONTSIZE)
         sheet.addWidget(dfw)
 
         self.sheets[name] = dfw
@@ -626,9 +658,20 @@ class Application(QMainWindow):
             sheetname = name + '-' + str(i)
         if name == 'sample':
             if rows is None:
-                rows, ok = QInputDialog.getInt(self, 'Rows', 'Rows:', 100)
+                opts = {'rows':{'type':'spinbox','default':10,'range':(1,1e7)},
+                        'cols':{'type':'spinbox','default':5,'range':(1,26)}}
+                dlg = dialogs.MultipleInputDialog(self, opts, title='Sample data',
+                                    width=250,height=150)
+                dlg.exec_()
+                if not dlg.accepted:
+                    return
+                kwds = dlg.values
+                rows = kwds['rows']
+                cols = kwds['cols']
             if ok:
-                df = data.getSampleData(rows,5)
+                df = data.getSampleData(rows,cols)
+            else:
+                return
         else:
             df = data.getPresetData(name)
         self.addSheet(sheetname,df)
@@ -677,6 +720,8 @@ class Application(QMainWindow):
 
         for s in self.sheets:
             w = self.sheets[s].table
+            w.font = core.FONT
+            w.fontsize = core.FONTSIZE
             w.refresh()
         return
 
@@ -723,7 +768,8 @@ class Application(QMainWindow):
         """Preferences dialog"""
 
         from . import dialogs
-        dlg = dialogs.PreferencesDialog(self)
+        opts = {'font':core.FONT, 'fontsize':core.FONTSIZE}
+        dlg = dialogs.PreferencesDialog(self, opts)
         dlg.exec_()
         return
 

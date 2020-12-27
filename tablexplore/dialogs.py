@@ -106,9 +106,13 @@ def dialogFromOptions(parent, opts, sections=None,
                 w = QComboBox()
                 w.addItems(opt['items'])
                 index = w.findText(val)
-                #print (val,index)
                 if index != -1:
                     w.setCurrentIndex(index)
+                if 'editable' in opt:
+                     w.setEditable(True)
+                if 'width' in opt:
+                    w.setMinimumWidth(opt['width'])
+                    w.adjustSize()
             elif t == 'entry':
                 w = QLineEdit()
                 w.setText(str(val))
@@ -376,7 +380,7 @@ class ImportDialog(QDialog):
         main.addWidget(self.textarea)
         self.textarea.resize(200,200)
 
-        t = self.previewtable = core.DataFrameTable(main, font=core.font)
+        t = self.previewtable = core.DataFrameTable(main, font=core.FONT)
         main.addWidget(t)
         self.setLayout(layout)
         return
@@ -574,7 +578,7 @@ class AggregateDialog(BasicDialog):
         l.addWidget(QLabel('Functions'))
         l.addWidget(w)
 
-        self.table = core.DataFrameTable(self, font=core.font)
+        self.table = core.DataFrameTable(self, font=core.FONT)
         vbox.addWidget(self.table)
         bf = self.createButtons(self)
         vbox.addWidget(bf)
@@ -639,7 +643,7 @@ class PivotDialog(BasicDialog):
         l.addWidget(QLabel('Aggregate function'))
         l.addWidget(w)
 
-        self.table = core.DataFrameTable(self, font=core.font)
+        self.table = core.DataFrameTable(self, font=core.FONT)
         vbox.addWidget(self.table)
         bf = self.createButtons(self)
         vbox.addWidget(bf)
@@ -692,7 +696,7 @@ class MeltDialog(BasicDialog):
         l.addWidget(QLabel('Var name'))
         l.addWidget(w)
 
-        self.table = core.DataFrameTable(self, font=core.font)
+        self.table = core.DataFrameTable(self, font=core.FONT)
         vbox.addWidget(self.table)
         bf = self.createButtons(self)
         vbox.addWidget(bf)
@@ -771,7 +775,7 @@ class MergeDialog(BasicDialog):
         l.addWidget(self.table2)
         hbox.addWidget(tableswidget)'''
 
-        self.table = core.DataFrameTable(self, font=core.font)
+        self.table = core.DataFrameTable(self, font=core.FONT)
         hbox.addWidget(self.table)
         bf = self.createButtons(self)
         hbox.addWidget(bf)
@@ -832,7 +836,7 @@ class ConvertTypesDialog(BasicDialog):
         cols = ['name','type','convert']
         info = pd.DataFrame(res, columns=cols)
 
-        self.table = core.DataFrameTable(self, info, font=core.font)
+        self.table = core.DataFrameTable(self, info, font=core.FONT)
         types = ['int','float','categorical']
 
         vbox.addWidget(self.table)
@@ -855,7 +859,7 @@ class ConvertTypesDialog(BasicDialog):
 class PreferencesDialog(QDialog):
     """Preferences dialog from config parser options"""
 
-    def __init__(self, parent, options=None):
+    def __init__(self, parent, options={}):
 
         super(PreferencesDialog, self).__init__(parent)
         self.parent = parent
@@ -864,11 +868,11 @@ class PreferencesDialog(QDialog):
         self.setGeometry(QtCore.QRect(300,300, 600, 200))
         self.setMaximumWidth(600)
         self.setMaximumHeight(300)
-        self.createWidgets()
+        self.createWidgets(options)
         self.show()
         return
 
-    def createWidgets(self):
+    def createWidgets(self, options):
         """create widgets"""
 
         import pylab as plt
@@ -876,9 +880,9 @@ class PreferencesDialog(QDialog):
         self.opts = {'rowheight':{'type':'spinbox','default':18,'range':(5,50),'label':'row height'},
                 #'cellwidth':{'type':'spinbox','default':80,'range':(10,300),'label':'cell width'},
                 'alignment':{'type':'combobox','default':'w','items':['left','right','center'],'label':'text align'},
-                'font':{'type':'font','default':'Arial','default':core.font},
+                'font':{'type':'font','default':'Arial','default':options['font']},
                 #'fontstyle':{'type':'combobox','default':'','items':['','bold','italic']},
-                'fontsize':{'type':'slider','default':core.fontsize,'range':(5,40),'interval':1,'label':'font size'},
+                'fontsize':{'type':'slider','default':options['fontsize'],'range':(5,40),'interval':1,'label':'font size'},
                 'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
                 }
         sections = {'table':['alignment','rowheight'],
@@ -910,10 +914,8 @@ class PreferencesDialog(QDialog):
 
         kwds = getWidgetValues(self.widgets)
         from . import core
-        core.font = kwds['font']
-        core.fontsize = kwds['fontsize']
-        core.textalignment = kwds['alignment']
-        #core.fontstyle = kwds['fontstyle']
+        core.FONT = kwds['font']
+        core.FONTSIZE = kwds['fontsize']
         self.parent.refresh()
         return
 
