@@ -257,7 +257,7 @@ class DataFrameWidget(QWidget):
         """Paste from clipboard"""
 
         self.table.storeCurrent()
-        self.table.model.df = pd.read_clipboard(sep='\t')
+        self.table.model.df = pd.read_clipboard(sep='\t', index_col=0)
         self.refresh()
         return
 
@@ -285,7 +285,7 @@ class DataFrameWidget(QWidget):
 
         buf = io.StringIO()
         self.table.model.df.info(verbose=True,buf=buf,memory_usage=True)
-        td = dialogs.TextDialog(self, buf.getvalue(), 'Info', width=500, height=400)
+        td = dialogs.TextDialog(self, buf.getvalue(), 'Info', width=600, height=400)
         return
 
     def showAsText(self):
@@ -453,8 +453,8 @@ class DataFrameWidget(QWidget):
 
         df = self.table.model.df
         col = column
-        cols=[column]
-        #cols = list(df.columns[self.multiplecollist])
+        #cols = [column]
+        cols = self.getSelectedColumns()
         funcs = ['mean','std','max','min','log','exp','log10','log2',
                  'round','floor','ceil','trunc',
                  'sum','subtract','divide','mod','remainder','convolve','diff',
@@ -956,6 +956,15 @@ class DataFrameTable(QTableView):
         columnsTotal= model.columnCount(None)
         return
 
+    def getColumnOrder(self):
+        """Get column names from header in their displayed order"""
+
+        hh = self.horizontalHeader()
+        df = self.model.df
+        logidx = [hh.logicalIndex(i) for i in range(0,self.model.columnCount())]
+        cols = [df.columns[i] for i in logidx]
+        return cols
+
     def getSelectedRows(self):
 
         sm = self.selectionModel()
@@ -980,7 +989,6 @@ class DataFrameTable(QTableView):
         #get unique rows/cols keeping order
         rows = list(dict.fromkeys(rows).keys())
         cols = list(dict.fromkeys(cols).keys())
-
         return df.iloc[rows,cols]
 
     def handleDoubleClick(self, item):

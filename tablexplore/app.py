@@ -412,7 +412,10 @@ class Application(QMainWindow):
             tablewidget = self.sheets[i]
             table = tablewidget.table
             data[i] = {}
-            data[i]['table'] = table.model.df
+            #save dataframw with current column order
+            df = table.model.df
+            cols = table.getColumnOrder()
+            data[i]['table'] = df[cols]
             data[i]['meta'] = self.saveMeta(tablewidget)
         data['plots'] = self.plots
         file = gzip.GzipFile(filename, 'w')
@@ -438,9 +441,6 @@ class Application(QMainWindow):
         meta['table']['column_widths'] = table.getColumnWidths()
         meta['plotviewer'] = util.getAttributes(pf)
         #print (meta['plotviewer'])
-        #save row colors since its a dataframe and isn't picked up by getattributes currently
-        #meta['table']['rowcolors'] = table.rowcolors
-
         #save child table if present
         if tablewidget.subtable != None:
             meta['subtable'] = tablewidget.subtable.table.model.df
@@ -547,7 +547,7 @@ class Application(QMainWindow):
         """Add a new sheet"""
 
         names = self.sheets.keys()
-        if name is None:
+        if name is None or name in self.sheets:
             name = 'dataset'+str(len(self.sheets)+1)
 
         sheet = QSplitter(self.main)

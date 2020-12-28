@@ -529,41 +529,42 @@ class PlotViewer(QWidget):
                                      'try using multiple subplots' %kind)
         else:
             #special case of twin axes
-            print (axes_layout)
             if axes_layout == 'twin axes':
-
-                cols = list(data.columns)
-                x = cols[0]
                 ax = self.fig.add_subplot(111)
+                if kind != 'line':
+                    self.showWarning('twin axes only supported for line plots')
+                lw = kwds['linewidth']
+                bw = kwds['bw']
+                marker = kwds['marker']
+                ms = kwds['ms']
+                ls = kwds['linestyle']
+                if useindex == False:
+                    data = data.set_index(data.columns[0])
+                cols = list(data.columns)
                 twinaxes = [ax]
                 for i in range(len(cols)-1):
                     twinaxes.append(ax.twinx())
-                i=0
+
                 styles = []
                 cmap = plt.cm.get_cmap(kwds['colormap'])
-                print (cmap)
-                #kwargs['legend']=False
-                for c in data.columns[1:]:
-                    scols = [x,c]
-                    d = data[scols]
-
+                #cmap = util.adjustColorMap(cmap, 0.15,1.0)
+                i=0
+                handles=[]
+                for col in cols:
+                    d = data[col]
                     cax = twinaxes[i]
-                    #clr = cmap(float(i)/(len(twinaxes)))
-                    #print (clr)
-                    #axs=self._doplot(d, cax, kind, 'single',  errorbars, useindex,
-                    #              bw=bw, yerr=None, nrows=0, ncols=0, kwargs=kwargs)
-                    axs = d.plot(ax=cax, kind='line', color=clr, style=styles, legend=False)
+                    clr = cmap(float(i+1)/(len(cols)))
+                    d.plot(ax=cax, kind='line', c=clr, style=styles, linewidth=lw,
+                            linestyle=ls, marker=marker, ms=ms, legend=False)
+                    if i>1:
+                        cax.spines["right"].set_position(("axes", 1+i/20))
+                    cax.set_ylabel(col)
+                    handles.append(cax.get_lines()[0])
                     i+=1
 
-                ax.legend()
-
-                '''for c in data.columns[1:]:
-                    y = data[c]
-                    cax = twinaxes[i]
-                    clr = cmap(float(i)/(len(twinaxes)))
-                    axs = cax.plot(x, y, color=clr, linewidth=1, style=styles, legend=False)
-                    i+=1'''
-
+                ax.legend(handles, cols, loc='best')
+                self._setAxisTickFormat()
+                self.ax=axs=ax
             else:
                 #default plot - mostly uses pandas so we directly call _doplot
                 try:
@@ -578,7 +579,6 @@ class PlotViewer(QWidget):
         #set options general for all plot types
         #annotation optons are separate
         lkwds.update(kwds)
-
         self.setFigureOptions(axs, lkwds)
         scf = 12/lkwds['fontsize']
         try:
@@ -608,6 +608,13 @@ class PlotViewer(QWidget):
         elif type(axs) is list:
             self.ax = axs[0]
         self.fig.suptitle(kwds['title'], fontsize=kwds['fontsize']*1.2)
+
+        axes_layout = kwds['axes_layout']
+        if axes_layout == 'multiple':
+            for ax in self.fig.axes:
+                self.setAxisLabels(ax, kwds)
+        else:
+            self.setAxisLabels(self.ax, kwds)
         return
 
     def setAxisLabels(self, ax, kwds):
@@ -619,10 +626,10 @@ class PlotViewer(QWidget):
             ax.set_ylabel(kwds['ylabel'])
         ax.xaxis.set_visible(kwds['showxlabels'])
         ax.yaxis.set_visible(kwds['showylabels'])
-        try:
-            ax.tick_params(labelrotation=kwds['rot'])
-        except:
-            logging.error("Exception occurred", exc_info=True)
+        #try:
+        #    ax.tick_params(labelrotation=kwds['rot'])
+        #except:
+        #    logging.error("Exception occurred", exc_info=True)
         return
 
     def autoscale(self, axis='y'):
@@ -845,7 +852,7 @@ class PlotViewer(QWidget):
         ymt = kwds['minor y-ticks']
         symbol = kwds['symbol']
         places = kwds['precision']
-        dateformat = kwds['date format']
+        #dateformat = kwds['date format']
         if xt != 0:
             ax.xaxis.set_major_locator(mticker.MaxNLocator(nbins=xt))
         if yt != 0:
@@ -863,10 +870,13 @@ class PlotViewer(QWidget):
             ax.xaxis.set_major_formatter(mticker.EngFormatter(unit=symbol,places=places))
         elif formatter == 'sci notation':
             ax.xaxis.set_major_formatter(mticker.LogFormatterSciNotation())
-        if dateformat != '':
-            print (x.dtype)
+        elif formatter == 'date':
             import matplotlib.dates as mdates
-            ax.xaxis.set_major_formatter(mdates.DateFormatter(dateformat))
+            #ax.xaxis.set_major_formatter(mdates.DateFormatter(dateformat))
+            locator = mdates.AutoDateLocator(minticks=4, maxticks=10)
+            formatter = mdates.ConciseDateFormatter(locator)
+            ax.xaxis.set_major_locator(locator)
+            ax.xaxis.set_major_formatter(formatter)
         return
 
     def scatter(self, df, ax, axes_layout='single', alpha=0.8, marker='o', color=None, **kwds):
@@ -1357,13 +1367,13 @@ class AxesOptions(BaseOptions):
 
         self.parent = parent
         self.styles = sorted(plt.style.available)
-        formats = ['auto','percent','eng','sci notation']
+        formats = ['auto','date','percent','eng','sci notation']
         datefmts = ['','%d','%b %d,''%Y-%m-%d','%d-%m-%Y',"%d-%m-%Y %H:%M"]
         self.groups = grps = OrderedDict({'layout':['rows','cols'],
                               'axis ranges':['xmin','xmax','ymin','ymax'],
                               'axis tick positions':['major x-ticks','major y-ticks',
                                                    'minor x-ticks','minor y-ticks'],
-                              'tick label format':['formatter','symbol','precision','date format'],
+                              'tick label format':['formatter','symbol','precision'],
                              })
         opts = self.opts = {'rows':{'type':'spinbox','default':0},
                             'cols':{'type':'spinbox','default':0},
@@ -1378,7 +1388,7 @@ class AxesOptions(BaseOptions):
                             'formatter':{'type':'combobox','items':formats,'default':'auto'},
                             'symbol':{'type':'entry','default':''},
                             'precision':{'type':'entry','default':0},
-                            'date format':{'type':'combobox','items':datefmts,'default':''}
+                            #'date format':{'type':'combobox','items':datefmts,'default':''}
                             }
         self.kwds = {}
         return
