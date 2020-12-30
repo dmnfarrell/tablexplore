@@ -317,6 +317,15 @@ class PlotViewer(QWidget):
         mpl.rcParams['savefig.dpi'] = self.generalopts.kwds['dpi']
         return
 
+    def updateData(self):
+        """Update data widgets"""
+
+        if self.table is None:
+            return
+        df = self.table.model.df
+        self.generalopts.update(df)
+        return
+
     def clear(self):
         """Clear plot"""
 
@@ -943,6 +952,11 @@ class PlotViewer(QWidget):
             if marker in ['x','+'] and bw == False:
                 ec = clr
 
+            if kwds['logx'] == 1:
+                ax.set_xscale('log')
+            if kwds['logy'] == 1:
+                ax.set_yscale('log')
+
             if axes_layout == 'multiple':
                 ax = self.fig.add_subplot(nrows,ncols,i)
             if pointsizes != '' and pointsizes in df.columns:
@@ -962,11 +976,6 @@ class PlotViewer(QWidget):
                         markeredgewidth=lw, markeredgecolor=ec, linewidth=0)
             handles.append(mkr)
             ax.set_xlabel(cols[0])
-            if kwds['logx'] == 1:
-                ax.set_xscale('log')
-            if kwds['logy'] == 1:
-                ax.set_yscale('log')
-                ax.set_ylim((x.min()+.1,x.max()))
             if grid == 1:
                 ax.grid(True)
             if axes_layout == 'multiple':
@@ -1297,10 +1306,9 @@ class MPLBaseOptions(BaseOptions):
             cols = list(df.columns)
         #add empty value
         cols = ['']+cols
-        self.widgets['by']['values'] = cols
-        self.widgets['by2']['values'] = cols
-        self.widgets['labelcol']['values'] = cols
-        self.widgets['clrcol']['values'] = cols
+        for name in ['by','by2','labelcol','clrcol']:
+            self.widgets[name].clear()
+            self.widgets[name].addItems(cols)
         return
 
 class AnnotationOptions(BaseOptions):

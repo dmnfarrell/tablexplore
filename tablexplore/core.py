@@ -57,9 +57,6 @@ icons = {'load': 'open', 'save': 'export',
          'subtable':'subtable','clear':'clear'
          }
 
-class Communicate(QObject):
-    speak = Signal()
-
 class ColumnHeader(QHeaderView):
     def __init__(self):
         super(QHeaderView, self).__init__()
@@ -93,15 +90,15 @@ class DataFrameWidget(QWidget):
         self.subtabledock = None
         self.subtable = None
         self.mode = 'default'
-        #self.updatesignal = Communicate()
-        #self.updatesignal.speak.connect(self.stateChanged)
+        self.table.model.dataChanged.connect(self.stateChanged)
         return
 
     @Slot(bool)
     def stateChanged(self):
-        print('changed')
-        #if self.app != None:
-        #    self.app.undo_item.setDisabled(False)
+        """Run whenever table model is changed"""
+
+        if hasattr(self, 'pf'):
+            self.pf.updateData()
 
     def statusBar(self):
         """Status bar at bottom"""
@@ -220,15 +217,19 @@ class DataFrameWidget(QWidget):
     def importURL(self, recent):
         """Import hdf5 file"""
 
+        delimiters = [',',r'\t',' ',';','/','&','|','^','+','-']
         opts = {'url':{'label':'Address','type':'combobox','default':'',
-                     'items':recent, 'editable': True, 'width':300 }
+                     'items':recent, 'editable': True, 'width':600 },
+                'sep':{'label':'Delimeter','type':'combobox','default':'',
+                    'items':delimiters,'width':200}
                 }
-        dlg = dialogs.MultipleInputDialog(self, opts, title='Import URL', width=500)
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Import URL', width=600)
         dlg.exec_()
         if not dlg.accepted:
             return False
         url = dlg.values['url']
-        self.table.model.df = pd.read_csv(url)
+        sep = dlg.values['sep']
+        self.table.model.df = pd.read_csv(url, sep=sep)
         self.refresh()
         return url
 
@@ -445,6 +446,34 @@ class DataFrameWidget(QWidget):
 
     def convertColumnNames(self):
 
+        df = self.table.model.df
+        opts = {'replace':  {'type':'entry','default':'','label':'Replace'},
+                'with':  {'type':'entry','default':'','label':'With'},
+
+               }
+
+        #'add symbol to start:', 'make lowercase','make uppercase'],
+
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Format Column Names', width=300)
+        dlg.exec_()
+        if not dlg.accepted:
+            return
+        kwds = dlg.values
+        self.storeCurrent()
+
+        #pattern =
+
+        df = self.model.df
+        if start != '':
+            df.columns = start + df.columns
+        if pattern != '':
+            df.columns = [i.replace(pattern,repl) for i in df.columns]
+        if lower == 1:
+            df.columns = df.columns.str.lower()
+        elif upper == 1:
+            df.columns = df.columns.str.upper()
+
+        self.refresh()
         return
 
     def applyColumnFunction(self, column):
@@ -452,33 +481,48 @@ class DataFrameWidget(QWidget):
         ceates a new column."""
 
         df = self.table.model.df
+        tablecols = ['']+list(df.columns)
         col = column
-        #cols = [column]
-        cols = self.getSelectedColumns()
-        funcs = ['mean','std','max','min','log','exp','log10','log2',
-                 'round','floor','ceil','trunc',
-                 'sum','subtract','divide','mod','remainder','convolve','diff',
-                 'negative','sign','power',
-                 'sin','cos','tan','degrees','radians']
+        idx = self.table.getSelectedColumns()
+        cols = df.columns[idx]
+        if len(cols) == 0:
+            cols = [column]
 
+        singlefuncs = ['round','floor','ceil','trunc','power','log','exp','log10','log2',
+                 'negative','sign','diff',
+                 'sin','cos','tan','degrees','radians']
+        multifuncs = ['mean','std','max','min',
+                 'sum','subtract','divide','mod','remainder','convolve']
+
+        if len(cols)>1:
+            funcs = multifuncs+singlefuncs
+        else:
+            funcs = singlefuncs
         types = ['float','int']
         opts = {'funcname':  {'type':'combobox','default':'int','items':funcs,'label':'Function'},
                 'newcol':  {'type':'entry','default':'','items':funcs,'label':'New column name'},
                 'inplace':  {'type':'checkbox','default':False,'label':'Update in place'},
                 'suffix':  {'type':'entry','default':'_x','items':funcs,'label':'Suffix'},
+                'group': {'type':'combobox','default':'','items':tablecols,'label':'Apply per Group'},
                }
         dlg = dialogs.MultipleInputDialog(self, opts, title='Apply Function', width=300)
         dlg.exec_()
         if not dlg.accepted:
             return
         kwds = dlg.values
-
         funcname = kwds['funcname']
         newcol = kwds['newcol']
         inplace = kwds['inplace']
         suffix = kwds['suffix']
+        group = kwds['group']
 
-        func = getattr(np, funcname)
+        if funcname == 'diff':
+            func = funcname
+        else:
+            func = getattr(np, funcname)
+
+        self.table.storeCurrent()
+
         if newcol == '':
             if len(cols)>3:
                 s = ' %s cols' %len(cols)
@@ -486,19 +530,63 @@ class DataFrameWidget(QWidget):
                 s =  '(%s)' %(','.join(cols))[:20]
             newcol = funcname + s
 
-        if funcname in ['subtract','divide','mod','remainder','convolve']:
+        if len(cols) == 2 and funcname in ['sum','subtract','divide','mod','remainder','convolve']:
             newcol = cols[0]+' '+ funcname +' '+cols[1]
             result = df[cols[0]].combine(df[cols[1]], func=func)
+        elif len(cols) > 2:
+            result = df[cols].apply(func, 1)
         else:
             if inplace == True:
-                newcol = col#s[0]
-            result = df[col].apply(func, 1)
+                newcol = col
+            if group != '':
+                result = df.groupby(group)[col].apply(func)
+            else:
+                result = df[col].apply(func, 1)
 
-        #if inplace == False:
-            #self.placeColumn(newcol,cols[-1])
-        idx = df.columns.get_loc(col)
-        df.insert(idx, newcol, result)
-        #else:
+        if inplace == True:
+            df[col] = result
+        else:
+            idx = df.columns.get_loc(col)
+            df.insert(idx+1, newcol, result)
+        self.refresh()
+        return
+
+    def applyRollingWindow(self, column):
+        """Rolling windows functions"""
+
+        df = self.table.model.df
+        cols = df.columns
+        col = column
+        funcs = ['sum','mean','std','max','min','sem','var','quantile']
+        opts = {'funcname':  {'type':'combobox','default':'int','items':funcs,'label':'Function'},
+                'window': {'type':'spinbox','default':1, 'label':'Window','range':(1,1000)},
+                'center':  {'type':'checkbox','default':True,'label':'Center window'},
+                'newcol':  {'type':'entry','default':'','items':funcs,'label':'New column name'},
+                'inplace':  {'type':'checkbox','default':False,'label':'Update in place'},
+               }
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Rolling Window Function', width=300)
+        dlg.exec_()
+        if not dlg.accepted:
+            return
+        kwds = dlg.values
+        funcname = kwds['funcname']
+        window = int(kwds['window'])
+        newcol = kwds['newcol']
+        center = kwds['center']
+        func = getattr(np, funcname)
+        inplace = kwds['inplace']
+
+        if newcol == '':
+            newcol = funcname + '(%s)' %col
+        self.table.storeCurrent()
+        result = df[col].rolling(window, center=center).apply(func)
+        if inplace == True:
+            df[col] = result
+        else:
+            if newcol in df.columns:
+                df.drop(columns=newcol)
+            idx = df.columns.get_loc(col)
+            df.insert(idx+1, newcol, result)
         self.refresh()
         return
 
@@ -571,8 +659,8 @@ class DataFrameWidget(QWidget):
         timeformats = ['infer','%d/%m/%Y','%Y/%m/%d','%Y/%d/%m',
                         '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
                         '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
-        props = ['','day','month','hour','minute','second','year',
-                 'dayofyear','weekofyear','quarter']
+        props = ['','day','dayofweek','month','hour','minute','second','microsecond','year',
+                 'dayofyear','weekofyear','quarter','days_in_month','is_leap_year']
         opts = {'format':  {'type':'combobox','default':'int',
                             'items':timeformats,'label':'Conversion format'},
                 'prop':  {'type':'combobox','default':'int',
@@ -599,52 +687,51 @@ class DataFrameWidget(QWidget):
                 new = new.astype(int)
             except:
                 pass
-            self.table.model.df[prop] = new
+            #self.table.model.df[prop] = new
+
+            idx = df.columns.get_loc(column)
+            df.insert(idx+1, prop, new)
         else:
             self.table.model.df[column] = temp
         self.refresh()
         return
 
-    def applyStringMethod(self):
+    def applyStringMethod(self, column):
         """Apply string operation to column(s)"""
 
-        df = self.model.df
-        cols = list(df.columns[self.multiplecollist])
-        col = cols[0]
+        df = self.table.model.df
+        #cols = self.getSelectedColumns()
+        col = column
         funcs = ['','split','strip','lstrip','lower','upper','title','swapcase','len',
                  'slice','replace','concat']
-        d = MultipleValDialog(title='Apply Function',
-                                initialvalues=(funcs,',',0,1,'','',1),
-                                labels=('Function:',
-                                        'Split sep:',
-                                        'Slice start:',
-                                        'Slice end:',
-                                        'Pattern:',
-                                        'Replace with:',
-                                        'In place:'),
-                                types=('combobox','string','int',
-                                       'int','string','string','checkbutton'),
-                                tooltips=(None,'separator for split or concat',
-                                          'start index for slice',
-                                          'end index for slice',
-                                          'characters or regular expression for replace',
-                                          'characters to replace with',
-                                          'replace column'),
-                                parent = self.parentframe)
-        if d.result == None:
+        opts = {'function':  {'type':'combobox','default':'',
+                            'items':funcs,'label':'Function'},
+                'sep':  {'type':'entry','default':',', 'label':'Split separator'},
+                'start':  {'type':'entry','default':0, 'label':'Slice start'},
+                'end':  {'type':'entry','default':1, 'label':'Slice end'},
+                'pat':  {'type':'entry','default':'', 'label':'Pattern'},
+                'repl': {'type':'entry','default':'', 'label':'Replace with'},
+                'inplace': {'type':'checkbox','default':False, 'label':'In place'},
+               }
+        dlg = dialogs.MultipleInputDialog(self, opts, title='String Operation', width=300)
+        dlg.exec_()
+        if not dlg.accepted:
             return
-        self.storeCurrent()
-        func = d.results[0]
-        sep = d.results[1]
-        start = d.results[2]
-        end = d.results[3]
-        pat = d.results[4]
-        repl = d.results[5]
-        inplace = d.results[6]
+        kwds = dlg.values
+
+        self.table.storeCurrent()
+        func = kwds['function']
+        sep = kwds['sep']
+        start = int(kwds['start'])
+        end = int(kwds['end'])
+        pat = kwds['pat']
+        repl = kwds['repl']
+        inplace = kwds['inplace']
+
         if func == 'split':
             new = df[col].str.split(sep).apply(pd.Series)
             new.columns = [col+'_'+str(i) for i in new.columns]
-            self.model.df = pd.concat([df,new],1)
+            self.table.model.df = pd.concat([df,new],1)
             self.refresh()
             return
         elif func == 'strip':
@@ -671,9 +758,11 @@ class DataFrameWidget(QWidget):
             newcol = col+'_'+func
         else:
             newcol = col
-        df[newcol] = x
+        #df[newcol] = x
         if inplace == 0:
-            self.placeColumn(newcol,col)
+            idx = df.columns.get_loc(col)
+            df.insert(idx+1, newcol, x)
+
         self.refresh()
         return
 
@@ -973,6 +1062,7 @@ class DataFrameTable(QTableView):
         return rows
 
     def getSelectedColumns(self):
+        """Get selected column indexes"""
 
         sm = self.selectionModel()
         cols = [(i.column()) for i in sm.selectedIndexes()]
@@ -1007,13 +1097,16 @@ class DataFrameTable(QTableView):
         hheader = self.horizontalHeader()
         self.selectColumn(col)
 
-    def sort(self, col):
+    def sort(self, idx):
+        """Sort by selected columns"""
 
         df = self.model.df
-        idx = df.columns.get_loc(col)
-        print (idx)
-        self.model.sort(idx, order=Qt.DescendingOrder)
-        #self.model.df = df.sort_values(col)
+        sel = self.getSelectedColumns()
+        if len(sel)>1:
+            for i in sel:
+                self.model.sort(i, order=Qt.DescendingOrder)
+        else:
+            self.model.sort(idx, order=Qt.DescendingOrder)
         return
 
     def deleteCells(self, rows, cols, answer=None):
@@ -1041,9 +1134,12 @@ class DataFrameTable(QTableView):
         menu = QMenu(self)
 
         resetIndexAction = menu.addAction("Reset Index")
+        sortIndexAction = menu.addAction("Sort By Index")
         action = menu.exec_(self.mapToGlobal(pos))
         if action == resetIndexAction:
             self.resetIndex()
+        elif action == sortIndexAction:
+            self.sortIndex()
         return
 
     def columnHeaderMenu(self, pos):
@@ -1067,12 +1163,14 @@ class DataFrameTable(QTableView):
         menu.addAction(colmenu.menuAction())
         fillAction = menu.addAction("Fill Data")
         applyFunctionAction = menu.addAction("Apply Function")
+        rollingFunctionAction = menu.addAction("Apply Rolling Window")
+        stringOpAction = menu.addAction("String Operation")
         datetimeAction = menu.addAction("Date/Time Conversion")
 
         #sortAction = menu.addAction("Sort By")
         action = menu.exec_(self.mapToGlobal(pos))
         if action == sortAction:
-            self.sort(column)
+            self.sort(idx)
         elif action == deleteColumnAction:
             self.deleteColumn(column)
         elif action == renameColumnAction:
@@ -1087,6 +1185,10 @@ class DataFrameTable(QTableView):
             self.parent.fillData(column)
         elif action == applyFunctionAction:
             self.parent.applyColumnFunction(column)
+        elif action == rollingFunctionAction:
+            self.parent.applyRollingWindow(column)
+        elif action == stringOpAction:
+            self.parent.applyStringMethod(column)
         return
 
     def keyPressEvent(self, event):
@@ -1160,6 +1262,12 @@ class DataFrameTable(QTableView):
     def setIndex(self, column):
 
         self.model.df.set_index(column, inplace=True)
+        self.refresh()
+        return
+
+    def sortIndex(self):
+
+        self.model.df = self.model.df.sort_index(axis=0)
         self.refresh()
         return
 

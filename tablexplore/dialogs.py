@@ -60,7 +60,6 @@ def dialogFromOptions(parent, opts, sections=None,
             font-size: 10px;
         }
         QWidget {
-            max-width: 250px;
             min-width: 60px;
             font-size: 14px;
         }
@@ -103,7 +102,7 @@ def dialogFromOptions(parent, opts, sections=None,
             gl.addWidget(lbl,row,col)
             lbl.setStyleSheet(style)
             if t == 'combobox':
-                w = QComboBox()
+                w = QComboBox()                
                 w.addItems(opt['items'])
                 index = w.findText(val)
                 if index != -1:
@@ -112,7 +111,7 @@ def dialogFromOptions(parent, opts, sections=None,
                      w.setEditable(True)
                 if 'width' in opt:
                     w.setMinimumWidth(opt['width'])
-                    w.adjustSize()
+                    w.resize(opt['width'], 20)
             elif t == 'entry':
                 w = QLineEdit()
                 w.setText(str(val))
