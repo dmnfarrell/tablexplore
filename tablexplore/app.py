@@ -134,7 +134,7 @@ class Application(QMainWindow):
 
         items = {'new': {'action': lambda: self.newProject(ask=True),'file':'document-new'},
                  'open': {'action':self.openProject,'file':'document-open'},
-                 'save': {'action':self.saveProject,'file':'save'},
+                 'save': {'action': lambda: self.saveProject(None),'file':'save'},
                  'zoom out': {'action':self.zoomOut,'file':'zoom-out'},
                  'zoom in': {'action':self.zoomIn,'file':'zoom-in'},
                  'decrease columns': {'action': lambda: self.changeColumnWidths(.9),'file':'decrease-width'},
@@ -301,7 +301,8 @@ class Application(QMainWindow):
 
         if ask == True:
             reply = QMessageBox.question(self, 'Are you sure?',
-                                 'Close current project?', QMessageBox.Yes, QMessageBox.No)
+                                 'Save current project?',
+                                 QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
             if reply == QMessageBox.Yes:
                 self.saveProject()
         if not type(data) is dict:
@@ -635,9 +636,11 @@ class Application(QMainWindow):
     def closeEvent(self, ce):
         """Close event"""
 
-        reply = QMessageBox.question(self, 'Save Project?',
+        reply = QMessageBox.question(self, 'Close',
                                  'Save current project?',
-                                 QMessageBox.Yes, QMessageBox.No)
+                                  QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+        if reply == QMessageBox.Cancel:
+            return
         if reply == QMessageBox.Yes:
             self.saveProject()
         for s in self.sheets:

@@ -126,6 +126,7 @@ class DataFrameWidget(QWidget):
                  'aggregate': {'action':self.aggregate,'file':'aggregate'},
                  'pivot': {'action':self.pivot,'file':'pivot'},
                  'melt': {'action':self.melt,'file':'melt'},
+                 'merge': {'action':self.merge,'file':'merge'},
                  'interpreter': {'action':self.showInterpreter  ,'file':'interpreter'},
                  'subtable': {'action':self.subTableFromSelection,'file':'subtable'},
                  'clear': {'action':self.clear,'file':'clear'},
@@ -551,35 +552,74 @@ class DataFrameWidget(QWidget):
         self.refresh()
         return
 
-    def applyRollingWindow(self, column):
-        """Rolling windows functions"""
+    def _getFunction(self, funcname, obj=None):
+        """Get a function as attribute of a class by name"""
+
+        if obj != None:
+            func = getattr(obj, funcname)
+            return func
+        if hasattr(pd, funcname):
+            func = getattr(pd, funcname)
+        elif hasattr(np, funcname):
+            func = getattr(np, funcname)
+        else:
+            return
+        return func
+
+    def applyTransformFunction(self, column):
+        """Apply resampling and transform functions on a single column."""
 
         df = self.table.model.df
-        cols = df.columns
+        cols = [column]
         col = column
-        funcs = ['sum','mean','std','max','min','sem','var','quantile']
-        opts = {'funcname':  {'type':'combobox','default':'int','items':funcs,'label':'Function'},
+
+        ops = ['rolling window','expanding','shift']
+        winfuncs = ['sum','mean','std','max','min','sem','var','quantile']
+        wintypes = ['','boxcar','triang','blackman','hamming','bartlett',
+                    'parzen','bohman','blackmanharris','nuttall','barthann']
+        opts = {'operation': {'type':'combobox','default':'int','items':ops,'label':'Operation'},
+                'winfunc':  {'type':'combobox','default':'int','items':winfuncs,'label':'Function'},
                 'window': {'type':'spinbox','default':1, 'label':'Window','range':(1,1000)},
-                'center':  {'type':'checkbox','default':True,'label':'Center window'},
-                'newcol':  {'type':'entry','default':'','items':funcs,'label':'New column name'},
-                'inplace':  {'type':'checkbox','default':False,'label':'Update in place'},
+                'periods': {'type':'spinbox','default':1, 'label':'Periods','range':(1,1000)},
+                'wintype': {'type':'combobox','default':'','items':wintypes,'label':'Window type'},
+                #'center':  {'type':'checkbox','default':True,'label':'Center window'},
+                'newcol':  {'type':'entry','default':'','label':'New column name'},
+                'inplace':  {'type':'checkbox','default':True,'label':'Update in place'},
+                'suffix':  {'type':'entry','default':'_x','label':'Suffix'}
                }
-        dlg = dialogs.MultipleInputDialog(self, opts, title='Rolling Window Function', width=300)
+
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Transform/Resample', width=300)
         dlg.exec_()
         if not dlg.accepted:
             return
         kwds = dlg.values
-        funcname = kwds['funcname']
-        window = int(kwds['window'])
-        newcol = kwds['newcol']
-        center = kwds['center']
-        func = getattr(np, funcname)
-        inplace = kwds['inplace']
 
-        if newcol == '':
-            newcol = funcname + '(%s)' %col
         self.table.storeCurrent()
-        result = df[col].rolling(window, center=center).apply(func)
+        op = kwds['operation']
+        winfunc = kwds['winfunc']
+        wintype = kwds['wintype']
+        window = kwds['window']
+        periods = kwds['periods']
+        suffix = kwds['suffix']
+        inplace = kwds['inplace']
+        newcol = kwds['newcol']
+
+        if wintype == '':
+            wintype=None
+        if op == 'rolling window':
+            w = df[col].rolling(window=window, win_type=wintype, center=True)
+            func = self._getFunction(winfunc, obj=w)
+            result = func()
+        elif op == 'expanding':
+            func = self._getFunction(winfunc)
+            result = df[col].expanding(2, center=True).apply(func)
+        elif op == 'shift':
+            result = df[col].shift(periods=periods)
+
+        if result is None:
+            return
+        if newcol == '':
+            name = col+suffix
         if inplace == True:
             df[col] = result
         else:
@@ -648,7 +688,6 @@ class DataFrameWidget(QWidget):
         """Convert single or multiple columns into datetime"""
 
         df = self.table.model.df
-        #cols = list(df.columns[self.multiplecollist])
         '''if len(cols) == 1:
             colname = cols[0]
             temp = df[colname]
@@ -1163,7 +1202,7 @@ class DataFrameTable(QTableView):
         menu.addAction(colmenu.menuAction())
         fillAction = menu.addAction("Fill Data")
         applyFunctionAction = menu.addAction("Apply Function")
-        rollingFunctionAction = menu.addAction("Apply Rolling Window")
+        transformResampleAction = menu.addAction("Transform/Resample")
         stringOpAction = menu.addAction("String Operation")
         datetimeAction = menu.addAction("Date/Time Conversion")
 
@@ -1185,8 +1224,8 @@ class DataFrameTable(QTableView):
             self.parent.fillData(column)
         elif action == applyFunctionAction:
             self.parent.applyColumnFunction(column)
-        elif action == rollingFunctionAction:
-            self.parent.applyRollingWindow(column)
+        elif action == transformResampleAction:
+            self.parent.applyTransformFunction(column)
         elif action == stringOpAction:
             self.parent.applyStringMethod(column)
         return
@@ -1401,9 +1440,9 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         i = index.row()
         j = index.column()
         if role == QtCore.Qt.DisplayRole:
-            value = self.df.iloc[i, j]
+            value = self.df.iloc[i, j]        
             if type(value) != str:
-                if type(value) == float and np.isnan(value):
+                if type(value) in [float,np.float64] and np.isnan(value):
                     return ''
                 elif type(value) == np.float:
                     return value

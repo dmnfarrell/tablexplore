@@ -1,0 +1,17 @@
+-----
+0.2.0
+-----
+
+* manually set row and col layout in multiple subplots
+* can save zoom of tables and column widths
+* enabled using twin axes for line plots
+* selections use proper column order
+* now saves column order
+* date formatter
+* remembers recent files
+* saves previous urls for importing
+* added string operations
+* sort by index
+* sort by multiple columns
+* resample/transform
+* fixes to merge

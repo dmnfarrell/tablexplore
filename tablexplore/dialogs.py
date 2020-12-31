@@ -102,7 +102,7 @@ def dialogFromOptions(parent, opts, sections=None,
             gl.addWidget(lbl,row,col)
             lbl.setStyleSheet(style)
             if t == 'combobox':
-                w = QComboBox()                
+                w = QComboBox()
                 w.addItems(opt['items'])
                 index = w.findText(val)
                 if index != -1:
@@ -723,7 +723,7 @@ class MergeDialog(BasicDialog):
     def createWidgets(self):
         """Create widgets"""
 
-        if hasattr(self.parent, 'subtable'):
+        if hasattr(self.parent, 'subtable') and self.parent.subtable != None:
             self.df2 = self.parent.subtable.table.model.df
             cols2 = self.df2.columns
         else:
@@ -753,6 +753,15 @@ class MergeDialog(BasicDialog):
         l.addWidget(QLabel('Right on'))
         l.addWidget(w)
 
+        w = self.leftindex_w = QCheckBox(main)
+        w.setChecked(False)
+        l.addWidget(QLabel('Use left index'))
+        l.addWidget(w)
+        w = self.rightindex_w = QCheckBox(main)
+        w.setChecked(False)
+        l.addWidget(QLabel('Use right index'))
+        l.addWidget(w)
+
         w = self.how_w = QComboBox(main)
         w.addItems(how)
         l.addWidget(QLabel('How'))
@@ -765,33 +774,47 @@ class MergeDialog(BasicDialog):
         l.addWidget(QLabel('Right suffix'))
         l.addWidget(w)
 
-        '''
-        tableswidget = QWidget(self)
-        l = QVBoxLayout(tableswidget)
-        self.table1 = app.DataFrameTable(tableswidget, self.df)
-        self.table2 = app.DataFrameTable(tableswidget, subdf)
-        l.addWidget(self.table1)
-        l.addWidget(self.table2)
-        hbox.addWidget(tableswidget)'''
-
         self.table = core.DataFrameTable(self, font=core.FONT)
         hbox.addWidget(self.table)
         bf = self.createButtons(self)
         hbox.addWidget(bf)
         return
 
+    def updateColumns(self):
+
+        #self.df2 =
+        cols2 = self.df2.columns
+        #w = self.righton_w
+        #w.clear()
+        #w.addItems(cols2)
+        return
+
     def apply(self):
         """Do the operation"""
 
-        lefton = [i.text() for i in self.lefton_w.selectedItems()]
-        righton = [i.text() for i in self.righton_w.selectedItems()]
-        print (lefton)
-        res = pd.merge(self.df, self.df2,
+        left_index = self.leftindex_w.isChecked()
+        right_index = self.rightindex_w.isChecked()
+        if left_index == True:
+            lefton = None
+        else:
+            lefton = [i.text() for i in self.lefton_w.selectedItems()]
+        if right_index == True:
+            righton = None
+        else:
+            righton = [i.text() for i in self.righton_w.selectedItems()]
+        how = self.how_w.currentText()
+        op = self.ops_w.currentText()
+        if op == 'merge':
+            res = pd.merge(self.df, self.df2,
                             left_on=lefton,
                             right_on=righton,
+                            left_index=left_index,
+                            right_index=right_index,
+                            how=how,
                             suffixes=(self.left_suffw .text(),self.right_suffw.text())
                             )
-
+        else:
+            res = pd.concat([self.df, self.df2])
         self.table.model.df = res
         self.table.refresh()
         return
