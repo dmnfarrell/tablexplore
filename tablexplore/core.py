@@ -342,10 +342,12 @@ class DataFrameWidget(QWidget):
         df = self.table.model.df
         cols = df.columns
         fillopts = ['fill scalar','','ffill','bfill','interpolate']
-        opts = {'method':{'label':'Fill missing method','type':'combobox','default':'',
-                             'items':fillopts, 'tooltip':''},
-                'symbol':{'label':'Fill empty with','type':'combobox','default':'',
-                             'items':['','-','x'], 'tooltip':'seperator'},
+        opts = {'replace':{'label':'Replace','type':'entry','default':'',
+                             'tooltip':'replace with'},
+                'symbol':{'label':'Fill empty/replace with','type':'combobox','default':'',
+                             'items':['',0,'null','-','x'], 'editable': True, 'tooltip':'seperator'},
+                'method':{'label':'Fill missing method','type':'combobox','default':'',
+                                     'items':fillopts, 'tooltip':''},
                 'limit':  {'type':'checkbox','default':1,'label':'Limit gaps',
                                 'tooltip':' '},
                 'dropcols':  {'type':'checkbox','default':0,'label':'Drop columns with null data',
@@ -367,18 +369,33 @@ class DataFrameWidget(QWidget):
         if not dlg.accepted:
             return
         kwds = dlg.values
+        replace = kwds['replace']
+        symbol = kwds['symbol']
+        method = kwds['method']
+
+        if symbol == 'null':
+            symbol = np.nan
+        try:
+            replace = float(replace)
+        except:
+            pass
+        if symbol != '':
+            if replace != '':
+                df = df.replace(to_replace=replace, value=symbol)
+            else:
+                df = df.fillna(symbol)
         if kwds['dropcols'] == 1:
             df = df.dropna(axis=1,how=kwds['how'])
         if kwds['droprows'] == 1:
             df = df.dropna(axis=0,how=kwds['how'])
-        if kwds['method'] == '':
+        if method == '':
             pass
-        elif kwds['method'] == 'fill scalar':
+        elif method == 'fill scalar':
             df = df.fillna(kwds['symbol'])
-        elif kwds['method'] == 'interpolate':
+        elif method == 'interpolate':
             df = df.interpolate()
         else:
-            df = df.fillna(method=kwds['method'], limit=kwds['limit'])
+            df = df.fillna(method=method, limit=kwds['limit'])
         if kwds['dropduplicaterows'] == 1:
             df = df.drop_duplicates()
         if kwds['dropduplicatecols'] == 1:

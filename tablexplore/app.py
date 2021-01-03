@@ -22,7 +22,7 @@
 """
 
 from __future__ import absolute_import, division, print_function
-import sys,os,platform,time
+import sys,os,platform,time,traceback
 import pickle, gzip
 from collections import OrderedDict
 from PySide2 import QtCore
@@ -38,6 +38,26 @@ homepath = os.path.expanduser("~")
 module_path = os.path.dirname(os.path.abspath(__file__))
 stylepath = os.path.join(module_path, 'styles')
 iconpath = os.path.join(module_path, 'icons')
+
+class ProgressWidget(QDialog):
+    def __init__(self, parent=None, label=''):
+        super(ProgressWidget, self).__init__(parent)
+        layout = QVBoxLayout(self)
+        self.setWindowTitle('Saving..')
+        self.setGeometry(
+                QStyle.alignedRect(
+                    QtCore.Qt.LeftToRight,
+                    QtCore.Qt.AlignCenter,
+                    self.size(),
+                    QGuiApplication.primaryScreen().availableGeometry(),
+                ))
+        self.setMaximumHeight(100)
+        self.label = QLabel(label)
+        layout.addWidget(self.label)
+        # Create a progress bar
+        self.progressbar = QProgressBar(self)
+        layout.addWidget(self.progressbar)
+        self.progressbar.setGeometry(30, 40, 400, 200)
 
 class Application(QMainWindow):
     def __init__(self, project_file=None, csv_file=None):
@@ -402,76 +422,54 @@ class Application(QMainWindow):
         if not os.path.splitext(filename)[1] == '.txpl':
             self.filename += '.txpl'
         self.defaultsavedir = os.path.dirname(os.path.abspath(filename))
-        self.do_saveProject(self.filename)
-        #self.saveWithProgress(self.filename)
+        #self.do_saveProject(self.filename)
+        self.saveWithProgress(self.filename)
         return
 
     def saveWithProgress(self, filename):
         """Save with progress bar"""
 
-        class ProgressWidget(QDialog):
-
-            def __init__(self, parent=None):
-                super(ProgressWidget, self).__init__(parent)
-                layout = QVBoxLayout(self)
-                self.setWindowTitle('Saving..')
-                self.setGeometry(500, 400, 400, 200)
-
-                #self.setGeometry(QtCore.QRect(200, 200, width, height))
-
-                self.setGeometry(
-                        QStyle.alignedRect(
-                            QtCore.Qt.LeftToRight,
-                            QtCore.Qt.AlignCenter,
-                            self.size(),
-                            QGuiApplication.primaryScreen().availableGeometry(),
-                        ))
-                # Create a progress bar
-                self.progressbar = QProgressBar(self)
-                self.progressbar.setRange(0,0)
-                layout.addWidget(self.progressbar)
-                self.progressbar.setGeometry(30, 40, 400, 200)
-                #button = QPushButton("Start", self)
-                #layout.addWidget(button)
-                #button.clicked.connect(self.onStart)
-
-            def start(self):
-                self.progressbar.setRange(0,0)
-
-            def onFinished(self):
-                print ('stop')
-                self.progressbar.setRange(0,1)
-                self.close()
-
-        class SaveThread(QtCore.QThread):
-            taskFinished = Signal()
-            def run(self):
-                print('run')
-                time.sleep(3)
-                #self.do_saveProject(self.filename)
-                #func()
-                self.taskFinished.emit()
-
-        dlg = ProgressWidget()
-        dlg.exec_()
-        func = lambda: time.sleep(5)
-        self.savetask = SaveThread()
-        self.savetask.taskFinished.connect(dlg.onFinished)
-        self.savetask.start()
+        self.savedlg = dlg = ProgressWidget(label='Saving to %s' %filename)
+        dlg.show()
+        def func(progress_callback):
+            self.do_saveProject(self.filename)
+        self.run_threaded_process(func, self.processing_completed)
         return
 
-    def do_saveProject(self, filename):
+    def run_threaded_process(self, process, on_complete):
+        """Execute a function in the background with a worker"""
+
+        #if self.running == True:
+        #    return
+        worker = Worker(fn=process)
+        self.threadpool.start(worker)
+        worker.signals.finished.connect(on_complete)
+        #worker.signals.progress.connect(self.progress_fn)
+        self.savedlg.progressbar.setRange(0,0)
+        return
+
+    def progress_fn(self, msg):
+        return
+
+    def processing_completed(self):
+        """Generic process completed"""
+
+        self.savedlg.progressbar.setRange(0,1)
+        self.savedlg.close()
+        #self.running = False
+        return
+
+    def do_saveProject(self, filename, progress_callback=None):
         """Does the actual saving. Save sheets inculding table dataframes
            and meta data as dict to compressed pickle.
         """
 
         data={}
         for i in self.sheets:
-            #print (i)
             tablewidget = self.sheets[i]
             table = tablewidget.table
             data[i] = {}
-            #save dataframw with current column order
+            #save dataframe with current column order
             df = table.model.df
             cols = table.getColumnOrder()
             data[i]['table'] = df[cols]
@@ -863,6 +861,50 @@ class Application(QMainWindow):
 
         msg = QMessageBox.about(self, "About", text)
         return
+
+#https://www.learnpyqt.com/courses/concurrent-execution/multithreading-pyqt-applications-qthreadpool/
+class Worker(QtCore.QRunnable):
+    """Worker thread for running background tasks."""
+
+    def __init__(self, fn, *args, **kwargs):
+        super(Worker, self).__init__()
+        # Store constructor arguments (re-used for processing)
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = WorkerSignals()
+        self.kwargs['progress_callback'] = self.signals.progress
+
+    @QtCore.Slot()
+    def run(self):
+        try:
+            result = self.fn(
+                *self.args, **self.kwargs,
+            )
+        except:
+            traceback.print_exc()
+            exctype, value = sys.exc_info()[:2]
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
+        else:
+            self.signals.result.emit(result)
+        finally:
+            self.signals.finished.emit()
+
+class WorkerSignals(QtCore.QObject):
+    """
+    Defines the signals available from a running worker thread.
+    Supported signals are:
+    finished
+        No data
+    error
+        `tuple` (exctype, value, traceback.format_exc() )
+    result
+        `object` data returned from processing, anything
+    """
+    finished = QtCore.Signal()
+    error = QtCore.Signal(tuple)
+    result = QtCore.Signal(object)
+    progress = QtCore.Signal(str)
 
 def main():
     import sys, os
