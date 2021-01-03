@@ -628,14 +628,15 @@ class PivotDialog(BasicDialog):
         w.addItems(cols)
         l.addWidget(QLabel('Columns'))
         l.addWidget(w)
+        w = self.idxw = QListWidget(main)
+        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        w.addItems(cols)
+        l.addWidget(QLabel('Index'))
+        l.addWidget(w)
         w = self.valuesw = QListWidget(main)
         w.setSelectionMode(QAbstractItemView.MultiSelection)
         w.addItems(cols)
         l.addWidget(QLabel('Values'))
-        l.addWidget(w)
-        w = self.idxw = QListWidget(main)
-        w.addItems(cols)
-        l.addWidget(QLabel('Index'))
         l.addWidget(w)
         w = self.aggw = QListWidget(main)
         w.addItems(funcs)
@@ -652,10 +653,12 @@ class PivotDialog(BasicDialog):
 
         cols = [i.text() for i in self.columnsw.selectedItems()]
         vals =[i.text() for i in self.valuesw.selectedItems()]
-        idx = self.idxw.selectedItems()[0].text()
+        idx = [i.text() for i in self.idxw.selectedItems()]
         aggfuncs = [i.text() for i in self.aggw.selectedItems()]
         res = pd.pivot_table(self.df, index=idx, columns=cols, values=vals, aggfunc=aggfuncs)
-        print (res.columns)
+        names = res.index.names
+        res = res.reset_index(col_level=2)
+        print (res)
         if util.check_multiindex(res.columns) == 1:
             res.columns = res.columns.get_level_values(2)
 
@@ -950,3 +953,156 @@ class PreferencesDialog(QDialog):
         #cp = update_config(options)
         cp.write(open(default_conf,'w'))
         return
+
+class FilterDialog(QWidget):
+    """Qdialog for table query/filtering"""
+    def __init__(self, parent, table, title=None):
+
+        super(FilterDialog, self).__init__(parent)
+        self.parent = parent
+        #self.app = self.parent.app
+        self.table = table
+        self.setWindowTitle(title)
+        self.resize(400,200)
+        self.createWidgets()
+        #self.setMinimumHeight(200)
+        #self.show()
+        return
+
+    def createToolBar(self, parent):
+
+        items = {'Apply': {'action':self.apply,'file':'filter'},
+                 #'Add': {'action':self.addFilter,'file':'add'},
+                 'Refresh': {'action':self.refresh,'file':'table-refresh'},
+                 }
+        toolbar = QToolBar("Toolbar")
+        toolbar.setOrientation(Qt.Horizontal)
+        addToolBarItems(toolbar, self, items)
+        #vbox.addWidget(toolbar)
+        return toolbar
+
+    def createWidgets(self):
+        """Create widgets"""
+
+        df = self.table.model.df
+        cols = list(df.columns)
+        self.layout = QVBoxLayout(self)
+        self.setLayout(self.layout)
+        self.query_w = QLineEdit()
+        self.layout.addWidget(QLabel('String filter'))
+        self.layout.addWidget(self.query_w )
+        w = self.column_w = QListWidget()
+        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        #w.setFixedHeight(60)
+        w.addItems(cols)
+        self.layout.addWidget(QLabel('Filter Columns'))
+        self.layout.addWidget(self.column_w)
+        tb = self.createToolBar(self)
+        self.layout.addWidget(tb)
+        self.adjustSize()
+        return
+
+    def refresh(self):
+        """Reset the table"""
+
+        table = self.table
+        if table.filtered == True and hasattr(table, 'dataframe'):
+            table.model.df = table.dataframe
+            table.filtered = False
+            table.refresh()
+        return
+
+    def addFilter(self):
+        """Add a filter using widgets"""
+
+        df = self.table.model.df
+        #fb = FilterBar(self, self.fbar, list(df.columns))
+        #self.filters.append(fb)
+        return
+        
+    def apply(self):
+        """Apply filters"""
+
+        table = self.table
+        if table.filtered == True and hasattr(table, 'dataframe'):
+            table.model.df = table.dataframe
+        df = table.model.df
+        s = self.query_w.text()
+        cols = [i.text() for i in self.column_w.selectedItems()]
+        if len(cols)>0:
+            df = df[cols]
+        if s!='':
+            try:
+                mask = df.eval(s)
+            except:
+                mask = df.eval(s, engine='python')
+            df = df[mask]
+
+        self.filtdf = df
+        table.dataframe = table.model.df.copy()
+        table.filtered = True
+        table.model.df = df
+        table.model.layoutChanged.emit()
+        table.refresh()
+
+        return
+
+    def applyWidgetFilters(self, df, mask=None):
+        """Apply the widget based filters, returns a boolean mask"""
+
+        if mask is None:
+            mask = df.index==df.index
+
+        for f in self.filters:
+            col, val, op, b = f.getFilter()
+            try:
+                val = float(val)
+            except:
+                pass
+            #print (col, val, op, b)
+            if op == 'contains':
+                m = df[col].str.contains(str(val))
+            elif op == 'equals':
+                m = df[col]==val
+            elif op == 'not equals':
+                m = df[col]!=val
+            elif op == '>':
+                m = df[col]>val
+            elif op == '<':
+                m = df[col]<val
+            elif op == 'is empty':
+                m = df[col].isnull()
+            elif op == 'not empty':
+                m = ~df[col].isnull()
+            elif op == 'excludes':
+                m = -df[col].str.contains(val)
+            elif op == 'starts with':
+                m = df[col].str.startswith(val)
+            elif op == 'has length':
+                m = df[col].str.len()>val
+            elif op == 'is number':
+                m = df[col].astype('object').str.isnumeric()
+            elif op == 'is lowercase':
+                m = df[col].astype('object').str.islower()
+            elif op == 'is uppercase':
+                m = df[col].astype('object').str.isupper()
+            else:
+                continue
+            if b == 'AND':
+                mask = mask & m
+            elif b == 'OR':
+                mask = mask | m
+            elif b == 'NOT':
+                mask = mask ^ m
+        return mask
+
+    def onClose(self):
+
+        self.table.showAll()
+        self.close()
+
+
+class FilterBar(QWidget):
+    """Single Widget based filter"""
+    def __init__(self, parent):
+        super(FilterBar, self).__init__(parent)

@@ -53,6 +53,7 @@ icons = {'load': 'open', 'save': 'export',
          'aggregate':'aggregate',
          'pivot': 'pivot',
          'melt':'melt', 'merge':'merge',
+         'filter':'table-filter',
          'interpreter':'interpreter',
          'subtable':'subtable','clear':'clear'
          }
@@ -127,6 +128,7 @@ class DataFrameWidget(QWidget):
                  'pivot': {'action':self.pivot,'file':'pivot'},
                  'melt': {'action':self.melt,'file':'melt'},
                  'merge': {'action':self.merge,'file':'merge'},
+                 'filter':{'action':self.filter,'file':'table-filter'},
                  'interpreter': {'action':self.showInterpreter  ,'file':'interpreter'},
                  'subtable': {'action':self.subTableFromSelection,'file':'subtable'},
                  'clear': {'action':self.clear,'file':'clear'},
@@ -392,16 +394,19 @@ class DataFrameWidget(QWidget):
     def convertNumeric(self):
         """Convert cols to numeric if possible"""
 
+        df = self.table.model.df
+        idx = self.table.getSelectedColumns()
+
         types = ['float','int']
         opts = {'convert to':  {'type':'combobox','default':'int','items':types,'label':'Convert To',
                                         'tooltip':' '},
-                'removetext':  {'type':'checkbox','default':0,'label':'try to remove text',
+                'removetext':  {'type':'checkbox','default':0,'label':'Try to remove text',
                                                         'tooltip':' '},
-                'convert currency':  {'type':'checkbox','default':0,'label':'convert currency',
+                'convert currency':  {'type':'checkbox','default':0,'label':'Convert currency',
                                                         'tooltip':' '},
-                'selected columns only':  {'type':'checkbox','default':0,'label':'selected columns only',
+                'selected columns only':  {'type':'checkbox','default':0,'label':'Selected columns only',
                                                         'tooltip':' '},
-                'fill empty':  {'type':'checkbox','default':0,'label':'Fill Empty',
+                'fillempty':  {'type':'checkbox','default':0,'label':'Fill Empty',
                                                         'tooltip':' '},
                }
         dlg = dialogs.MultipleInputDialog(self, opts, title='Convert Numeric')
@@ -409,32 +414,31 @@ class DataFrameWidget(QWidget):
         if not dlg.accepted:
             return
         kwds = dlg.values
-
         convtype = kwds['convert to']
         currency = kwds['convert currency']
         removetext = kwds['removetext']
         useselected = kwds['selected columns only']
-        fillempty = kwds['fill empty']
+        fillempty = kwds['fillempty']
 
-        #cols = self.table.multiplecollist
-        df = self.table.model.df
-        if useselected == 1:
-            colnames = df.columns[cols]
+        if useselected == 1 and len(idx)>0:
+            colnames = df.columns[idx]
         else:
             colnames = df.columns
-
+        print (idx,colnames)
+        self.table.storeCurrent()
         for c in colnames:
-            x=df[c]
-            if fillempty == 1:
+            x = df[c]
+            if fillempty == 1 or convtype is int:
                 x = x.fillna(0)
             if currency == 1:
                 x = x.replace( '[\$\£\€,)]','', regex=True ).replace( '[(]','-', regex=True )
             if removetext == 1:
                 x = x.replace( '[^\d.]+', '', regex=True)
-            self.table.model.df[c] = pd.to_numeric(x, errors='coerce').astype(convtype)
-
+            try:
+                self.table.model.df[c] = pd.to_numeric(x, errors='coerce').astype(convtype)
+            except:
+                pass
         self.refresh()
-        #self.tableChanged()
         return
 
     def convertTypes(self):
@@ -446,6 +450,7 @@ class DataFrameWidget(QWidget):
         return
 
     def convertColumnNames(self):
+        """Reformat column names"""
 
         df = self.table.model.df
         opts = {'replace':  {'type':'entry','default':'','label':'Replace'},
@@ -582,9 +587,9 @@ class DataFrameWidget(QWidget):
                 'window': {'type':'spinbox','default':1, 'label':'Window','range':(1,1000)},
                 'periods': {'type':'spinbox','default':1, 'label':'Periods','range':(1,1000)},
                 'wintype': {'type':'combobox','default':'','items':wintypes,'label':'Window type'},
-                #'center':  {'type':'checkbox','default':True,'label':'Center window'},
+                'center':  {'type':'checkbox','default':True,'label':'Center window'},
                 'newcol':  {'type':'entry','default':'','label':'New column name'},
-                'inplace':  {'type':'checkbox','default':True,'label':'Update in place'},
+                'inplace':  {'type':'checkbox','default':False,'label':'Update in place'},
                 'suffix':  {'type':'entry','default':'_x','label':'Suffix'}
                }
 
@@ -603,11 +608,12 @@ class DataFrameWidget(QWidget):
         suffix = kwds['suffix']
         inplace = kwds['inplace']
         newcol = kwds['newcol']
+        center = kwds['center']
 
         if wintype == '':
             wintype=None
         if op == 'rolling window':
-            w = df[col].rolling(window=window, win_type=wintype, center=True)
+            w = df[col].rolling(window=window, win_type=wintype, center=center)
             func = self._getFunction(winfunc, obj=w)
             result = func()
         elif op == 'expanding':
@@ -726,7 +732,6 @@ class DataFrameWidget(QWidget):
                 new = new.astype(int)
             except:
                 pass
-            #self.table.model.df[prop] = new
 
             idx = df.columns.get_loc(column)
             df.insert(idx+1, prop, new)
@@ -797,11 +802,14 @@ class DataFrameWidget(QWidget):
             newcol = col+'_'+func
         else:
             newcol = col
-        #df[newcol] = x
+        if x is None:
+            print ('no function selected')
+            return
         if inplace == 0:
+            if newcol in df.columns:
+                df.drop(columns=newcol)
             idx = df.columns.get_loc(col)
             df.insert(idx+1, newcol, x)
-
         self.refresh()
         return
 
@@ -880,6 +888,25 @@ class DataFrameWidget(QWidget):
             return
         return
 
+    def filter(self):
+        """Show filter dialog"""
+
+        class SubWidget(QDockWidget):
+            def __init__(self, parent, table):
+                super(SubWidget, self).__init__(parent)
+                self.table=table
+                #self.setSizePolicy(QSizePolicy.Expanding , QSizePolicy.Expanding)
+            def closeEvent(self, ce):
+                self.table.showAll()
+
+        dock = self.filterdock = dock = SubWidget(self.splitter, self.table)
+        dock.setFeatures(QDockWidget.DockWidgetClosable)
+        dock.resize(200,100)
+        dlg = dialogs.FilterDialog(dock, self.table)
+        dock.setWidget(dlg)
+        #newtable.show()
+        return
+
     def getSelectedDataFrame(self):
         """Get selection as a dataframe"""
 
@@ -904,7 +931,7 @@ class DataFrameWidget(QWidget):
         newtable = SubTableWidget(self.subtabledock, dataframe=df, statusbar=False, font=FONT)
         self.subtabledock.setWidget(newtable)
         self.subtable = newtable
-        newtable.show()
+        #newtable.show()
 
         if hasattr(self, 'pf'):
             newtable.pf = self.pf
@@ -1007,6 +1034,7 @@ class DataFrameTable(QTableView):
         tm = DataFrameModel(dataframe)
         self.setModel(tm)
         self.model = tm
+        self.filtered = False
         #self.resizeColumnsToContents()
         self.setWordWrap(False)
         #temp file for undo
@@ -1016,19 +1044,6 @@ class DataFrameTable(QTableView):
         except:
             pass
         return
-
-    '''def dragEnterEvent(self, event):
-        event.accept()
-
-    def dragMoveEvent(self, event):
-        print('drop')
-        event.accept()
-
-    def dropEvent(self, event):
-        print('drop')
-        point = event.pos()
-        self.model().moveColumns(QModelIndex(), 1, 1, QModelIndex(), 0)
-        event.accept()'''
 
     def updateFont(self):
         """Update the font"""
@@ -1047,6 +1062,15 @@ class DataFrameTable(QTableView):
         self.model.endResetModel()
         if hasattr(self.parent,'statusbar'):
             self.parent.updateStatusBar()
+        return
+
+    def showAll(self):
+        """Re-show unfiltered"""
+
+        if hasattr(self, 'dataframe'):
+            self.model.df = self.dataframe
+        self.filtered = False
+        self.refresh()
         return
 
     def storeCurrent(self):
@@ -1440,7 +1464,7 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         i = index.row()
         j = index.column()
         if role == QtCore.Qt.DisplayRole:
-            value = self.df.iloc[i, j]        
+            value = self.df.iloc[i, j]
             if type(value) != str:
                 if type(value) in [float,np.float64] and np.isnan(value):
                     return ''

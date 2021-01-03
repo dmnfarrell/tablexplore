@@ -25,18 +25,17 @@ from __future__ import absolute_import, division, print_function
 import sys,os,random
 from collections import OrderedDict
 
-try:
-    from pandas import plotting
-except ImportError:
-    from pandas.tools import plotting
 import matplotlib as mpl
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-#from matplotlib.mlab import griddata
 from matplotlib.lines import Line2D
+try:
+    from pandas import plotting
+except ImportError:
+    from pandas.tools import plotting
 import numpy as np
 import pandas as pd
 from PySide2 import QtCore
@@ -126,6 +125,19 @@ class PlotViewer(QWidget):
         self.style = None
         return
 
+    def addPlotWidget(self):
+        """Create mpl plot canvas and toolbar"""
+
+        layout = self.left
+        vbox = self.vbox
+        self.canvas = PlotWidget(layout)
+        self.fig = self.canvas.figure
+        self.ax = self.canvas.ax
+        self.toolbar = NavigationToolbar(self.canvas, layout)
+        vbox.addWidget(self.toolbar)
+        vbox.addWidget(self.canvas)
+        return
+
     def createWidgets(self):
         """Create widgets. Plot on left and dock for tools on right."""
 
@@ -135,18 +147,10 @@ class PlotViewer(QWidget):
         self.left = left = QWidget(self.main)
         hbox.addWidget(left)
 
-        self.vbox = vbox = QVBoxLayout(left)
         #bw = self.createButtons(left)
         #vbox.addWidget(bw)
-
-        self.canvas = PlotWidget(left)
-        self.fig = self.canvas.figure
-        self.ax = self.canvas.ax
-        self.toolbar = NavigationToolbar(self.canvas, left)
-        vbox.addWidget(self.toolbar)
-        #self.fig, self.canvas = addFigure(left)
-        #self.ax = self.fig.add_subplot(111)
-        vbox.addWidget(self.canvas)
+        self.vbox = vbox = QVBoxLayout(left)
+        self.addPlotWidget()
 
         dock = QDockWidget('options',self)
         dock.setMaximumWidth(250)
@@ -299,10 +303,10 @@ class PlotViewer(QWidget):
 
         plot3d = self.generalopts.kwds['3D plot']
         self._initFigure()
-        #if plot3d == 1:
-        #    self.plot3D(redraw=redraw)
-        #else:
-        self.plot2D(redraw=redraw)
+        if plot3d == 1:
+            self.plot3D(redraw=redraw)
+        else:
+            self.plot2D(redraw=redraw)
         return
 
     def applyPlotoptions(self):
@@ -365,47 +369,20 @@ class PlotViewer(QWidget):
         """Clear figure or add a new axis to existing layout"""
 
         from matplotlib.gridspec import GridSpec
-        layout = 0 #self.globalopts.kwds['grid layout']
         plot3d = self.generalopts.kwds['3D plot']
-        #plot layout should be tracked by plotlayoutoptions
-        #gl = self.layoutopts
-
         if plot3d == 1:
-            proj = '3d'
+            #self.canvas.close()
+            #self.toolbar.close()
+            #self.addPlotWidget()
+            self.ax = self.fig.add_subplot(1, 1, 1, projection='3d',label='3d')
+            self.ax.mouse_init()
+            print (self.ax)
         else:
-            proj = None
-        if layout == 0:
             #default layout is just a single axis
             self.fig.clear()
             self.gridaxes = {}
-            self.ax = self.fig.add_subplot(111, projection=proj)
-        '''else:
-            #get grid layout from layout opt
-            rows = gl.rows
-            cols = gl.cols
-            x = gl.selectedrows
-            y = gl.selectedcols
-            r=min(x); c=min(y)
-            rowspan = gl.rowspan
-            colspan = gl.colspan
-            top = .92
-            bottom = .1
-            #print (rows,cols,r,c)
-            #print (rowspan,colspan)
+            self.ax = self.fig.add_subplot(111)
 
-            ws = cols/10-.05
-            hs = rows/10-.05
-            gs = self.gridspec = GridSpec(rows,cols,top=top,bottom=bottom,
-                                          left=0.1,right=0.9,wspace=ws,hspace=hs)
-            name = str(r+1)+','+str(c+1)
-            if name in self.gridaxes:
-                ax = self.gridaxes[name]
-                if ax in self.fig.axes:
-                    self.fig.delaxes(ax)
-            self.ax = self.fig.add_subplot(gs[r:r+rowspan,c:c+colspan], projection=proj)
-            self.gridaxes[name] = self.ax
-            #update the axes widget
-            self.layoutopts.updateAxesList()'''
         return
 
     def plot2D(self, redraw=True):
@@ -1117,18 +1094,172 @@ class PlotViewer(QWidget):
     def meshData(self, x,y,z):
         """Prepare 1D data for plotting in the form (x,y)->Z"""
 
-        '''x = np.random.uniform(-2,2,50)
-        y = np.random.uniform(-2,2,50)
-        z = x*np.exp(-x**2-y**2)
-        # define grid.
-        xi = np.linspace(-2.1,2.1,100)
-        yi = np.linspace(-2.1,2.1,100)'''
-
         xi = np.linspace(x.min(), x.max())
         yi = np.linspace(y.min(), y.max())
         zi = griddata(x, y, z, xi, yi, interp='linear')
         X, Y = np.meshgrid(xi, yi)
         return X,Y,zi
+
+    def getcmap(self, name):
+        try:
+            return plt.cm.get_cmap(name)
+        except:
+            return plt.cm.get_cmap('Spectral')
+
+    def getView(self):
+        ax = self.ax
+        if hasattr(ax,'azim'):
+            azm=ax.azim
+            ele=ax.elev
+            dst=ax.dist
+        else:
+            return None,None,None
+        return azm,ele,dst
+
+    def plot3D(self, redraw=True):
+        """3D plot"""
+
+        if not hasattr(self, 'data') or len(self.data.columns)<3:
+            return
+        kwds = self.generalopts.kwds.copy()
+        #use base options by joining the dicts
+        #kwds.update(self.mplopts3d.kwds)
+        kwds.update(self.labelopts.kwds)
+        #print (kwds)
+        data = self.data
+        x = data.values[:,0]
+        y = data.values[:,1]
+        z = data.values[:,2]
+        azm,ele,dst = self.getView()
+
+        #self.fig.clear()
+        ax = self.ax# = Axes3D(self.fig)
+        kind = kwds['kind']
+        #mode = kwds['mode']
+        #rstride = kwds['rstride']
+        #cstride = kwds['cstride']
+        lw = kwds['linewidth']
+        alpha = kwds['alpha']
+        cmap = kwds['colormap']
+
+        if kind == 'scatter':
+            self.scatter3D(data, ax, kwds)
+        elif kind == 'bar':
+            self.bar3D(data, ax, kwds)
+        elif kind == 'contour':
+            from scipy.interpolate import griddata
+            xi = np.linspace(x.min(), x.max())
+            yi = np.linspace(y.min(), y.max())
+            zi = griddata((x, y), z, (xi[None,:], yi[:,None]), method='cubic')
+            surf = ax.contour(xi, yi, zi, rstride=rstride, cstride=cstride,
+                              cmap=kwds['colormap'], alpha=alpha,
+                              linewidth=lw, antialiased=True)
+        elif kind == 'wireframe':
+            if mode == '(x,y)->z':
+                X,Y,zi = self.meshData(x,y,z)
+            else:
+                X,Y,zi = x,y,z
+            w = ax.plot_wireframe(X, Y, zi, rstride=rstride, cstride=cstride,
+                                  linewidth=lw)
+        elif kind == 'surface':
+            X,Y,zi = self.meshData(x,y,z)
+            surf = ax.plot_surface(X, Y, zi, rstride=rstride, cstride=cstride,
+                                   cmap=cmap, alpha=alpha,
+                                   linewidth=lw)
+            cb = self.fig.colorbar(surf, shrink=0.5, aspect=5)
+            surf.set_clim(vmin=zi.min(), vmax=zi.max())
+        #if kwds['points'] == True:
+        #    self.scatter3D(data, ax, kwds)
+
+        self.setFigureOptions(ax, kwds)
+        if azm!=None:
+            self.ax.azim = azm
+            self.ax.elev = ele
+            self.ax.dist = dst
+        #handles, labels = self.ax.get_legend_handles_labels()
+        #self.fig.legend(handles, labels)
+        self.canvas.draw()
+        return
+
+    def bar3D(self, data, ax, kwds):
+        """3D bar plot"""
+
+        i=0
+        plots=len(data.columns)
+        cmap = plt.cm.get_cmap(kwds['colormap'])
+        for c in data.columns:
+            h = data[c]
+            c = cmap(float(i)/(plots))
+            ax.bar(data.index, h, zs=i, zdir='y', color=c)
+            i+=1
+
+    def scatter3D(self, data, ax, kwds):
+        """3D scatter plot"""
+
+        def doscatter(data, ax, color=None, pointlabels=None):
+            data = data._get_numeric_data()
+            l = len(data.columns)
+            if l<3: return
+
+            X = data.values
+            x = X[:,0]
+            y = X[:,1]
+            handles=[]
+            labels=data.columns[2:]
+            for i in range(2,l):
+                z = X[:,i]
+                if color == None:
+                    c = cmap(float(i)/(l))
+                else:
+                    c = color
+                c='blue'
+                h=ax.scatter(x, y, z, edgecolor='black', linewidth=lw, facecolor=c,
+                           alpha=alpha, marker=marker, s=ms)
+                handles.append(h)
+            if pointlabels is not None:
+                trans_offset = mtrans.offset_copy(ax.transData, fig=self.fig,
+                                  x=0.05, y=0.10, units='inches')
+                for i in zip(x,y,z,pointlabels):
+                    txt=i[3]
+                    ax.text(i[0],i[1],i[2], txt, None,
+                    transform=trans_offset)
+
+            return handles,labels
+
+        lw = kwds['linewidth']
+        alpha = kwds['alpha']/10
+        ms = kwds['ms']*6
+        marker = kwds['marker']
+        if marker=='':
+            marker='o'
+        by = kwds['by']
+        legend = kwds['legend']
+        cmap = self.getcmap(kwds['colormap'])
+        labelcol = kwds['labelcol']
+        handles=[]
+        pl=None
+        if by != '':
+            if by not in data.columns:
+                self.showWarning('grouping column not in selection')
+                return
+            g = data.groupby(by)
+            i=0
+            pl=None
+            for n,df in g:
+                c = cmap(float(i)/(len(g)))
+                if labelcol != '':
+                    pl = df[labelcol]
+                h,l = doscatter(df, ax, color=c, pointlabels=pl)
+                handles.append(h[0])
+                i+=1
+            self.fig.legend(handles, g.groups)
+
+        else:
+            if labelcol != '':
+                pl = data[labelcol]
+            handles,lbls=doscatter(data, ax, pointlabels=pl)
+            self.fig.legend(handles, lbls)
+        return
 
     def checkColumnNames(self, cols):
         """Check length of column names"""

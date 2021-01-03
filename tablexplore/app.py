@@ -79,6 +79,7 @@ class Application(QMainWindow):
             self.importFile(csv_file)
         else:
             self.newProject()
+        self.threadpool = QtCore.QThreadPool()
         return
 
     def loadSettings(self):
@@ -402,10 +403,67 @@ class Application(QMainWindow):
             self.filename += '.txpl'
         self.defaultsavedir = os.path.dirname(os.path.abspath(filename))
         self.do_saveProject(self.filename)
+        #self.saveWithProgress(self.filename)
+        return
+
+    def saveWithProgress(self, filename):
+        """Save with progress bar"""
+
+        class ProgressWidget(QDialog):
+
+            def __init__(self, parent=None):
+                super(ProgressWidget, self).__init__(parent)
+                layout = QVBoxLayout(self)
+                self.setWindowTitle('Saving..')
+                self.setGeometry(500, 400, 400, 200)
+
+                #self.setGeometry(QtCore.QRect(200, 200, width, height))
+
+                self.setGeometry(
+                        QStyle.alignedRect(
+                            QtCore.Qt.LeftToRight,
+                            QtCore.Qt.AlignCenter,
+                            self.size(),
+                            QGuiApplication.primaryScreen().availableGeometry(),
+                        ))
+                # Create a progress bar
+                self.progressbar = QProgressBar(self)
+                self.progressbar.setRange(0,0)
+                layout.addWidget(self.progressbar)
+                self.progressbar.setGeometry(30, 40, 400, 200)
+                #button = QPushButton("Start", self)
+                #layout.addWidget(button)
+                #button.clicked.connect(self.onStart)
+
+            def start(self):
+                self.progressbar.setRange(0,0)
+
+            def onFinished(self):
+                print ('stop')
+                self.progressbar.setRange(0,1)
+                self.close()
+
+        class SaveThread(QtCore.QThread):
+            taskFinished = Signal()
+            def run(self):
+                print('run')
+                time.sleep(3)
+                #self.do_saveProject(self.filename)
+                #func()
+                self.taskFinished.emit()
+
+        dlg = ProgressWidget()
+        dlg.exec_()
+        func = lambda: time.sleep(5)
+        self.savetask = SaveThread()
+        self.savetask.taskFinished.connect(dlg.onFinished)
+        self.savetask.start()
         return
 
     def do_saveProject(self, filename):
-        """Save sheets as dict to pickle"""
+        """Does the actual saving. Save sheets inculding table dataframes
+           and meta data as dict to compressed pickle.
+        """
 
         data={}
         for i in self.sheets:
