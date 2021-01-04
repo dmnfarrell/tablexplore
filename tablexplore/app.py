@@ -470,7 +470,10 @@ class Application(QMainWindow):
             table = tablewidget.table
             data[i] = {}
             #save dataframe with current column order
-            df = table.model.df
+            if table.filtered == True:
+                df = table.dataframe
+            else:
+                df = table.model.df
             cols = table.getColumnOrder()
             data[i]['table'] = df[cols]
             data[i]['meta'] = self.saveMeta(tablewidget)

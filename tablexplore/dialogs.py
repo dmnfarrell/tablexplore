@@ -965,6 +965,7 @@ class FilterDialog(QWidget):
         self.setWindowTitle(title)
         self.resize(400,200)
         self.createWidgets()
+        self.filters = []
         #self.setMinimumHeight(200)
         #self.show()
         return
@@ -972,7 +973,7 @@ class FilterDialog(QWidget):
     def createToolBar(self, parent):
 
         items = {'Apply': {'action':self.apply,'file':'filter'},
-                 #'Add': {'action':self.addFilter,'file':'add'},
+                 'Add': {'action':self.addFilter,'file':'add'},
                  'Refresh': {'action':self.refresh,'file':'table-refresh'},
                  }
         toolbar = QToolBar("Toolbar")
@@ -1012,14 +1013,24 @@ class FilterDialog(QWidget):
             table.refresh()
         return
 
+    def update(self):
+        """Update the column widgets if table has changed"""
+
+        df = self.table.model.df
+        cols = list(df.columns)
+        self.column_w.clear()
+        self.column_w.addItems(cols)
+        return
+
     def addFilter(self):
         """Add a filter using widgets"""
 
         df = self.table.model.df
-        #fb = FilterBar(self, self.fbar, list(df.columns))
-        #self.filters.append(fb)
+        fb = FilterBar(self, self.table)
+        self.layout.insertWidget(4,fb)
+        self.filters.append(fb)
         return
-        
+
     def apply(self):
         """Apply filters"""
 
@@ -1027,6 +1038,8 @@ class FilterDialog(QWidget):
         if table.filtered == True and hasattr(table, 'dataframe'):
             table.model.df = table.dataframe
         df = table.model.df
+        mask = None
+
         s = self.query_w.text()
         cols = [i.text() for i in self.column_w.selectedItems()]
         if len(cols)>0:
@@ -1036,8 +1049,13 @@ class FilterDialog(QWidget):
                 mask = df.eval(s)
             except:
                 mask = df.eval(s, engine='python')
-            df = df[mask]
 
+        #add widget based filters
+        if len(self.filters)>0:
+            mask = self.applyWidgetFilters(df, mask)
+        #apply mask
+        if mask is not None:
+            df = df[mask]
         self.filtdf = df
         table.dataframe = table.model.df.copy()
         table.filtered = True
@@ -1059,7 +1077,7 @@ class FilterDialog(QWidget):
                 val = float(val)
             except:
                 pass
-            #print (col, val, op, b)
+            print (col, val, op, b)
             if op == 'contains':
                 m = df[col].str.contains(str(val))
             elif op == 'equals':
@@ -1101,8 +1119,55 @@ class FilterDialog(QWidget):
         self.table.showAll()
         self.close()
 
-
 class FilterBar(QWidget):
     """Single Widget based filter"""
-    def __init__(self, parent):
+    def __init__(self, parent, table):
         super(FilterBar, self).__init__(parent)
+        self.parent = parent
+        #self.app = self.parent.app
+        self.table = table
+        self.createWidgets()
+
+    def createWidgets(self):
+        """Create widgets"""
+
+        operators = ['contains','excludes','equals','not equals','>','<','is empty','not empty',
+                     'starts with','ends with','has length','is number','is lowercase','is uppercase']
+        booleanops = ['AND','OR','NOT']
+        df = self.table.model.df
+        cols = list(df.columns)
+        l = self.layout = QHBoxLayout(self)
+        self.setLayout(self.layout)
+        w = self.boolean_w = QComboBox()
+        w.addItems(booleanops)
+        l.addWidget(self.boolean_w)
+        w = self.column_w = QComboBox()
+        w.addItems(cols)
+        #l.addWidget(QLabel('Column:'))
+        l.addWidget(self.column_w)
+        w = self.operator_w = QComboBox()
+        w.addItems(operators)
+        l.addWidget(self.operator_w)
+
+        self.term_w = QLineEdit()
+        l.addWidget(self.term_w )
+        icon = QIcon(os.path.join(iconpath,'remove.png'))
+        btn = QPushButton()
+        btn.setIcon(icon)
+        btn.setMaximumWidth(30)
+        btn.clicked.connect(self.onClose)
+        l.addWidget(btn)
+        return
+
+    def getFilter(self):
+        """Get filter values for this instance"""
+
+        col = self.column_w.currentText()
+        val = self.term_w.text()
+        op = self.operator_w.currentText()
+        booleanop = self.boolean_w.currentText()
+        return col, val, op, booleanop
+
+    def onClose(self, ce):
+        self.parent.filters.remove(self)
+        self.close()

@@ -794,7 +794,11 @@ class PlotViewer(QWidget):
             axs = data.plot(ax=ax, layout=layout, yerr=yerr, style=styles, cmap=cmap,
                              **kwargs)
         self._setAxisRanges()
-        self._setAxisTickFormat()
+        if axes_layout == 'multiple':
+            for ax in self.fig.axes:
+                self._setAxisTickFormat(ax)
+        else:
+            self._setAxisTickFormat(self.ax)
         return axs
 
     def setStyle(self):
@@ -823,12 +827,13 @@ class PlotViewer(QWidget):
             pass
         return
 
-    def _setAxisTickFormat(self):
+    def _setAxisTickFormat(self, ax):
         """Set axis tick format"""
 
         import matplotlib.ticker as mticker
+        import matplotlib.dates as mdates
         kwds = self.axesopts.kwds
-        ax = self.ax
+        #ax = self.ax
         data = self.data
         cols = list(data.columns)
         x = data[cols[0]]
@@ -838,7 +843,8 @@ class PlotViewer(QWidget):
         ymt = kwds['minor y-ticks']
         symbol = kwds['symbol']
         places = kwds['precision']
-        #dateformat = kwds['date format']
+        dateformat = kwds['date format']
+
         if xt != 0:
             ax.xaxis.set_major_locator(mticker.MaxNLocator(nbins=xt))
         if yt != 0:
@@ -857,12 +863,12 @@ class PlotViewer(QWidget):
         elif formatter == 'sci notation':
             ax.xaxis.set_major_formatter(mticker.LogFormatterSciNotation())
         elif formatter == 'date':
-            import matplotlib.dates as mdates
-            #ax.xaxis.set_major_formatter(mdates.DateFormatter(dateformat))
             locator = mdates.AutoDateLocator(minticks=4, maxticks=10)
             formatter = mdates.ConciseDateFormatter(locator)
             ax.xaxis.set_major_locator(locator)
             ax.xaxis.set_major_formatter(formatter)
+        if dateformat != '':
+            ax.xaxis.set_major_formatter(mdates.DateFormatter(dateformat))
         return
 
     def scatter(self, df, ax, axes_layout='single', alpha=0.8, marker='o', color=None, **kwds):
@@ -1512,7 +1518,7 @@ class AxesOptions(BaseOptions):
                               'axis ranges':['xmin','xmax','ymin','ymax'],
                               'axis tick positions':['major x-ticks','major y-ticks',
                                                    'minor x-ticks','minor y-ticks'],
-                              'tick label format':['formatter','symbol','precision'],
+                              'tick label format':['formatter','date format','symbol','precision'],
                              })
         opts = self.opts = {'rows':{'type':'spinbox','default':0},
                             'cols':{'type':'spinbox','default':0},
@@ -1527,7 +1533,7 @@ class AxesOptions(BaseOptions):
                             'formatter':{'type':'combobox','items':formats,'default':'auto'},
                             'symbol':{'type':'entry','default':''},
                             'precision':{'type':'entry','default':0},
-                            #'date format':{'type':'combobox','items':datefmts,'default':''}
+                            'date format':{'type':'combobox','items':datefmts,'default':''}
                             }
         self.kwds = {}
         return

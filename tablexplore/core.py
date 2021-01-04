@@ -81,6 +81,7 @@ class DataFrameWidget(QWidget):
         self.table = DataFrameTable(self, dataframe, font=font,
                                     fontsize=fontsize, align=textalignment)
         self.splitter.addWidget(self.table)
+        self.splitter.setSizes((500,200))
         if toolbar == True:
             self.createToolbar()
         if statusbar == True:
@@ -90,6 +91,7 @@ class DataFrameWidget(QWidget):
         self.pyconsole = None
         self.subtabledock = None
         self.subtable = None
+        self.filterdock = None
         self.mode = 'default'
         self.table.model.dataChanged.connect(self.stateChanged)
         return
@@ -916,12 +918,16 @@ class DataFrameWidget(QWidget):
             def closeEvent(self, ce):
                 self.table.showAll()
 
-        dock = self.filterdock = dock = SubWidget(self.splitter, self.table)
-        dock.setFeatures(QDockWidget.DockWidgetClosable)
-        dock.resize(200,100)
-        dlg = dialogs.FilterDialog(dock, self.table)
-        dock.setWidget(dlg)
-        #newtable.show()
+        if self.filterdock == None:
+            dock = self.filterdock = dock = SubWidget(self.splitter, self.table)
+            dock.setFeatures(QDockWidget.DockWidgetClosable)
+            self.splitter.setSizes((500,200))
+            self.filterdialog = dlg = dialogs.FilterDialog(dock, self.table)
+            dock.setWidget(dlg)
+        else:
+            self.filterdock.show()
+            self.splitter.setSizes((500,200))
+            self.filterdialog.update()
         return
 
     def getSelectedDataFrame(self):
@@ -943,12 +949,12 @@ class DataFrameWidget(QWidget):
             self.subtabledock = dock = QDockWidget(self.splitter)
             dock.setFeatures(QDockWidget.DockWidgetClosable)
             self.splitter.addWidget(dock)
+            self.splitter.setSizes((500,200))
 
         self.subtabledock.show()
         newtable = SubTableWidget(self.subtabledock, dataframe=df, statusbar=False, font=FONT)
         self.subtabledock.setWidget(newtable)
         self.subtable = newtable
-        #newtable.show()
 
         if hasattr(self, 'pf'):
             newtable.pf = self.pf
@@ -996,6 +1002,7 @@ class DataFrameWidget(QWidget):
             self.splitter.addWidget(dock)
             self.pyconsole = interpreter.TerminalPython(dock, table=self.table, app=self.app)
             dock.setWidget(self.pyconsole)
+            self.splitter.setSizes((500,300))
         else:
             self.consoledock.show()
         return
