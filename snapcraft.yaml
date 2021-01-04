@@ -16,8 +16,6 @@ apps:
   tablexplore:
     command: desktop-launch $SNAP/bin/tablexplore
     environment:
-      #PYTHONPATH: $SNAP/pyside/pyside
-      #LIBGL_DRIVERS_PATH: $SNAP/usr/lib/$ARCH/dri
       XCOMPOSEFILE: $SNAP/usr/share/X11/locale/en_US.UTF-8/Compose
       FONTCONFIG_PATH: $SNAP/etc/fonts/conf.d
       FONTCONFIG_FILE: $SNAP/etc/fonts/fonts.conf
@@ -34,29 +32,27 @@ parts:
   tablexplore:
     plugin: python
     source: .
-    stage-packages:  
-      - libnss3
-      - libxcomposite1
-      - libxcursor1
-      - libxtst6
-      - libxrandr2
-      - libasound2
-      - libglu1-mesa
-      - libgles2-mesa
-      - fontconfig
-      - libxkbcommon0
-      - libxkbcommon-x11-0
-      - libxi6
-      - libegl1
-      - shared-mime-info
-      - libgdk-pixbuf2.0-0
-      - locales-all
-      - libxslt1.1
-      - xfonts-base
-      - xfonts-scalable
+    after: [desktop-qt5]
 
-#layout:
-#  /usr/share/fonts:
-#    bind: $SNAP/pyside/usr/share/fonts
-#  /etc/fonts:
-#    bind: $SNAP/pyside/etc/fonts
+  desktop-qt5:
+    build-packages:
+      - qtbase5-dev
+      - dpkg-dev
+    make-parameters:
+      - FLAVOR=qt5
+    plugin: make
+    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+    source-subdir: qt
+    stage-packages:
+      - libxkbcommon0
+      - ttf-ubuntu-font-family
+      - dmz-cursor-theme
+      - light-themes
+      - adwaita-icon-theme
+      - gnome-themes-standard
+      - shared-mime-info
+      - libqt5gui5
+      - libgdk-pixbuf2.0-0
+      - libqt5svg5
+      - locales-all
+      - xdg-user-dirs
