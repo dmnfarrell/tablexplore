@@ -903,14 +903,14 @@ class PreferencesDialog(QDialog):
         import pylab as plt
         colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
         self.opts = {'rowheight':{'type':'spinbox','default':18,'range':(5,50),'label':'row height'},
-                #'cellwidth':{'type':'spinbox','default':80,'range':(10,300),'label':'cell width'},
+                'columnwidth':{'type':'spinbox','range':(10,300),
+                'default': options['columnwidth'], 'label':'column width'},
                 'alignment':{'type':'combobox','default':'w','items':['left','right','center'],'label':'text align'},
                 'font':{'type':'font','default':'Arial','default':options['font']},
-                #'fontstyle':{'type':'combobox','default':'','items':['','bold','italic']},
                 'fontsize':{'type':'slider','default':options['fontsize'],'range':(5,40),'interval':1,'label':'font size'},
                 'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
                 }
-        sections = {'table':['alignment','rowheight'],
+        sections = {'table':['alignment','rowheight','columnwidth'],
                     'formats':['font','fontsize','floatprecision']}
 
         dialog, self.widgets = dialogFromOptions(self, self.opts, sections)
@@ -941,16 +941,13 @@ class PreferencesDialog(QDialog):
         from . import core
         core.FONT = kwds['font']
         core.FONTSIZE = kwds['fontsize']
+        core.COLUMNWIDTH = kwds['columnwidth']
         self.parent.refresh()
         return
 
     def save(self):
         """Save from current dialog settings"""
 
-        #options = dialogs.getDictfromTkVars(self.opts, self.tkvars, self.widgets)
-        #print (options)
-        #update configparser and write
-        #cp = update_config(options)
         cp.write(open(default_conf,'w'))
         return
 

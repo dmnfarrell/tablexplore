@@ -37,6 +37,7 @@ MODES = ['default','spreadsheet','locked']
 FONT = 'monospace'
 FONTSIZE = 12
 FONTSTYLE = ''
+COLUMNWIDTH = 80
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -71,15 +72,14 @@ class RowHeader(QHeaderView):
 class DataFrameWidget(QWidget):
     """Widget containing a tableview and toolbars"""
     def __init__(self, parent=None, dataframe=None, app=None,
-                 toolbar=True, statusbar=True, font='Arial', fontsize=12, *args):
+                 toolbar=True, statusbar=True, **kwargs):
 
         super(DataFrameWidget, self).__init__()
         self.splitter = QSplitter(Qt.Vertical, self)
         l = self.layout = QGridLayout()
         l.setSpacing(2)
         l.addWidget(self.splitter,1,1)
-        self.table = DataFrameTable(self, dataframe, font=font,
-                                    fontsize=fontsize, align=textalignment)
+        self.table = DataFrameTable(self, dataframe, **kwargs)
         self.splitter.addWidget(self.table)
         self.splitter.setSizes((500,200))
         if toolbar == True:
@@ -1012,12 +1012,13 @@ class DataFrameTable(QTableView):
     QTableView with pandas DataFrame as model.
     """
     def __init__(self, parent=None, dataframe=None, font='Arial',
-                    fontsize=12, align=None, *args):
+                    fontsize=12, columnwidth=80, align=None, **kwargs):
 
         QTableView.__init__(self)
         self.parent = parent
         self.font = font
         self.fontsize = fontsize
+        self.columnwidth=columnwidth
         self.clicked.connect(self.showSelection)
         #self.doubleClicked.connect(self.handleDoubleClick)
         #self.setSelectionBehavior(QTableView.SelectRows)
@@ -1036,6 +1037,7 @@ class DataFrameTable(QTableView):
         hh.setVisible(True)
         #hh.setStretchLastSection(True)
         #hh.setSectionResizeMode(QHeaderView.Interactive)
+        hh.setDefaultSectionSize(columnwidth)
         hh.setSelectionBehavior(QTableView.SelectColumns)
         hh.setSectionsMovable(True)
         hh.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -1081,6 +1083,7 @@ class DataFrameTable(QTableView):
         """Refresh table if dataframe is changed"""
 
         self.updateFont()
+        self.horizontalHeader().setDefaultSectionSize(COLUMNWIDTH)
         self.model.beginResetModel()
         self.model.dataChanged.emit(0,0)
         self.model.endResetModel()

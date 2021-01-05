@@ -1,5 +1,5 @@
 name: tablexplore
-version: 'latest'
+version: '0.3.0'
 #version-script: git describe --abbrev=1 --tags
 summary: data plotting and analysis package
 description: |
@@ -10,49 +10,22 @@ description: |
 base: core18
 grade: stable
 confinement: strict
-icon: gui/icon.png
+icon: snap/gui/icon.png
 
 apps:
   tablexplore:
     command: desktop-launch $SNAP/bin/tablexplore
-    environment:
-      XCOMPOSEFILE: $SNAP/usr/share/X11/locale/en_US.UTF-8/Compose
-      FONTCONFIG_PATH: $SNAP/etc/fonts/conf.d
-      FONTCONFIG_FILE: $SNAP/etc/fonts/fonts.conf
+    extensions:
+      - kde-neon
     plugs:
-      - opengl
-      - desktop
-      - desktop-legacy
-      - unity7
-      - wayland
-      - x11
       - home
+      - opengl
+      - network
+      - network-bind
 
 parts:
   tablexplore:
     plugin: python
     source: .
-    after: [desktop-qt5]
-
-  desktop-qt5:
-    build-packages:
-      - qtbase5-dev
-      - dpkg-dev
-    make-parameters:
-      - FLAVOR=qt5
-    plugin: make
-    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
-    source-subdir: qt
     stage-packages:
-      - libxkbcommon0
-      - ttf-ubuntu-font-family
-      - dmz-cursor-theme
-      - light-themes
-      - adwaita-icon-theme
-      - gnome-themes-standard
-      - shared-mime-info
-      - libqt5gui5
-      - libgdk-pixbuf2.0-0
-      - libqt5svg5
-      - locales-all
-      - xdg-user-dirs
+        - xsel

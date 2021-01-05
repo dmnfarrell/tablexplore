@@ -112,6 +112,7 @@ class Application(QMainWindow):
             self.setStyle(s.value('style'))
             core.FONT = s.value("font")
             core.FONTSIZE = int(s.value("fontsize"))
+            core.COLUMNWIDTH = int(s.value("columnwidth"))
             r = s.value("recent_files")
             if r != '':
                 self.recent_files = r.split(',')
@@ -129,6 +130,7 @@ class Application(QMainWindow):
         self.settings.setValue('window_size', self.size())
         self.settings.setValue('window_position', self.pos())
         self.settings.setValue('style', self.style)
+        self.settings.setValue('columnwidth', core.COLUMNWIDTH)
         self.settings.setValue('font', core.FONT)
         self.settings.setValue('fontsize', core.FONTSIZE)
         self.settings.setValue('recent_files',','.join(self.recent_files))
@@ -614,7 +616,8 @@ class Application(QMainWindow):
         idx = self.main.addTab(sheet, name)
         #provide reference to self to dataframewidget
         dfw = DataFrameWidget(sheet, dataframe=df, app=self,
-                                font=core.FONT, fontsize=core.FONTSIZE)
+                                font=core.FONT, fontsize=core.FONTSIZE,
+                                columnwidth=core.COLUMNWIDTH)
         sheet.addWidget(dfw)
 
         self.sheets[name] = dfw
@@ -830,7 +833,8 @@ class Application(QMainWindow):
         """Preferences dialog"""
 
         from . import dialogs
-        opts = {'font':core.FONT, 'fontsize':core.FONTSIZE}
+        opts = {'font':core.FONT, 'fontsize':core.FONTSIZE,
+                'columnwidth':core.COLUMNWIDTH}
         dlg = dialogs.PreferencesDialog(self, opts)
         dlg.exec_()
         return

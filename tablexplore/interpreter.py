@@ -88,6 +88,8 @@ class Interpreter(code.InteractiveConsole):
         self.table = table
         self.app = app
         context.update({'df':table.model.df})
+        import pandas as pd
+        context.update({'pd':pd})
         return
 
     def write(self, data):
