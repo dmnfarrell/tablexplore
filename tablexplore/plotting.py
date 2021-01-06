@@ -153,11 +153,17 @@ class PlotViewer(QWidget):
         self.addPlotWidget()
 
         dock = QDockWidget('options',self)
-        dock.setMaximumWidth(250)
+        dock.setMaximumWidth(270)
         dock.setMinimumWidth(200)
+        scrollarea = QScrollArea(dock)
+        scrollarea.setWidgetResizable(True)
+        dock.setWidget(scrollarea)
+        toolsarea = QWidget()
+        toolsarea.setMinimumSize(180,900)
+        scrollarea.setWidget(toolsarea)
         hbox.addWidget(dock)
-        ow = self.createDialogs(dock)
-        dock.setWidget(ow)
+        ow = self.createDialogs(toolsarea)
+        #dock.setWidget(ow)
         return
 
     def setFigure(self, figure):
@@ -175,11 +181,22 @@ class PlotViewer(QWidget):
         style = '''
             QLabel {
                 font-size: 12px;
+                max-width: 90px;
             }
             QWidget {
                 max-width: 250px;
-                min-width: 50px;
+                min-width: 35px;
                 font-size: 12px;
+            }
+            QComboBox {
+                max-width: 90px;
+                font-size: 12px;
+            }
+            QSlider {
+                max-width: 90px;
+            }
+            QSpinBox {
+                max-width: 90px;
             }
             '''
 
@@ -549,7 +566,7 @@ class PlotViewer(QWidget):
                     i+=1
 
                 ax.legend(handles, cols, loc='best')
-                self._setAxisTickFormat()
+                self._setAxisTickFormat(ax)
                 self.ax=axs=ax
             else:
                 #default plot - mostly uses pandas so we directly call _doplot

@@ -161,11 +161,13 @@ class DataFrameWidget(QWidget):
         return
 
     def updateStatusBar(self):
+        """Update the table details in the status bar"""
 
         if not hasattr(self, 'size_label'):
             return
         df = self.table.model.df
-        s = '{r} rows x {c} columns'.format(r=len(df), c=len(df.columns))
+        meminfo = self.table.getMemory()
+        s = '{r} rows x {c} columns | {m}'.format(r=len(df), c=len(df.columns),m=meminfo)
         self.size_label.setText(s)
         return
 
@@ -183,7 +185,8 @@ class DataFrameWidget(QWidget):
             filename, _ = QFileDialog.getOpenFileName(self,"Import File",
                                  "","CSV files (*.csv);;Text Files (*.txt);;All Files (*)",
                                  options=options)
-
+            if not filename:
+                return
             dlg = dialogs.ImportDialog(self, filename)
             dlg.exec_()
             if not dlg.accepted:
@@ -1083,7 +1086,7 @@ class DataFrameTable(QTableView):
         """Refresh table if dataframe is changed"""
 
         self.updateFont()
-        self.horizontalHeader().setDefaultSectionSize(COLUMNWIDTH)
+        #self.horizontalHeader().setDefaultSectionSize(COLUMNWIDTH)
         self.model.beginResetModel()
         self.model.dataChanged.emit(0,0)
         self.model.endResetModel()
@@ -1118,11 +1121,23 @@ class DataFrameTable(QTableView):
             os.remove(self.undo_file)
         return
 
-    def memory_usage(self):
+    def getMemory(self):
+        """Get memory info as string"""
 
         m = self.model.df.memory_usage(deep=True).sum()
+        if m>1e5:
+            m = int(m/1048576)
+            units='MB'
+        else:
+            units='Bytes'
+        s = "%s %s" %(m,units)
+        return s
+
+    def memory_usage(self):
+
+        info = self.getMemory()
         msg = QMessageBox()
-        msg.setText("Memory used: %s bytes" %m)
+        msg.setText('Memory: '+info)
         msg.setWindowTitle('Memory Usage')
         msg.exec_()
         return
@@ -1322,7 +1337,8 @@ class DataFrameTable(QTableView):
             action.setCheckable(True)
             action.setData(i)
             action.setActionGroup(modegroup)
-            action.triggered.connect(self.parent.editMode)
+            if hasattr(self.parent, 'editMode'):
+                action.triggered.connect(self.parent.editMode)
         modegroup.setExclusive(True)
 
         memAction = menu.addAction("Memory Usage")
@@ -1490,6 +1506,7 @@ class DataFrameModel(QtCore.QAbstractTableModel):
 
         i = index.row()
         j = index.column()
+        coltype = self.df.dtypes[j]
         if role == QtCore.Qt.DisplayRole:
             value = self.df.iloc[i, j]
             if type(value) != str:
@@ -1503,15 +1520,13 @@ class DataFrameModel(QtCore.QAbstractTableModel):
                 return '{0}'.format(value)
         elif (role == QtCore.Qt.EditRole):
             value = self.df.iloc[i, j]
-            #print (value, type(value))
+            #print (coltype)
+            try:
+                return float(value)
+            except:
+                return str(value)
             if np.isnan(value):
                 return ''
-            else:
-                try:
-                    return float(value)
-                except:
-                    return str(value)
-
         elif role == QtCore.Qt.BackgroundRole:
             return QColor(self.bg)
 

@@ -57,10 +57,6 @@ def dialogFromOptions(parent, opts, sections=None,
     if style == None:
         style = '''
         QLabel {
-            font-size: 10px;
-        }
-        QWidget {
-            min-width: 60px;
             font-size: 14px;
         }
         QPlainTextEdit {
@@ -134,6 +130,7 @@ def dialogFromOptions(parent, opts, sections=None,
                 if 'range' in opt:
                     min,max=opt['range']
                     w.setRange(min,max)
+                    w.setMinimum(min)
             elif t == 'checkbox':
                 w = QCheckBox()
                 w.setChecked(val)
@@ -310,12 +307,16 @@ class ImportDialog(QDialog):
         self.parent = parent
         self.filename = filename
         self.df = None
-
-        self.parent = parent
+        self.setGeometry(QtCore.QRect(250, 250, 900, 600))
+        self.setGeometry(
+                QStyle.alignedRect(
+                    QtCore.Qt.LeftToRight,
+                    QtCore.Qt.AlignCenter,
+                    self.size(),
+                    QGuiApplication.primaryScreen().availableGeometry(),
+                ))
         self.setWindowTitle('Import File')
         self.createWidgets()
-        self.setGeometry(QtCore.QRect(250, 250, 900, 600))
-
         self.update()
         self.show()
         return
@@ -323,31 +324,31 @@ class ImportDialog(QDialog):
     def createWidgets(self):
         """Create widgets"""
 
-        delimiters = [',',r'\t',' ',';','/','&','|','^','+','-']
-        encodings = ['utf-8','ascii','iso8859_15','cp037','cp1252','big5','euc_jp']
+        delimiters = [',',r'\t',' ','\s+',';','/','&','|','^','+','-']
+        encodings = ['utf-8','ascii','latin-1','iso8859_15','cp037','cp1252','big5','euc_jp']
         timeformats = ['infer','%d/%m/%Y','%Y/%m/%d','%Y/%d/%m',
                         '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
                         '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
-        grps = {'formats':['delimiter','decimal','comment'],
-                'data':['skiprows','index_col','skipinitialspace',
-                        'skip_blank_lines','parse_dates','time format','encoding','names'],
+        grps = {'formats':['sep','decimal','comment'],
+                'data':['skiprows','skipinitialspace',
+                        'skip_blank_lines','parse_dates','encoding','time format'],
                 'other':['rowsperfile']}
         grps = OrderedDict(sorted(grps.items()))
-        opts = self.opts = {'delimiter':{'type':'combobox','default':',',
+        opts = self.opts = {'sep':{'type':'combobox','default':',','editable':True,
                         'items':delimiters, 'tooltip':'seperator'},
                      #'header':{'type':'entry','default':0,'label':'header',
                      #          'tooltip':'position of column header'},
-                     'index_col':{'type':'entry','default':'','label':'index col',
-                                'tooltip':''},
+                     #'index_col':{'type':'spinbox','default':-1,'range':(-1,1000),'label':'index column',
+                    #            'tooltip':''},
                      'decimal':{'type':'combobox','default':'.','items':['.',','],
                                 'tooltip':'decimal point symbol'},
                      'comment':{'type':'entry','default':'#','label':'comment',
                                 'tooltip':'comment symbol'},
                      'skipinitialspace':{'type':'checkbox','default':0,'label':'skip initial space',
                                 'tooltip':'skip initial space'},
-                     'skiprows':{'type':'entry','default':0,'label':'skiprows',
+                     'skiprows':{'type':'spinbox','default':0,'label':'skiprows',
                                 'tooltip':'rows to skip'},
-                     'skip_blank_lines':  {'type':'checkbutton','default':0,'label':'skip blank lines',
+                     'skip_blank_lines':  {'type':'checkbox','default':0,'label':'skip blank lines',
                                 'tooltip':'do not use blank lines'},
                      'parse_dates':  {'type':'checkbox','default':1,'label':'parse dates',
                                 'tooltip':'try to parse date/time columns'},
@@ -357,10 +358,10 @@ class ImportDialog(QDialog):
                                 'tooltip':'file encoding'},
                      #'prefix':{'type':'entry','default':None,'label':'prefix',
                      #           'tooltip':''}
-                     'rowsperfile':{'type':'entry','default':'','label':'rows per file',
+                     'rowsperfile':{'type':'spinbox','default':0,'label':'rows per file',
                                 'tooltip':'rows to read'},
-                     'names':{'type':'entry','default':'','label':'column names',
-                                'tooltip':'col labels'},
+                     #'names':{'type':'entry','default':'','label':'column names',
+                    #            'tooltip':'col labels'},
                      }
 
         optsframe, self.widgets = dialogFromOptions(self, opts, grps, wrap=1, section_wrap=1)
@@ -400,13 +401,14 @@ class ImportDialog(QDialog):
         return bw
 
     def showText(self):
-        """show text contents"""
+        """Show text contents"""
 
         with open(self.filename, 'r') as stream:
             try:
                 text = stream.read()
             except:
-                text = 'failed to preview, check encoding and then update preview'
+                text = 'failed to preview, check encoding and then update preview\n'
+        self.textarea.clear()
         self.textarea.insertPlainText(text)
         self.textarea.verticalScrollBar().setValue(1)
         return
@@ -417,21 +419,31 @@ class ImportDialog(QDialog):
         self.showText()
         self.values = getWidgetValues(self.widgets)
         timeformat = self.values['time format']
-        dateparse = lambda x: pd.datetime.strptime(x, timeformat)
+        if timeformat == 'infer':
+            dateparse=None
+        else:
+            dateparse = lambda x: pd.datetime.strptime(x, timeformat)
         del self.values['time format']
         del self.values['rowsperfile']
-        print (self.values)
+        for k in self.values:
+            if self.values[k] == '':
+                self.values[k] = None
+        #if self.values['index_col'] == -1:
+        #    self.values['index_col'] = None
 
         try:
             f = pd.read_csv(self.filename, chunksize=400, error_bad_lines=False,
-                        warn_bad_lines=False, date_parser=dateparse)#, **self.values)
+                        warn_bad_lines=False, date_parser=dateparse, **self.values)
         except Exception as e:
             print ('read csv error')
             print (e)
             return
         try:
             df = f.get_chunk()
-        except pandas.errors.ParserError:
+        except UnicodeDecodeError:
+            print ('unicode error')
+            df = pd.DataFrame()
+        except pd.errors.ParserError:
             print ('parser error')
             df = pd.DataFrame()
 
@@ -443,12 +455,12 @@ class ImportDialog(QDialog):
         """Do the import"""
 
         self.update()
-        self.df = pd.read_csv(self.filename)#, **self.values)
+        self.df = pd.read_csv(self.filename, **self.values)
         self.close()
         return
 
     def quit(self):
-        self.main.destroy()
+        self.close()
         return
 
 class BasicDialog(QDialog):

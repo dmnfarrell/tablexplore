@@ -559,7 +559,7 @@ QToolBar::separator:horizontal
 QToolBar::separator:vertical
 {
     border-image: url(:/light/vsepartoolbars.svg);
-    width = 6.3ex;
+    width = 4.3ex;
     height = 0.7ex;
 }
 
@@ -1157,10 +1157,9 @@ QSlider::sub-page:vertical
 QToolButton
 {
     background-color: transparent;
-    border: 0.1ex solid #BAB9B8;
     border-radius: 0.2ex;
-    margin: 0.3ex;
-    padding: 0.5ex;
+    margin: 0.1ex;
+    padding: 0.1ex;
 }
 
 QToolButton[popupMode="1"] /* only for MenuButtonPopup */

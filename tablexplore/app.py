@@ -40,10 +40,12 @@ stylepath = os.path.join(module_path, 'styles')
 iconpath = os.path.join(module_path, 'icons')
 
 class ProgressWidget(QDialog):
+    """Progress widget class"""
     def __init__(self, parent=None, label=''):
         super(ProgressWidget, self).__init__(parent)
         layout = QVBoxLayout(self)
         self.setWindowTitle('Saving..')
+        self.setMinimumSize(400,100)
         self.setGeometry(
                 QStyle.alignedRect(
                     QtCore.Qt.LeftToRight,
@@ -58,6 +60,8 @@ class ProgressWidget(QDialog):
         self.progressbar = QProgressBar(self)
         layout.addWidget(self.progressbar)
         self.progressbar.setGeometry(30, 40, 400, 200)
+
+        return
 
 class Application(QMainWindow):
     def __init__(self, project_file=None, csv_file=None):
@@ -172,7 +176,7 @@ class Application(QMainWindow):
                  'quit': {'action':self.fileQuit,'file':'application-exit'}
                 }
 
-        toolbar = QToolBar("My main toolbar")
+        toolbar = QToolBar("Main Toolbar")
         self.addToolBar(toolbar)
         for i in items:
             if 'file' in items[i]:
@@ -184,7 +188,6 @@ class Application(QMainWindow):
             btn.triggered.connect(items[i]['action'])
             #btn.setCheckable(True)
             toolbar.addAction(btn)
-
         return
 
     def createMenu(self):
@@ -312,6 +315,7 @@ class Application(QMainWindow):
     def addRecentFile(self, fname):
         """Add file to recent if not present"""
 
+        fname = os.path.abspath(fname)
         if fname and fname not in self.recent_files:
             self.recent_files.insert(0, fname)
             if len(self.recent_files) > 5:
@@ -420,6 +424,7 @@ class Application(QMainWindow):
             self.saveAsProject()
         if not filename:
             return
+        self.running = True
         self.filename = filename
         if not os.path.splitext(filename)[1] == '.txpl':
             self.filename += '.txpl'
@@ -448,6 +453,7 @@ class Application(QMainWindow):
         worker.signals.finished.connect(on_complete)
         #worker.signals.progress.connect(self.progress_fn)
         self.savedlg.progressbar.setRange(0,0)
+        #self.worker = worker
         return
 
     def progress_fn(self, msg):
@@ -458,7 +464,7 @@ class Application(QMainWindow):
 
         self.savedlg.progressbar.setRange(0,1)
         self.savedlg.close()
-        #self.running = False
+        self.running = False
         return
 
     def do_saveProject(self, filename, progress_callback=None):
@@ -695,21 +701,24 @@ class Application(QMainWindow):
     def fileQuit(self):
         self.close()
 
-    def closeEvent(self, ce):
+    def closeEvent(self, event):
         """Close event"""
 
         reply = QMessageBox.question(self, 'Close',
                                  'Save current project?',
                                   QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
         if reply == QMessageBox.Cancel:
+            event.ignore()
             return
         if reply == QMessageBox.Yes:
             self.saveProject()
+
         for s in self.sheets:
             self.sheets[s].close()
         self.saveSettings()
         if hasattr(self,'plotgallery'):
             self.plotgallery.close()
+        self.threadpool.waitForDone()
         self.fileQuit()
         return
 
