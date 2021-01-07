@@ -6,7 +6,9 @@
 * progress bar for saving
 * filtering tool
 * snap works
-* fixes to import dialog 
+* fixes to import dialog
+* can now set datetime display format
+* show memory usage in status bar
 
 -----
 0.2.0

@@ -914,16 +914,24 @@ class PreferencesDialog(QDialog):
 
         import pylab as plt
         colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
+        timeformats = ['%m/%d/%Y','%d/%m/%Y','%d/%m/%y',
+                '%Y/%m/%d','%y/%m/%d','%Y/%d/%m',
+                '%d-%b-%Y','%b-%d-%Y',
+                '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
+                '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
         self.opts = {'rowheight':{'type':'spinbox','default':18,'range':(5,50),'label':'row height'},
                 'columnwidth':{'type':'spinbox','range':(10,300),
                 'default': options['columnwidth'], 'label':'column width'},
                 'alignment':{'type':'combobox','default':'w','items':['left','right','center'],'label':'text align'},
                 'font':{'type':'font','default':'Arial','default':options['font']},
-                'fontsize':{'type':'slider','default':options['fontsize'],'range':(5,40),'interval':1,'label':'font size'},
-                'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
+                'fontsize':{'type':'slider','default':options['fontsize'],'range':(5,40),
+                            'interval':1,'label':'font size'},
+                'timeformat':{'type':'combobox','default':options['timeformat'],
+                            'items':timeformats,'label':'Date/Time format'}
+                #'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
                 }
         sections = {'table':['alignment','rowheight','columnwidth'],
-                    'formats':['font','fontsize','floatprecision']}
+                    'formats':['font','fontsize','timeformat']}
 
         dialog, self.widgets = dialogFromOptions(self, self.opts, sections)
 
@@ -954,13 +962,8 @@ class PreferencesDialog(QDialog):
         core.FONT = kwds['font']
         core.FONTSIZE = kwds['fontsize']
         core.COLUMNWIDTH = kwds['columnwidth']
+        core.TIMEFORMAT = kwds['timeformat']
         self.parent.refresh()
-        return
-
-    def save(self):
-        """Save from current dialog settings"""
-
-        cp.write(open(default_conf,'w'))
         return
 
 class FilterDialog(QWidget):

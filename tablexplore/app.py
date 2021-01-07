@@ -117,6 +117,7 @@ class Application(QMainWindow):
             core.FONT = s.value("font")
             core.FONTSIZE = int(s.value("fontsize"))
             core.COLUMNWIDTH = int(s.value("columnwidth"))
+            core.TIMEFORMAT = s.value("timeformat")
             r = s.value("recent_files")
             if r != '':
                 self.recent_files = r.split(',')
@@ -125,7 +126,6 @@ class Application(QMainWindow):
                 self.recent_urls = r.split('^^')
         except:
             pass
-
         return
 
     def saveSettings(self):
@@ -137,6 +137,7 @@ class Application(QMainWindow):
         self.settings.setValue('columnwidth', core.COLUMNWIDTH)
         self.settings.setValue('font', core.FONT)
         self.settings.setValue('fontsize', core.FONTSIZE)
+        self.settings.setValue('timeformat', core.TIMEFORMAT)
         self.settings.setValue('recent_files',','.join(self.recent_files))
         self.settings.setValue('recent_urls','^^'.join(self.recent_urls))
         if hasattr(self, 'plotgallery'):
@@ -166,7 +167,7 @@ class Application(QMainWindow):
                  'zoom in': {'action':self.zoomIn,'file':'zoom-in'},
                  'decrease columns': {'action': lambda: self.changeColumnWidths(.9),'file':'decrease-width'},
                  'increase columns': {'action': lambda: self.changeColumnWidths(1.1),'file':'increase-width'},
-                 'add sheet': {'action':self.addSheet,'file':'add'},
+                 'add sheet': {'action': lambda: self.addSheet(name=None),'file':'add'},
                  #'lock': {'action':self.lockTable,'file':'lock'},
                  'clean data': {'action':lambda: self._call('cleanData'),'file':'clean'},
                  'table to text': {'action':lambda: self._call('showAsText'),'file':'tabletotext'},
@@ -372,7 +373,7 @@ class Application(QMainWindow):
         if filename == None:
             options = QFileDialog.Options()
             filename, _ = QFileDialog.getOpenFileName(self,"Open Project",
-                                  "","tablexplore Files (*.txpl);;All files (*.*)",
+                                  homepath,"tablexplore Files (*.txpl);;All files (*.*)",
                                   options=options)
 
         if not filename:
@@ -405,7 +406,7 @@ class Application(QMainWindow):
 
         options = QFileDialog.Options()
         filename, _ = QFileDialog.getSaveFileName(self,"Save Project",
-                                                  "","tablexplore Files (*.txpl);;All files (*.*)",
+                                                  homepath,"tablexplore Files (*.txpl);;All files (*.*)",
                                                   options=options)
         if not filename:
             return
@@ -413,6 +414,7 @@ class Application(QMainWindow):
         self.filename = filename
         self.do_saveProject(filename)
         self.addRecentFile(filename)
+        self.proj_label.setText(self.filename)
         return
 
     def saveProject(self, filename=None):
@@ -614,16 +616,20 @@ class Application(QMainWindow):
     def addSheet(self, name=None, df=None, meta=None):
         """Add a new sheet"""
 
-        names = self.sheets.keys()
-        if name is None or name in self.sheets:
-            name = 'dataset'+str(len(self.sheets)+1)
+        names = list(self.sheets.keys())
+        i=len(self.sheets)+1
+        if name == None or name in names:
+            name = 'dataset'+str(i)
+        if name in names:
+            import random
+            name = 'dataset'+str(random.randint(i,100))
 
         sheet = QSplitter(self.main)
         idx = self.main.addTab(sheet, name)
         #provide reference to self to dataframewidget
         dfw = DataFrameWidget(sheet, dataframe=df, app=self,
                                 font=core.FONT, fontsize=core.FONTSIZE,
-                                columnwidth=core.COLUMNWIDTH)
+                                columnwidth=core.COLUMNWIDTH, timeformat=core.TIMEFORMAT)
         sheet.addWidget(dfw)
 
         self.sheets[name] = dfw
@@ -658,6 +664,10 @@ class Application(QMainWindow):
         new, ok = QInputDialog.getText(self, 'New name', 'Name:',
                     QLineEdit.Normal, name)
         if ok:
+            if new in self.sheets:
+                QMessageBox.information(self, "Cannot rename",
+                                    "Sheet name already present")
+                return
             self.sheets[new] = self.sheets[name]
             del self.sheets[name]
             self.main.setTabText(index, new)
@@ -843,7 +853,7 @@ class Application(QMainWindow):
 
         from . import dialogs
         opts = {'font':core.FONT, 'fontsize':core.FONTSIZE,
-                'columnwidth':core.COLUMNWIDTH}
+                'columnwidth':core.COLUMNWIDTH, 'timeformat':core.TIMEFORMAT}
         dlg = dialogs.PreferencesDialog(self, opts)
         dlg.exec_()
         return

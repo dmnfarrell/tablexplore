@@ -24,6 +24,7 @@ import sys, os, io
 import tempfile
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_datetime64_any_dtype as is_datetime
 import string
 from PySide2 import QtCore, QtGui
 from PySide2.QtCore import QObject, Signal, Slot
@@ -38,6 +39,7 @@ FONT = 'monospace'
 FONTSIZE = 12
 FONTSTYLE = ''
 COLUMNWIDTH = 80
+TIMEFORMAT = '%m/%d/%Y'
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -58,6 +60,13 @@ icons = {'load': 'open', 'save': 'export',
          'interpreter':'interpreter',
          'subtable':'subtable','clear':'clear'
          }
+
+timeformats = ['infer','%d/%m/%Y','%d/%m/%y',
+                '%Y/%m/%d','%y/%m/%d','%Y/%d/%m',
+                '%d%m%Y','%Y%m%d','%Y%d%m',
+                '%d-%b-%Y',
+                '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
+                '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
 
 class ColumnHeader(QHeaderView):
     def __init__(self):
@@ -323,21 +332,32 @@ class DataFrameWidget(QWidget):
                 'tooltip':'Remove duplicates'},
                 'useselected':  {'type':'checkbox','default':0,'label':'Use selected columns' },
                 'keep':{'label':'Keep','type':'combobox','default':'first',
-                             'items':['first','last'], 'tooltip':'values to keep'}
+                             'items':['first','last'], 'tooltip':'values to keep'},
+                'inplace':{'type':'checkbox','default':0,'label':'In place' },
                 }
         dlg = dialogs.MultipleInputDialog(self, opts, title='Clean Data')
         dlg.exec_()
         if not dlg.accepted:
             return
         kwds = dlg.values
-        cols = df.columns
         keep = kwds['keep']
         remove = kwds['remove']
+        inplace = kwds['inplace']
+        if kwds['useselected'] == 1:
+            idx = self.table.getSelectedColumns()
+            cols = df.columns[idx]
+        else:
+            cols = df.columns
+
         new = df[df.duplicated(subset=cols,keep=keep)]
         if remove == True:
-            self.table.model.df = df.drop_duplicates(subset=cols,keep=keep)
-            self.refresh()
-        if len(new)>0:
+            new = df.drop_duplicates(subset=cols,keep=keep)
+            if inplace == True:
+                self.table.model.df = new
+                self.refresh()
+            elif len(new)>0:
+                self.showSubTable(new)
+        else:
             self.showSubTable(new)
         return
 
@@ -723,13 +743,11 @@ class DataFrameWidget(QWidget):
             colname = '-'.join(cols)
             temp = df[cols]'''
 
-        timeformats = ['infer','%d/%m/%Y','%Y/%m/%d','%Y/%d/%m',
-                        '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
-                        '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
         props = ['','day','dayofweek','month','hour','minute','second','microsecond','year',
                  'dayofyear','weekofyear','quarter','days_in_month','is_leap_year']
-        opts = {'format':  {'type':'combobox','default':'int',
+        opts = {'format':  {'type':'combobox','default':'int','editable':True,
                             'items':timeformats,'label':'Conversion format'},
+                'errors':{'type':'combobox','items':['ignore','coerce'],'default':'ignore','label':'Errors'},
                 'prop':  {'type':'combobox','default':'int',
                         'items':props,'label':'Extract from datetime'} }
 
@@ -741,12 +759,16 @@ class DataFrameWidget(QWidget):
 
         format = kwds['format']
         prop = kwds['prop']
+        errors = kwds['errors']
+        infer=False
         if format == 'infer':
             format = None
-
+            infer = True
         temp = df[column]
+        self.table.storeCurrent()
         if temp.dtype != 'datetime64[ns]':
-            temp = pd.to_datetime(temp, format=format)
+            temp = pd.to_datetime(temp, format=format, infer_datetime_format=infer,
+                                errors=errors)
 
         if prop != '':
             new = getattr(temp.dt, prop)
@@ -1015,13 +1037,14 @@ class DataFrameTable(QTableView):
     QTableView with pandas DataFrame as model.
     """
     def __init__(self, parent=None, dataframe=None, font='Arial',
-                    fontsize=12, columnwidth=80, align=None, **kwargs):
+                    fontsize=12, columnwidth=80, timeformat='%m-%d-%Y', **kwargs):
 
         QTableView.__init__(self)
         self.parent = parent
         self.font = font
         self.fontsize = fontsize
-        self.columnwidth=columnwidth
+        self.columnwidth = columnwidth
+        self.timeformat = timeformat
         self.clicked.connect(self.showSelection)
         #self.doubleClicked.connect(self.handleDoubleClick)
         #self.setSelectionBehavior(QTableView.SelectRows)
@@ -1126,7 +1149,7 @@ class DataFrameTable(QTableView):
 
         m = self.model.df.memory_usage(deep=True).sum()
         if m>1e5:
-            m = int(m/1048576)
+            m = round(m/1048576,2)
             units='MB'
         else:
             units='Bytes'
@@ -1507,9 +1530,12 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         i = index.row()
         j = index.column()
         coltype = self.df.dtypes[j]
+        isdate = is_datetime(coltype)
         if role == QtCore.Qt.DisplayRole:
             value = self.df.iloc[i, j]
-            if type(value) != str:
+            if isdate:
+                return value.strftime(TIMEFORMAT)
+            elif type(value) != str:
                 if type(value) in [float,np.float64] and np.isnan(value):
                     return ''
                 elif type(value) == np.float:

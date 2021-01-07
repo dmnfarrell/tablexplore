@@ -1,16 +1,16 @@
-name: tablexplore
+name: Tablexplore
 version: '0.3.0'
 #version-script: git describe --abbrev=1 --tags
 summary: data plotting and analysis package
 description: |
-  tablexplore is an open source desktop application for data analysis and plotting
+  Tablexplore is an open source desktop application for data analysis and plotting
   intended for use in both research and education. The program allows quick
   visualization of data, table manipulation tools and supports large data tables.
 
 base: core18
 grade: stable
 confinement: strict
-icon: snap/gui/icon.png
+icon: img/logo.svg
 
 apps:
   tablexplore:
