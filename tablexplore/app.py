@@ -100,6 +100,7 @@ class Application(QMainWindow):
         if project_file != None:
             self.openProject(project_file)
         elif csv_file != None:
+            self.newProject()
             self.importFile(csv_file)
         else:
             self.newProject()

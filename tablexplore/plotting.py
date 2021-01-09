@@ -153,8 +153,8 @@ class PlotViewer(QWidget):
         self.addPlotWidget()
 
         dock = QDockWidget('options',self)
-        dock.setMaximumWidth(270)
-        dock.setMinimumWidth(200)
+        dock.setMaximumWidth(280)
+        dock.setMinimumWidth(220)
         scrollarea = QScrollArea(dock)
         scrollarea.setWidgetResizable(True)
         dock.setWidget(scrollarea)

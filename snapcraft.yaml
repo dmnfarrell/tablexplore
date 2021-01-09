@@ -1,4 +1,4 @@
-name: Tablexplore
+name: tablexplore
 version: '0.3.0'
 #version-script: git describe --abbrev=1 --tags
 summary: data plotting and analysis package
@@ -22,6 +22,8 @@ apps:
       - opengl
       - network
       - network-bind
+      - network-control
+      - mount-observe
 
 parts:
   tablexplore:

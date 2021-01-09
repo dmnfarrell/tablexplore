@@ -667,7 +667,7 @@ class DataFrameWidget(QWidget):
         if result is None:
             return
         if newcol == '':
-            name = col+suffix
+            newcol = winfunc+'('+col+')'
         if inplace == True:
             df[col] = result
         else:

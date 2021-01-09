@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=tablexplore
+Name=Tablexplore
 Exec=tablexplore
 Type=Application
 Icon=${SNAP}/meta/gui/icon.png

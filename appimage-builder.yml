@@ -1,0 +1,57 @@
+#AppImage script
+#https://appimage-builder.readthedocs.io/en/latest/examples/pyqt.html
+version: 1
+script:
+  # Remove any previous build
+  - rm -rf AppDir  | true
+  # Make usr and icons dirs
+  - mkdir -p AppDir/usr/src
+  - mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+  # Copy the python application code into the AppDir
+  - cp main.py  AppDir/usr/src -r
+  - cp -r tablexplore AppDir/usr/src -r
+  - cp img/logo.svg AppDir/usr/share/icons/hicolor/256x256/apps/tablexplore.svg
+  # Install application dependencies
+  - pip3 install --system --ignore-installed --prefix=/usr --root=AppDir -r ./requirements.txt
+
+AppDir:
+  path: ./AppDir
+
+  app_info:
+    id: org.tablexplore.python-tablexplore
+    name: tablexplore
+    icon: tablexplore
+    version: 0.3.0
+    # Set the python executable as entry point
+    exec: usr/bin/python3
+    # Set the application main script path as argument. Use '$@' to forward CLI parameters
+    exec_args: "$APPDIR/usr/src/main.py $@"
+
+  apt:
+    arch: amd64
+    sources:
+      - sourceline: 'deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse'
+        key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C'
+    #  - sourceline: 'deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ bionic main restricted universe multiverse'
+    #    key_url: 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x3b4fe6acc0b21f32'
+
+    include:
+      - python3
+      - python3-pkg-resources
+
+    exclude: []
+
+  runtime:
+    env:
+      PATH: '${APPDIR}/usr/bin:${PATH}'
+      # Set python home
+      # See https://docs.python.org/3/using/cmdline.html#envvar-PYTHONHOME
+      PYTHONHOME: '${APPDIR}/usr'
+      # Path to the site-packages dir or other modules dirs
+      # See https://docs.python.org/3/using/cmdline.html#envvar-PYTHONPATH
+      PYTHONPATH: '${APPDIR}/usr/lib/python3.8/site-packages'
+
+AppImage:
+  update-information: 'gh-releases-zsync|AppImageCrafters|python-tablexplore|latest|tablexplore-*x86_64.AppImage.zsync'
+  sign-key: None
+  arch: x86_64

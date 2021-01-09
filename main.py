@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""    
+"""
     TablExplore app
     Created November 2020
     Copyright (C) Damien Farrell
@@ -38,9 +38,10 @@ def main():
     #                    help="Import an excel file", metavar="FILE")
     #parser.add_argument("-t", "--test", dest="test",  action="store_true",
     #                    default=False, help="Run a basic test app")
-    args = vars(parser.parse_args())
+    args, unknown = parser.parse_known_args()
+    args = vars(args)
     qapp = QApplication(sys.argv)
-    aw = app.Application()
+    aw = app.Application(**args)
     aw.show()
     qapp.exec_()
 

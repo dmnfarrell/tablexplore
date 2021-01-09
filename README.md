@@ -16,6 +16,17 @@ For all operating systems with Python and pip installed:
 pip install -e git+https://github.com/dmnfarrell/tablexplore.git#egg=tablexplore
 ```
 
+### Linux
+
+The pip method above should work fine for most distributions but if you prefer you can also try the AppImage (experimental). Download from the latest [release page](https://github.com/dmnfarrell/tablexplore/releases) and run as follows:
+
+```
+chmod +x tablexplore-0.3.0-x86_64.AppImage
+./tablexplore-0.3.0-x86_64.AppImage
+```
+
+### Windows
+
 A Windows standalone binary can be downloaded [here](https://dmnfarrell.github.io/tablexplore/).
 
 ## Current features
