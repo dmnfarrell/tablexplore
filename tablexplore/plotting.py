@@ -593,8 +593,15 @@ class PlotViewer(QWidget):
             self.fig.subplots_adjust(left=0.1, right=0.9, top=0.89,
                                      bottom=0.1, hspace=.4/scf, wspace=.2/scf)
             print ('tight_layout failed')
-        #redraw annotations
-        #self.labelopts.redraw()
+
+        #set axes formats
+        self._setAxisRanges()
+        if axes_layout == 'multiple':
+            for ax in self.fig.axes:
+                self._setAxisTickFormat(ax)
+        else:
+            self._setAxisTickFormat(self.ax)
+
         if style == 'dark_background':
             self.fig.set_facecolor('black')
         else:
@@ -810,12 +817,6 @@ class PlotViewer(QWidget):
 
             axs = data.plot(ax=ax, layout=layout, yerr=yerr, style=styles, cmap=cmap,
                              **kwargs)
-        self._setAxisRanges()
-        if axes_layout == 'multiple':
-            for ax in self.fig.axes:
-                self._setAxisTickFormat(ax)
-        else:
-            self._setAxisTickFormat(self.ax)
         return axs
 
     def setStyle(self):

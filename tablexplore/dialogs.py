@@ -670,7 +670,7 @@ class PivotDialog(BasicDialog):
         res = pd.pivot_table(self.df, index=idx, columns=cols, values=vals, aggfunc=aggfuncs)
         names = res.index.names
         res = res.reset_index(col_level=2)
-        print (res)
+        #print (res)
         if util.check_multiindex(res.columns) == 1:
             res.columns = res.columns.get_level_values(2)
 

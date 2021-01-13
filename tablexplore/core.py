@@ -617,8 +617,11 @@ class DataFrameWidget(QWidget):
         """Apply resampling and transform functions on a single column."""
 
         df = self.table.model.df
-        cols = [column]
         col = column
+        cols = [column]
+        idx = self.table.getSelectedColumns()
+        if len(idx)>1:
+            cols = df.columns[idx]
 
         ops = ['rolling window','expanding','shift']
         winfuncs = ['sum','mean','std','max','min','sem','var','quantile']
@@ -654,27 +657,29 @@ class DataFrameWidget(QWidget):
 
         if wintype == '':
             wintype=None
-        if op == 'rolling window':
-            w = df[col].rolling(window=window, win_type=wintype, center=center)
-            func = self._getFunction(winfunc, obj=w)
-            result = func()
-        elif op == 'expanding':
-            func = self._getFunction(winfunc)
-            result = df[col].expanding(2, center=True).apply(func)
-        elif op == 'shift':
-            result = df[col].shift(periods=periods)
 
-        if result is None:
-            return
-        if newcol == '':
-            newcol = winfunc+'('+col+')'
-        if inplace == True:
-            df[col] = result
-        else:
-            if newcol in df.columns:
-                df.drop(columns=newcol)
-            idx = df.columns.get_loc(col)
-            df.insert(idx+1, newcol, result)
+        for col in cols:
+            if op == 'rolling window':
+                w = df[col].rolling(window=window, win_type=wintype, center=center)
+                func = self._getFunction(winfunc, obj=w)
+                result = func()
+            elif op == 'expanding':
+                func = self._getFunction(winfunc)
+                result = df[col].expanding(2, center=True).apply(func)
+            elif op == 'shift':
+                result = df[col].shift(periods=periods)
+
+            if result is None:
+                return
+            if newcol == '' or len(cols)>1:
+                newcol = winfunc+'('+col+')'
+            if inplace == True:
+                df[col] = result
+            else:
+                if newcol in df.columns:
+                    df.drop(columns=newcol)
+                idx = df.columns.get_loc(col)
+                df.insert(idx+1, newcol, result)
         self.refresh()
         return
 
@@ -1529,7 +1534,9 @@ class DataFrameModel(QtCore.QAbstractTableModel):
 
         i = index.row()
         j = index.column()
-        coltype = self.df.dtypes[j]
+        #print (self.df.dtypes)
+        #coltype = self.df.dtypes[j]
+        coltype = self.df[self.df.columns[j]].dtype
         isdate = is_datetime(coltype)
         if role == QtCore.Qt.DisplayRole:
             value = self.df.iloc[i, j]
