@@ -131,8 +131,9 @@ class DataFrameWidget(QWidget):
         self.setLayout(self.layout)
         items = {'load': {'action': self.load,'file':'open'},
                  'importexcel': {'action':self.importExcel,'file':'excel'},
-                 'copy': {'action':self.copy,'file':'copy'},
-                 'paste': {'action':self.paste,'file':'paste'},
+                 'copy': {'action':self.copy,'file':'copy','shortcut':'Ctrl+C'},
+                 'paste': {'action':self.paste,'file':'paste','shortcut':'Ctrl+V'},
+                 'insert': {'action':self.insert,'file':'table-insert'},
                  'plot': {'action':self.plot,'file':'plot'},
                  'transpose': {'action':self.transpose,'file':'transpose'},
                  'aggregate': {'action':self.aggregate,'file':'aggregate'},
@@ -276,6 +277,17 @@ class DataFrameWidget(QWidget):
 
         self.table.storeCurrent()
         self.table.model.df = pd.read_clipboard(sep='\t', index_col=0)
+                                #parse_dates=True, infer_datetime_format=True)
+        self.refresh()
+        return
+
+    def insert(self):
+        """Insert from clipboard"""
+
+        self.table.storeCurrent()
+        df = self.table.model.df
+        new = pd.read_clipboard(sep='\t')
+        self.table.model.df = df.append(new)
         self.refresh()
         return
 
@@ -738,32 +750,27 @@ class DataFrameWidget(QWidget):
         return
 
     def convertDates(self, column):
-        """Convert single or multiple columns into datetime"""
+        """Convert single or multiple columns into datetime or extract features from
+        datetime object.
+        """
 
         df = self.table.model.df
-        '''if len(cols) == 1:
-            colname = cols[0]
-            temp = df[colname]
-        else:
-            colname = '-'.join(cols)
-            temp = df[cols]'''
-
-        props = ['','day','dayofweek','month','hour','minute','second','microsecond','year',
+        props = ['day','dayofweek','month','hour','minute','second','microsecond','year',
                  'dayofyear','weekofyear','quarter','days_in_month','is_leap_year']
         opts = {'format':  {'type':'combobox','default':'int','editable':True,
                             'items':timeformats,'label':'Conversion format'},
                 'errors':{'type':'combobox','items':['ignore','coerce'],'default':'ignore','label':'Errors'},
-                'prop':  {'type':'combobox','default':'int',
+                'prop':  {'type':'list','default':'int',
                         'items':props,'label':'Extract from datetime'} }
 
-        dlg = dialogs.MultipleInputDialog(self, opts, title='Convert Dates')
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Convert/Extract Dates')
         dlg.exec_()
         if not dlg.accepted:
             return
         kwds = dlg.values
 
         format = kwds['format']
-        prop = kwds['prop']
+        props = kwds['prop']
         errors = kwds['errors']
         infer=False
         if format == 'infer':
@@ -775,15 +782,17 @@ class DataFrameWidget(QWidget):
             temp = pd.to_datetime(temp, format=format, infer_datetime_format=infer,
                                 errors=errors)
 
-        if prop != '':
-            new = getattr(temp.dt, prop)
-            try:
-                new = new.astype(int)
-            except:
-                pass
-
-            idx = df.columns.get_loc(column)
-            df.insert(idx+1, prop, new)
+        if props != '' and len(props)>0:
+            for prop in props:
+                new = getattr(temp.dt, prop)
+                try:
+                    new = new.astype(int)
+                except:
+                    pass
+                if prop in df.columns:
+                    df.drop(columns=prop)
+                idx = df.columns.get_loc(column)
+                df.insert(idx+1, prop, new)
         else:
             self.table.model.df[column] = temp
         self.refresh()
@@ -1420,12 +1429,17 @@ class DataFrameTable(QTableView):
 
     def deleteColumn(self, column=None):
 
-        reply = QMessageBox.question(self, 'Delete Rows?',
+        idx = self.getSelectedColumns()
+        if len(idx)>0:
+            cols = self.model.df.columns[idx]
+        else:
+            cols = [column]
+        reply = QMessageBox.question(self, 'Delete Column(s)?',
                              'Are you sure?', QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.No:
             return False
         self.storeCurrent()
-        self.model.df = self.model.df.drop(columns=[column])
+        self.model.df = self.model.df.drop(columns=cols)
         self.refresh()
         return
 

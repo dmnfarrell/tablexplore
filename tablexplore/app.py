@@ -193,7 +193,8 @@ class Application(QMainWindow):
         return
 
     def createMenu(self):
-
+        """Main menu"""
+        
         self.file_menu = QMenu('&File', self)
         self.file_menu.addAction('&New', lambda: self.newProject(ask=True),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_N)

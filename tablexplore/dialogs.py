@@ -108,6 +108,10 @@ def dialogFromOptions(parent, opts, sections=None,
                 if 'width' in opt:
                     w.setMinimumWidth(opt['width'])
                     w.resize(opt['width'], 20)
+            elif t == 'list':
+                w = QListWidget()
+                w.setSelectionMode(QAbstractItemView.MultiSelection)
+                w.addItems(opt['items'])
             elif t == 'entry':
                 w = QLineEdit()
                 w.setText(str(val))
@@ -171,6 +175,8 @@ def getWidgetValues(widgets):
                 val = w.toPlainText()
             elif type(w) is QComboBox or type(w) is QFontComboBox:
                 val = w.currentText()
+            elif type(w) is QListWidget:
+                val = [i.text() for i in w.selectedItems()]
             elif type(w) is QCheckBox:
                 val = w.isChecked()
             elif type(w) is QSlider:
@@ -217,6 +223,8 @@ def addToolBarItems(toolbar, parent, items):
             icon = QIcon.fromTheme(items[i]['icon'])
         btn = QAction(icon, i, parent)
         btn.triggered.connect(items[i]['action'])
+        if 'shortcut' in items[i]:
+            btn.setShortcut(QKeySequence(items[i]['shortcut']))
         #btn.setCheckable(True)
         toolbar.addAction(btn)
     return toolbar
