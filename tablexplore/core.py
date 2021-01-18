@@ -26,10 +26,7 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime
 import string
-from PySide2 import QtCore, QtGui
-from PySide2.QtCore import QObject, Signal, Slot
-from PySide2.QtWidgets import *
-from PySide2.QtGui import *
+from .qt import *
 
 module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
@@ -84,7 +81,7 @@ class DataFrameWidget(QWidget):
                  toolbar=True, statusbar=True, **kwargs):
 
         super(DataFrameWidget, self).__init__()
-        self.splitter = QSplitter(Qt.Vertical, self)
+        self.splitter = QSplitter(QtCore.Qt.Vertical, self)
         l = self.layout = QGridLayout()
         l.setSpacing(2)
         l.addWidget(self.splitter,1,1)
@@ -105,8 +102,8 @@ class DataFrameWidget(QWidget):
         self.table.model.dataChanged.connect(self.stateChanged)
         return
 
-    @Slot(bool)
-    def stateChanged(self):
+    #@Slot('QModelIndex','QModelIndex','int')
+    def stateChanged(self, idx, idx2):
         """Run whenever table model is changed"""
 
         if hasattr(self, 'pf'):
@@ -147,7 +144,7 @@ class DataFrameWidget(QWidget):
                  }
 
         toolbar = QToolBar("Toolbar")
-        toolbar.setOrientation(Qt.Vertical)
+        toolbar.setOrientation(QtCore.Qt.Vertical)
         dialogs.addToolBarItems(toolbar, self, items)
         self.layout.addWidget(toolbar,1,2)
         return
@@ -1125,7 +1122,11 @@ class DataFrameTable(QTableView):
         self.updateFont()
         #self.horizontalHeader().setDefaultSectionSize(COLUMNWIDTH)
         self.model.beginResetModel()
-        self.model.dataChanged.emit(0,0)
+        index = self.model.index
+        try:
+            self.model.dataChanged.emit(0,0)
+        except:
+            self.model.dataChanged.emit(index(0,0),index(0,0))
         self.model.endResetModel()
         if hasattr(self.parent,'statusbar'):
             self.parent.updateStatusBar()
@@ -1246,9 +1247,9 @@ class DataFrameTable(QTableView):
         sel = self.getSelectedColumns()
         if len(sel)>1:
             for i in sel:
-                self.model.sort(i, order=Qt.DescendingOrder)
+                self.model.sort(i, order=QtCore.Qt.DescendingOrder)
         else:
-            self.model.sort(idx, order=Qt.DescendingOrder)
+            self.model.sort(idx, order=QtCore.Qt.DescendingOrder)
         return
 
     def deleteCells(self, rows, cols, answer=None):
@@ -1260,7 +1261,7 @@ class DataFrameTable(QTableView):
         if not answer:
             return
         self.storeCurrent()
-        print (rows, cols)
+        #print (rows, cols)
         self.model.df.iloc[rows,cols] = np.nan
         return
 
@@ -1634,7 +1635,7 @@ class SubTableWidget(DataFrameWidget):
                  'transpose': {'action':self.transpose,'file':'transpose'}
                  }
         toolbar = QToolBar("Toolbar")
-        toolbar.setOrientation(Qt.Vertical)
+        toolbar.setOrientation(QtCore.Qt.Vertical)
         dialogs.addToolBarItems(toolbar, self, items)
         self.layout.addWidget(toolbar,1,2)
         return

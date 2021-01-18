@@ -27,7 +27,7 @@ elif platform.system() == 'Windows':
     from pyreadline.rlmain import Readline
     readline = Readline()
 import rlcompleter
-from PySide2 import QtCore, QtGui, QtWidgets
+from .qt import *
 
 AUTOCOMPLETE_LIMIT = 20
 AUTOCOMPLETE_SEPARATOR = "\n"
@@ -67,7 +67,7 @@ class ExecThread(QtCore.QObject):
             sys.excepthook(type, value, traceback)
         self.finished.emit()
 
-class Terminal(QtWidgets.QPlainTextEdit):
+class Terminal(QPlainTextEdit):
 
     # signal to connect at the interpreter run code
     press_enter = QtCore.Signal(str)
@@ -79,11 +79,11 @@ class Terminal(QtWidgets.QPlainTextEdit):
         Terminal.hist_file attr.
         :param parent: parent widget
         """
-        QtWidgets.QPlainTextEdit.__init__(self, parent)
+        QPlainTextEdit.__init__(self, parent)
         self.setGeometry(50, 75, 600, 400)
-        #self.setWordWrapMode(QtGui.QTextOption.WrapAnywhere)
+        #self.setWordWrapMode(QTextOption.WrapAnywhere)
         self.setUndoRedoEnabled(False)
-        font = QtGui.QFont("Monospace")
+        font = QFont("Monospace")
         font.setPointSize(10)
         self.setFont(font)
 
@@ -117,14 +117,14 @@ class Terminal(QtWidgets.QPlainTextEdit):
 
     def contextMenuEvent(self, event):
 
-        menu = QtWidgets.QMenu(self)
+        menu = QMenu(self)
         menu.addAction("Copy", lambda: self.copy())
         menu.addAction("Paste", lambda: self.paste())
         menu.addAction("Clear", lambda: self.clear())
         menu.addSeparator()
         menu.addAction("Zoom In", lambda: self.zoom(1))
         menu.addAction("Zoom Out", lambda: self.zoom(-1))
-        style_menu = QtWidgets.QMenu("Style", menu)
+        style_menu = QMenu("Style", menu)
         menu.addAction(style_menu.menuAction())
         style_menu.addAction('Light', lambda: self.setStyle('light'))
         style_menu.addAction('Dark', lambda: self.setStyle('dark'))
@@ -177,7 +177,7 @@ class Terminal(QtWidgets.QPlainTextEdit):
         """
 
         self.appendPlainText(data)
-        self.moveCursor(QtGui.QTextCursor.End)
+        self.moveCursor(QTextCursor.End)
 
     def write_prompt(self, data):
         """
@@ -188,7 +188,7 @@ class Terminal(QtWidgets.QPlainTextEdit):
         import time
         time.sleep(4)
         self.appendPlainText(data)
-        # self.moveCursor(QtGui.QTextCursor.End)
+        # self.moveCursor(QTextCursor.End)
         # self.remove_last_line()
 
     def raw_input(self, prompt=None):
@@ -229,13 +229,13 @@ class Terminal(QtWidgets.QPlainTextEdit):
         return self.textCursor().columnNumber() - len(self.prompt)
 
     def remove_last_line(self):
-        # cursor = QtGui.QTextCursor(self.document().findBlockByLineNumber(self.get_last_line()-5))
+        # cursor = QTextCursor(self.document().findBlockByLineNumber(self.get_last_line()-5))
         cursor = self.textCursor()
-        cursor.movePosition(QtGui.QTextCursor.Up)
-        cursor.movePosition(QtGui.QTextCursor.Up)
-        cursor.movePosition(QtGui.QTextCursor.Up)
-        cursor.movePosition(QtGui.QTextCursor.Up)
-        cursor.movePosition(QtGui.QTextCursor.Up)
+        cursor.movePosition(QTextCursor.Up)
+        cursor.movePosition(QTextCursor.Up)
+        cursor.movePosition(QTextCursor.Up)
+        cursor.movePosition(QTextCursor.Up)
+        cursor.movePosition(QTextCursor.Up)
         self.setTextCursor(cursor)
 
     def remove_last_command(self):
@@ -244,8 +244,8 @@ class Terminal(QtWidgets.QPlainTextEdit):
         :return:
         """
         cursor = self.textCursor()
-        cursor.movePosition(QtGui.QTextCursor.End)
-        cursor.select(QtGui.QTextCursor.LineUnderCursor)
+        cursor.movePosition(QTextCursor.End)
+        cursor.select(QTextCursor.LineUnderCursor)
         cursor.removeSelectedText()
         cursor.deletePreviousChar()
         self.setTextCursor(cursor)
@@ -312,7 +312,7 @@ class Terminal(QtWidgets.QPlainTextEdit):
         else:
             return
 
-    @QtCore.Slot()
+    @Slot()
     def count_cursor_lines(self):
         """
         Slot def keep tracking cursor position line number. Useful to compare position to know if it is an
@@ -320,10 +320,10 @@ class Terminal(QtWidgets.QPlainTextEdit):
         :return:
         """
         cursor = self.textCursor()
-        cursor.movePosition(QtGui.QTextCursor.StartOfLine)
+        cursor.movePosition(QTextCursor.StartOfLine)
         lines = 1
         while cursor.positionInBlock() > 0:
-            cursor.movePosition(QtGui.QTextCursor.Up)
+            cursor.movePosition(QTextCursor.Up)
             lines += 1
         block = cursor.block().previous()
         while block.isValid():
@@ -331,8 +331,8 @@ class Terminal(QtWidgets.QPlainTextEdit):
             block = block.previous()
         self.cursor_line = lines
 
-    @QtCore.Slot()
     def exec_code(self, cmd):
+
         self.thread = QtCore.QThread()
         self.exec_thread = ExecThread()
         self.exec_thread.cmd = cmd
@@ -350,7 +350,7 @@ class Terminal(QtWidgets.QPlainTextEdit):
         """
         # Is an editable line ? if not go to the last line.
         if self.cursor_line != self.get_last_line() and not self.textCursor().hasSelection():
-            self.moveCursor(QtGui.QTextCursor.End)
+            self.moveCursor(QTextCursor.End)
         # Enter key pressed to run code.
         if event.key() in (QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return):
             cmd = self.get_command()

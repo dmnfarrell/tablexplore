@@ -25,10 +25,7 @@ from __future__ import absolute_import, division, print_function
 import sys,os,platform,time,traceback
 import pickle, gzip
 from collections import OrderedDict
-from PySide2 import QtCore
-from PySide2.QtWidgets import *
-from PySide2.QtGui import *
-from PySide2.QtCore import QObject, Signal, Slot
+from .qt import *
 import pandas as pd
 from .core import DataFrameModel, DataFrameTable, DataFrameWidget
 from .plotting import PlotViewer
@@ -194,7 +191,7 @@ class Application(QMainWindow):
 
     def createMenu(self):
         """Main menu"""
-        
+
         self.file_menu = QMenu('&File', self)
         self.file_menu.addAction('&New', lambda: self.newProject(ask=True),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_N)
@@ -414,6 +411,8 @@ class Application(QMainWindow):
             return
 
         self.filename = filename
+        if not os.path.splitext(filename)[1] == '.txpl':
+            self.filename += '.txpl'
         self.do_saveProject(filename)
         self.addRecentFile(filename)
         self.proj_label.setText(self.filename)
@@ -871,11 +870,16 @@ class Application(QMainWindow):
     def about(self):
         from . import __version__
         import matplotlib
-        import PySide2
+
         pandasver = pd.__version__
         pythonver = platform.python_version()
         mplver = matplotlib.__version__
-        qtver = PySide2.QtCore.__version__
+        if 'PySide2' in sys.modules:
+            import PySide2
+            qtver = 'PySide2='+PySide2.QtCore.__version__
+        else:
+            import PyQt5
+            qtver = 'PyQt5='+ PyQt5.QtCore.QT_VERSION_STR
 
         text='Tablexplore Application\n'\
                 +'Version '+__version__+'\n'\
@@ -884,7 +888,7 @@ class Application(QMainWindow):
                 +'modify it under the terms of the GNU General Public License '\
                 +'as published by the Free Software Foundation; either version 3 '\
                 +'of the License, or (at your option) any later version.\n'\
-                +'Using Python v%s, PySide2 v%s\n' %(pythonver, qtver)\
+                +'Using Python v%s, %s\n' %(pythonver, qtver)\
                 +'pandas v%s, matplotlib v%s' %(pandasver,mplver)
 
         msg = QMessageBox.about(self, "About", text)

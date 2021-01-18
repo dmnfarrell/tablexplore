@@ -38,9 +38,7 @@ except ImportError:
     from pandas.tools import plotting
 import numpy as np
 import pandas as pd
-from PySide2 import QtCore
-from PySide2.QtWidgets import *
-from PySide2.QtGui import *
+from .qt import *
 from .dialogs import *
 import logging
 from . import util

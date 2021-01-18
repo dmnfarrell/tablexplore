@@ -29,10 +29,7 @@ try:
     import configparser
 except:
     import ConfigParser as configparser
-from PySide2 import QtCore, QtGui
-from PySide2.QtCore import QObject
-from PySide2.QtWidgets import *
-from PySide2.QtGui import *
+from .qt import *
 from . import util, core
 
 module_path = os.path.dirname(os.path.abspath(__file__))
@@ -997,7 +994,7 @@ class FilterDialog(QWidget):
                  'Refresh': {'action':self.refresh,'file':'table-refresh'},
                  }
         toolbar = QToolBar("Toolbar")
-        toolbar.setOrientation(Qt.Horizontal)
+        toolbar.setOrientation(QtCore.QtHorizontal)
         addToolBarItems(toolbar, self, items)
         #vbox.addWidget(toolbar)
         return toolbar
