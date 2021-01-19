@@ -3,6 +3,7 @@
 -----
 
 * append tables
+* will use PyQt5 if PySide2 not present
 
 -----
 0.3.0

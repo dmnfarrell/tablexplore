@@ -992,9 +992,10 @@ class FilterDialog(QWidget):
         items = {'Apply': {'action':self.apply,'file':'filter'},
                  'Add': {'action':self.addFilter,'file':'add'},
                  'Refresh': {'action':self.refresh,'file':'table-refresh'},
+                 'Subtract': {'action':self.removeFiltered,'file':'table-remove'}
                  }
         toolbar = QToolBar("Toolbar")
-        toolbar.setOrientation(QtCore.QtHorizontal)
+        toolbar.setOrientation(QtCore.Qt.Horizontal)
         addToolBarItems(toolbar, self, items)
         #vbox.addWidget(toolbar)
         return toolbar
@@ -1009,6 +1010,7 @@ class FilterDialog(QWidget):
         self.query_w = QLineEdit()
         self.layout.addWidget(QLabel('String filter'))
         self.layout.addWidget(self.query_w )
+        self.query_w.returnPressed.connect(self.apply)
         w = self.column_w = QListWidget()
         w.setSelectionMode(QAbstractItemView.MultiSelection)
         #w.setFixedHeight(60)
@@ -1130,6 +1132,26 @@ class FilterDialog(QWidget):
             elif b == 'NOT':
                 mask = mask ^ m
         return mask
+
+    def removeFiltered(self):
+        """Subtract current filtered result from original table"""
+
+        reply = QMessageBox.question(self, 'Perform Action?',
+                             'This will overwrite the current table. Are you sure?',
+                              QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.No:
+            return
+        table = self.table
+        if table.filtered == False:
+            return
+        idx = list(self.filtdf.index)
+        df = table.dataframe
+        table.dataframe = None
+        table.filtered = False
+        table.model.df = df.loc[~df.index.isin(idx)]
+        table.model.layoutChanged.emit()
+        table.refresh()
+        return
 
     def onClose(self):
 

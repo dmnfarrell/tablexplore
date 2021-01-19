@@ -1135,7 +1135,7 @@ class DataFrameTable(QTableView):
     def showAll(self):
         """Re-show unfiltered"""
 
-        if hasattr(self, 'dataframe'):
+        if hasattr(self, 'dataframe') and self.dataframe is not None:
             self.model.df = self.dataframe
         self.filtered = False
         self.refresh()
