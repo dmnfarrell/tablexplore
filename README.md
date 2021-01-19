@@ -25,6 +25,12 @@ chmod +x tablexplore-0.3.0-x86_64.AppImage
 ./tablexplore-0.3.0-x86_64.AppImage
 ```
 
+There is also a [snap](https://snapcraft.io/tablexplore) available, which can be installed using:
+
+```
+snap install tablexplore
+```
+
 ### Windows
 
 A Windows standalone binary can be downloaded [here](https://dmnfarrell.github.io/tablexplore/).

@@ -958,6 +958,8 @@ class DataFrameWidget(QWidget):
             dock = self.filterdock = dock = SubWidget(self.splitter, self.table)
             dock.setFeatures(QDockWidget.DockWidgetClosable)
             self.splitter.setSizes((500,200))
+            index = self.splitter.indexOf(dock)
+            self.splitter.setCollapsible(index, False)
             self.filterdialog = dlg = dialogs.FilterDialog(dock, self.table)
             dock.setWidget(dlg)
         else:
@@ -984,6 +986,8 @@ class DataFrameWidget(QWidget):
         if self.subtabledock == None:
             self.subtabledock = dock = QDockWidget(self.splitter)
             dock.setFeatures(QDockWidget.DockWidgetClosable)
+            index = self.splitter.indexOf(dock)
+            self.splitter.setCollapsible(index, False)
             self.splitter.addWidget(dock)
             self.splitter.setSizes((500,200))
 
@@ -1035,7 +1039,8 @@ class DataFrameWidget(QWidget):
             self.consoledock = dock = QDockWidget(self.splitter)
             dock.setFeatures(QDockWidget.DockWidgetClosable)
             dock.resize(200,100)
-            self.splitter.addWidget(dock)
+            index = self.splitter.indexOf(dock)
+            self.splitter.setCollapsible(index, False)
             self.pyconsole = interpreter.TerminalPython(dock, table=self.table, app=self.app)
             dock.setWidget(self.pyconsole)
             self.splitter.setSizes((500,300))
