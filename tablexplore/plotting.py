@@ -204,6 +204,7 @@ class PlotViewer(QWidget):
         self.generalopts = MPLBaseOptions(parent=self)
         dialog = self.generalopts.showDialog(w, wrap=2, section_wrap=1, style=style)
         dialog.resize(200,200)
+        #self.generaldialog = dialog
         l=QVBoxLayout(w)
         l.addWidget(dialog)
 
@@ -1003,6 +1004,7 @@ class PlotViewer(QWidget):
 
         data=[]
         clrs=[]
+        df = df._get_numeric_data()
         cols = len(df.columns)
         cmap = plt.cm.get_cmap(kwds['colormap'])
         for i,d in enumerate(df):

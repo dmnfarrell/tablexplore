@@ -91,6 +91,7 @@ class Application(QMainWindow):
         self.recent_files = ['']
         self.recent_urls = []
         self.plots = {}
+        self.openplugins = {}
 
         self.loadSettings()
         self.showRecentFiles()
@@ -102,6 +103,7 @@ class Application(QMainWindow):
         else:
             self.newProject()
         self.threadpool = QtCore.QThreadPool()
+        self.discoverPlugins()
         return
 
     def loadSettings(self):
@@ -193,21 +195,25 @@ class Application(QMainWindow):
         """Main menu"""
 
         self.file_menu = QMenu('&File', self)
-        self.file_menu.addAction('&New', lambda: self.newProject(ask=True),
+        icon = QIcon(os.path.join(iconpath,'document-new.png'))
+        self.file_menu.addAction(icon, '&New', lambda: self.newProject(ask=True),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_N)
-        self.file_menu.addAction('&Open', self.openProject,
+        icon = QIcon(os.path.join(iconpath,'open.png'))
+        self.file_menu.addAction(icon, '&Open', self.openProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_O)
         self.recent_files_menu = QMenu("Recent Projects",
             self.file_menu)
         self.file_menu.addAction(self.recent_files_menu.menuAction())
-        self.file_menu.addAction('&Save', self.saveProject,
+        icon = QIcon(os.path.join(iconpath,'save.png'))
+        self.file_menu.addAction(icon, '&Save', self.saveProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_S)
         self.file_menu.addAction('&Save As', self.saveAsProject)
         self.file_menu.addAction('&Import File', self.importFile)
         self.file_menu.addAction('&Import HDF5', self.importHDF)
         self.file_menu.addAction('&Import URL', self.importURL)
         self.file_menu.addAction('&Export As', self.exportAs)
-        self.file_menu.addAction('&Quit', self.fileQuit,
+        icon = QIcon(os.path.join(iconpath,'application-exit.png'))
+        self.file_menu.addAction(icon, '&Quit', self.fileQuit,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
         self.menuBar().addMenu(self.file_menu)
 
@@ -216,16 +222,22 @@ class Application(QMainWindow):
         self.undo_item = self.edit_menu.addAction('&Undo', self.undo,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Z)
         #self.undo_item.setDisabled(True)
-        self.edit_menu.addAction('&Preferences', self.preferences)
+        #self.edit_menu.addAction('&Run Last Action', self.runLastAction)
+        icon = QIcon(os.path.join(iconpath,'preferences-system.png'))
+        self.edit_menu.addAction(icon, '&Preferences', self.preferences)
 
         self.view_menu = QMenu('&View', self)
         self.menuBar().addMenu(self.view_menu)
-        self.view_menu.addAction('&Zoom In', self.zoomIn,
+        icon = QIcon(os.path.join(iconpath,'zoom-in.png'))
+        self.view_menu.addAction(icon, '&Zoom In', self.zoomIn,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Equal)
-        self.view_menu.addAction('&Zoom Out', self.zoomOut,
+        icon = QIcon(os.path.join(iconpath,'zoom-out.png'))
+        self.view_menu.addAction(icon, '&Zoom Out', self.zoomOut,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Minus)
-        self.view_menu.addAction('&Decrease Column Width', lambda: self.changeColumnWidths(.9))
-        self.view_menu.addAction('&Increase Column Width', self.changeColumnWidths)
+        icon = QIcon(os.path.join(iconpath,'decrease-width.png'))
+        self.view_menu.addAction(icon, '&Decrease Column Width', lambda: self.changeColumnWidths(.9))
+        icon = QIcon(os.path.join(iconpath,'increase-width.png'))
+        self.view_menu.addAction(icon, '&Increase Column Width', self.changeColumnWidths)
         self.style_menu = QMenu("Styles",  self.view_menu)
         self.style_menu.addAction('&Default', self.setStyle)
         self.style_menu.addAction('&Light', lambda: self.setStyle('light'))
@@ -234,21 +246,28 @@ class Application(QMainWindow):
 
         self.sheet_menu = QMenu('&Sheet', self)
         self.menuBar().addMenu(self.sheet_menu)
-        self.sheet_menu.addAction('&Add', self.addSheet)
+        icon = QIcon(os.path.join(iconpath,'add.png'))
+        self.sheet_menu.addAction(icon, '&Add', self.addSheet)
         self.sheet_menu.addAction('&Rename', self.renameSheet)
-        self.sheet_menu.addAction('&Copy', self.copySheet)
+        icon = QIcon(os.path.join(iconpath,'copy.png'))
+        self.sheet_menu.addAction(icon, '&Copy', self.copySheet)
 
         self.tools_menu = QMenu('&Tools', self)
-        self.tools_menu.addAction('&Table Info', lambda: self._call('info'),
+        icon = QIcon(os.path.join(iconpath,'tableinfo.png'))
+        self.tools_menu.addAction(icon, '&Table Info', lambda: self._call('info'),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_I)
-        self.tools_menu.addAction('&Clean Data', lambda: self._call('cleanData'))
-        self.tools_menu.addAction('&Find Duplicates', lambda: self._call('findDuplicates'))
+        icon = QIcon(os.path.join(iconpath,'clean.png'))
+        self.tools_menu.addAction(icon, '&Clean Data', lambda: self._call('cleanData'))
+        icon = QIcon(os.path.join(iconpath,'table-duplicates.png'))
+        self.tools_menu.addAction(icon, '&Find Duplicates', lambda: self._call('findDuplicates'))
         self.tools_menu.addAction('&Convert Numeric', lambda: self._call('convertNumeric'))
         self.tools_menu.addAction('&Convert Column Names', lambda: self._call('convertColumnNames'))
         self.tools_menu.addAction('&Time Series Resample', lambda: self._call('resample'))
-        self.tools_menu.addAction('&Table to Text', lambda: self._call('showAsText'),
+        icon = QIcon(os.path.join(iconpath,'tabletotext.png'))
+        self.tools_menu.addAction(icon, '&Table to Text', lambda: self._call('showAsText'),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_T)
-        self.tools_menu.addAction('&Python Interpreter', self.interpreter)
+        icon = QIcon(os.path.join(iconpath,'interpreter.png'))
+        self.tools_menu.addAction(icon, '&Python Interpreter', self.interpreter)
         self.menuBar().addMenu(self.tools_menu)
 
         self.dataset_menu = QMenu('&Datasets', self)
@@ -263,10 +282,15 @@ class Application(QMainWindow):
         self.plots_menu.addAction('&Store Plot', lambda: self.storePlot())
         self.plots_menu.addAction('&Show Plots', lambda: self.showPlotGallery())
 
+        self.plugin_menu = QMenu('&Plugins', self)
+        self.menuBar().addMenu(self.plugin_menu)
+        #self.plugin_menu.addAction('&Store Plot', lambda: self.storePlot())
+
         self.help_menu = QMenu('&Help', self)
         self.menuBar().addSeparator()
         self.menuBar().addMenu(self.help_menu)
-        self.help_menu.addAction('&About', self.about)
+        icon = QIcon(os.path.join(iconpath,'logo.png'))
+        self.help_menu.addAction(icon, '&About', self.about)
 
         #plot shortcut
         self.plotshc = QShortcut(QKeySequence('Ctrl+P'), self)
@@ -766,7 +790,7 @@ class Application(QMainWindow):
         """Return the currently used table"""
 
         idx = self.main.currentIndex()
-        name= self.main.tabText(idx)
+        name = self.main.tabText(idx)
         table = self.sheets[name]
         return table
 
@@ -799,6 +823,11 @@ class Application(QMainWindow):
         w.table.undo()
         w.refresh()
         return
+
+    '''def runLastAction(self):
+        w = self.getCurrentTable()
+        w.runLastAction()
+        return'''
 
     def refresh(self):
         """Refresh all tables"""
@@ -847,6 +876,57 @@ class Application(QMainWindow):
 
         table = self.getCurrentTable()
         table.showInterpreter()
+        return
+
+    def discoverPlugins(self):
+        """Discover available plugins"""
+
+        from . import plugin
+        default = os.path.join(module_path, 'plugins')
+        paths = [default]
+        #paths = [apppath,self.configpath]
+
+        failed = plugin.init_plugin_system(paths)
+        self.updatePluginMenu()
+        return
+
+    def loadPlugin(self, plugin):
+        """Instantiate the plugin and call it's main method"""
+
+        index = self.main.currentIndex()
+        name = self.main.tabText(index)
+        tablew = self.sheets[name]
+
+        p = plugin()
+        #plugin should be added to the splitter as a dock widget
+        #should also be able to add standalone windows
+        try:
+            p.main(parent=self, table=tablew)
+        except Exception as e:
+            QMessageBox.information(self, "Plugin error", str(e))
+
+        tablew.splitter.addWidget(p.mainwin)
+        index = tablew.splitter.indexOf(p.mainwin)
+        tablew.splitter.setCollapsible(index, False)
+
+        #track which plugin is running so the last one is removed?
+        self.openplugins[name] = p
+        return
+
+    def updatePluginMenu(self):
+        """Update plugins"""
+
+        from . import plugin
+        #self.plugin_menu['var'].delete(3, self.plugin_menu['var'].index(END))
+        plgmenu = self.plugin_menu
+        for plg in plugin.get_plugins_classes('gui'):
+            def func(p, **kwargs):
+                def new():
+                   self.loadPlugin(p)
+                return new
+            #plgmenu.add_command(label=plg.menuentry,
+            #                   command=func(plg))
+            plgmenu.addAction(plg.menuentry, func(plg))
         return
 
     def preferences(self):
