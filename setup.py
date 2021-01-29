@@ -17,6 +17,7 @@ setup(
     packages = ['tablexplore'],
     package_data={'tablexplore': ['logo.png', '../description.txt',
                                   'styles/*.qss','icons/*.png',
+                                  'plugins/*.py',
                                   'datasets/*.csv']},
     install_requires=['matplotlib>=3.0',
                       'pandas>=1.1',

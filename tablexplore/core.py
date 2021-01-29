@@ -87,7 +87,7 @@ class DataFrameWidget(QWidget):
         l.addWidget(self.splitter,1,1)
         self.table = DataFrameTable(self, dataframe, **kwargs)
         self.splitter.addWidget(self.table)
-        self.splitter.setSizes((500,200))
+        self.splitter.setSizes((500,200))        
         if toolbar == True:
             self.createToolbar()
         if statusbar == True:
@@ -106,7 +106,7 @@ class DataFrameWidget(QWidget):
     def stateChanged(self, idx, idx2):
         """Run whenever table model is changed"""
 
-        if hasattr(self, 'pf'):
+        if hasattr(self, 'pf') and self.pf is not None:
             self.pf.updateData()
 
     def statusBar(self):
@@ -911,6 +911,20 @@ class DataFrameWidget(QWidget):
             return
         return
 
+    '''def runLastAction(self):
+        """Run previous action again"""
+
+        func = getattr(self, self.action['name'])
+        print (func)
+        func()
+        return
+
+    def storeAction(self, name):
+        """Save last run action"""
+
+        self.action = {'name':name}
+        return'''
+
     def transpose(self):
 
         self.table.model.df = self.table.model.df.T
@@ -966,6 +980,12 @@ class DataFrameWidget(QWidget):
             self.filterdock.show()
             self.splitter.setSizes((500,200))
             self.filterdialog.update()
+        return
+
+    def selectAll(self):
+        """Select all data"""
+
+        self.table.selectAll()
         return
 
     def getSelectedDataFrame(self):
