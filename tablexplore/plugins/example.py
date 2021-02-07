@@ -36,7 +36,7 @@ class ExamplePlugin(Plugin):
     requires = ['']
     menuentry = 'Example Plugin'
 
-    def main(self, parent=None, table=None):
+    def __init__(self, parent=None, table=None):
         """Customise this and/or doFrame for your widgets"""
 
         if parent==None:
@@ -56,18 +56,18 @@ class ExamplePlugin(Plugin):
         """Create widgets if GUI plugin"""
 
         if 'docked' in self.capabilities:
-            self.mainwin = QDockWidget()
+            self.main = QDockWidget()
         else:
-            self.mainwin = QWidget()
-        self.frame = QWidget(self.mainwin)
-        self.mainwin.setWidget(self.frame)
+            self.main = QWidget()
+        self.frame = QWidget(self.main)
+        self.main.setWidget(self.frame)
         layout = self.layout = QHBoxLayout()
         self.frame.setLayout(layout)
         tb = self.textbox = dialogs.PlainTextEditor()
         tb.resize(300,300)
         layout.addWidget(tb)
         text = 'This is a sample plugin.\n'\
-        'see https://github.com/dmnfarrell/tablexplore/tree/master/plugins'\
+        'see https://github.com/dmnfarrell/tablexplore/tree/master/plugins '\
         'for code examples.'
         tb.insertPlainText(text)
         #add a table widget
@@ -97,7 +97,7 @@ class ExamplePlugin(Plugin):
     def quit(self, evt=None):
         """Override this to handle pane closing"""
 
-        self.mainwin.close()
+        self.main.close()
         return
 
     def about(self):

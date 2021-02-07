@@ -87,7 +87,7 @@ class DataFrameWidget(QWidget):
         l.addWidget(self.splitter,1,1)
         self.table = DataFrameTable(self, dataframe, **kwargs)
         self.splitter.addWidget(self.table)
-        self.splitter.setSizes((500,200))        
+        self.splitter.setSizes((500,200))
         if toolbar == True:
             self.createToolbar()
         if statusbar == True:

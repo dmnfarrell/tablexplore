@@ -35,6 +35,7 @@ homepath = os.path.expanduser("~")
 module_path = os.path.dirname(os.path.abspath(__file__))
 stylepath = os.path.join(module_path, 'styles')
 iconpath = os.path.join(module_path, 'icons')
+pluginiconpath = os.path.join(module_path, 'plugins', 'icons')
 
 class ProgressWidget(QDialog):
     """Progress widget class"""
@@ -884,8 +885,6 @@ class Application(QMainWindow):
         from . import plugin
         default = os.path.join(module_path, 'plugins')
         paths = [default]
-        #paths = [apppath,self.configpath]
-
         failed = plugin.init_plugin_system(paths)
         self.updatePluginMenu()
         return
@@ -897,16 +896,15 @@ class Application(QMainWindow):
         name = self.main.tabText(index)
         tablew = self.sheets[name]
 
-        p = plugin()
         #plugin should be added to the splitter as a dock widget
         #should also be able to add standalone windows
         try:
-            p.main(parent=self, table=tablew)
+            p = plugin(parent=self, table=tablew)
         except Exception as e:
             QMessageBox.information(self, "Plugin error", str(e))
 
-        tablew.splitter.addWidget(p.mainwin)
-        index = tablew.splitter.indexOf(p.mainwin)
+        tablew.splitter.addWidget(p.main)
+        index = tablew.splitter.indexOf(p.main)
         tablew.splitter.setCollapsible(index, False)
 
         #track which plugin is running so the last one is removed?
@@ -917,16 +915,18 @@ class Application(QMainWindow):
         """Update plugins"""
 
         from . import plugin
-        #self.plugin_menu['var'].delete(3, self.plugin_menu['var'].index(END))
         plgmenu = self.plugin_menu
         for plg in plugin.get_plugins_classes('gui'):
+
             def func(p, **kwargs):
                 def new():
                    self.loadPlugin(p)
-                return new
-            #plgmenu.add_command(label=plg.menuentry,
-            #                   command=func(plg))
-            plgmenu.addAction(plg.menuentry, func(plg))
+                return new    
+            if hasattr(plg,'iconfile'):
+                icon = QIcon(os.path.join(pluginiconpath,plg.iconfile))
+                plgmenu.addAction(icon, plg.menuentry, func(plg))
+            else:
+                plgmenu.addAction(plg.menuentry, func(plg))
         return
 
     def preferences(self):
