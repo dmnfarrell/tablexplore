@@ -55,6 +55,8 @@ class Layer(object):
         self.alpha = .9
         self.column_color = ''
         self.column_label = ''
+        self.colormap = ''
+        self.pointsize = 50
         return
 
 class GISPlugin(Plugin):
@@ -167,10 +169,13 @@ class GISPlugin(Plugin):
 
         options = QFileDialog.Options()
         filename, _ = QFileDialog.getOpenFileName(self.main,"Save Project",
-                                                  '.',"shapefile (*.shp);;All files (*.*)",
+                                                  '.',"shapefile (*.shp);;zip (*.zip);;All files (*.*)",
                                                   options=options)
         if not filename:
             return
+        ext = os.path.splitext(filename)[1]
+        if ext == '.zip':
+            filename = 'zip://'+filename
         gdf = gpd.read_file(filename)
         name = os.path.basename(filename)
         self.addEntry(name, gdf)
@@ -216,12 +221,14 @@ class GISPlugin(Plugin):
             clr = layer.color
             df = layer.gdf
             column = layer.column_color
+            cmap = layer.colormap
             if layer.column_color != '':
                 column=layer.column_color
-                clr=None
-
-            df.plot(ax=ax,column=column,color=clr,
-                    ec=layer.ec,lw=layer.lw,alpha=layer.alpha)
+                df.plot(ax=ax,column=column,cmap=cmap,
+                        ec=layer.ec,lw=layer.lw,alpha=layer.alpha)
+            else:
+                df.plot(ax=ax,color=clr,ec=layer.ec,lw=layer.lw,
+                    markersize=layer.pointsize,alpha=layer.alpha)
             if layer.column_label != '':
                 col = layer.column_label
                 df.apply(lambda x: ax.annotate(text=x[col],
@@ -252,16 +259,21 @@ class GISPlugin(Plugin):
     def setProperties(self, item):
         """Set selected item properties"""
 
+        colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
         name = item.text(0)
         layer = self.layers[name]
         crs_vals = ['','EPSG:29990']
-        cols = ['']+layer.gdf.columns
+        cols = ['']+list(layer.gdf.columns)
         opts = {'name':{'type':'entry','default':layer.name},
                 'crs': {'type':'combobox','default':layer.crs,'items':crs_vals,'label':'CRS'},
                 'linewidth': {'type':'spinbox','default':layer.lw,'range':(1,10)},
+                'pointsize': {'type':'spinbox','default':layer.pointsize,'range':(50,500)},
                 'alpha': {'type':'spinbox','default':layer.alpha,'range':(0.1,1),'interval':0.1},
-                'colorby': {'type':'combobox','default':layer.column_color,'items':cols,'label':'color by'},
-                'labelby': {'type':'combobox','default':layer.column_label,'items':cols,'label':'labels'}
+                'colorby': {'type':'combobox','default':layer.column_color,'items':cols,
+                'label':'color by'},
+                'labelby': {'type':'combobox','default':layer.column_label,'items':cols,
+                'label':'labels'},
+                'cmap': {'type':'combobox','default':layer.colormap,'items':colormaps},
                 }
         dlg = dialogs.MultipleInputDialog(self.main, opts, title='Layer Properties', width=200)
         dlg.exec_()
@@ -270,9 +282,11 @@ class GISPlugin(Plugin):
 
         layer.name = dlg.values['name']
         layer.lw = dlg.values['linewidth']
+        layer.pointsize = dlg.values['pointsize']
         layer.alpha = dlg.values['alpha']
         layer.column_color = dlg.values['colorby']
         layer.column_label = dlg.values['labelby']
+        layer.colormap = dlg.values['cmap']
         item.setText(0, name)
         self.plot()
         return
@@ -289,6 +303,7 @@ class GISPlugin(Plugin):
                 'kind':  {'type':'combobox','default':'polygons','items':kinds,'label':'Type'},
                 'objects': {'type':'spinbox','default':3,'range':(1,500)},
                 'sides': {'type':'spinbox','default':6,'range':(1,50)},
+                'bounds':{'type':'entry','default':'0,0,50,50'},
                 }
 
         dlg = dialogs.MultipleInputDialog(self.main, opts, title='Make Shapes', width=200)
@@ -299,11 +314,14 @@ class GISPlugin(Plugin):
         n = dlg.values['objects']
         sides = dlg.values['sides']
         kind = dlg.values['kind']
+        bounds = dlg.values['bounds'].split(',')
+        bounds = [int(i)for i in bounds]
+        print(bounds)
         if kind == 'polygons':
-            polygons = make_polygons(n, pts=sides)
+            polygons = make_polygons(n, pts=sides, bounds=bounds)
             gdf = gpd.GeoDataFrame(geometry= gpd.GeoSeries(polygons))
         elif kind == 'points':
-            points = make_points(n)
+            points = make_points(n, bounds=bounds)
             gdf = gpd.GeoDataFrame(geometry= gpd.GeoSeries(points))
         gdf['label'] = random_labels(len(gdf))
         self.addEntry(name, gdf)
