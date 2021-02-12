@@ -37,17 +37,18 @@ import shapely
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 
 homepath = os.path.expanduser("~")
-qcolors = ['blue','green','crimson','blueviolet','brown','burlywood','cadetblue','chartreuse','chocolate',
-            'coral','gold','cornflowerblue','cornsilk','khaki','orange','pink',
+qcolors = ['blue','gray','green','crimson','blueviolet','brown','burlywood','cadetblue','chartreuse',
+            'coral','gold','cornflowerblue','cornsilk','khaki','orange','pink','chocolate',
             'red','lime','mediumvioletred','navy','teal','darkblue','purple','orange',
             'marooon','salmon']
 name = 'Simple GIS'
-
+version = 0.1
 
 class Layer(object):
     def __init__(self, gdf, name, crs=None):
         self.gdf = gdf
         self.name = name
+        self.filename = None
         self.crs = crs
         self.lw = 1
         self.ec = 'black'
@@ -65,6 +66,7 @@ class GISPlugin(Plugin):
     #uncomment capabilities list to appear in menu
     capabilities = ['gui','docked']
     requires = ['']
+    version = 0.1
     menuentry = 'Simple GIS'
     iconfile = 'globe.png'
 
@@ -85,13 +87,21 @@ class GISPlugin(Plugin):
         """Main menu"""
 
         self.menubar = QMenuBar(self.main)
-        self.file_menu = QMenu('&File', self.main)
-        self.file_menu.addAction('&Import', self.importFile)
+        self.file_menu = QMenu('File', self.main)
+        self.file_menu.addAction('Import', self.importFile)
+        self.file_menu.addAction('Import URL', self.importURL)
+        self.file_menu.addAction('Load Test Map', self.loadTest)
         self.menubar.addMenu(self.file_menu)
-        self.actions_menu = QMenu('&Actions', self.main)
-        self.menubar.addMenu(self.actions_menu)
-        self.about_menu = QMenu('&About', self.main)
-        self.menubar.addMenu(self.about_menu)
+        self.tools_menu = QMenu('Tools', self.main)
+        self.geom_menu = QMenu('Geometry', self.tools_menu)
+        self.geom_menu.addAction('Centroid', lambda: self.apply_geometry('centroid'))
+        self.geom_menu.addAction('Convex hull', lambda: self.apply_geometry('convex_hull'))
+        self.geom_menu.addAction('Union', lambda: self.apply_geometry('unary_union'))
+        self.tools_menu.addAction(self.geom_menu.menuAction())
+        self.menubar.addMenu(self.tools_menu)
+        self.help_menu = QMenu('Help', self.main)
+        self.menubar.addMenu(self.help_menu)
+        self.help_menu.addAction('About', self.about)
         self.menubar.adjustSize()
         return
 
@@ -164,6 +174,11 @@ class GISPlugin(Plugin):
             self.export(item)
         return
 
+    def loadTest(self):
+        """Load a test map"""
+
+        return
+
     def importFile(self):
         """Import shapefile"""
 
@@ -178,11 +193,25 @@ class GISPlugin(Plugin):
             filename = 'zip://'+filename
         gdf = gpd.read_file(filename)
         name = os.path.basename(filename)
-        self.addEntry(name, gdf)
+        self.addEntry(name, gdf, filename)
         self.plot()
         return
 
-    def addEntry(self, name, gdf):
+    def importURL(self):
+        opts = {'url':{'label':'Address','type':'entry','default':'',
+                     'width':600 }}
+        dlg = dialogs.MultipleInputDialog(self.main, opts, title='Import URL', width=600)
+        dlg.exec_()
+        if not dlg.accepted:
+            return False
+        url = dlg.values['url']
+        gdf = gpd.read_file(url)
+        name = os.path.basename(filename)
+        self.addEntry(name, gdf, filename)
+        self.plot()
+        return
+
+    def addEntry(self, name, gdf, filename=None):
         """Add geopandas dataframe entry to tree"""
 
         if name in self.layers:
@@ -191,9 +220,11 @@ class GISPlugin(Plugin):
         item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
         item.setCheckState(0, Qt.Checked)
         item.setText(0, name)
+        item.setText(1, filename)
         #add to layers
         new = Layer(gdf, name)
         self.layers[name] = new
+        new.filename = filename
         i = len(self.layers)
         clr = qcolors[i]
         new.color = clr
@@ -236,6 +267,12 @@ class GISPlugin(Plugin):
 
         pf.canvas.draw()
         plt.tight_layout()
+        return
+
+    def plotSelected(self):
+        """Plot only selected rows from a table"""
+
+        self.plot()
         return
 
     def delete(self, item):
@@ -295,6 +332,31 @@ class GISPlugin(Plugin):
 
         return
 
+    def centroid(self):
+        """Find centroids"""
+
+        item = self.tree.selectedItems()[0]
+        name = item.text(0)
+        layer = self.layers[name]
+        cent = layer.gdf.geometry.centroid
+        cent = gpd.GeoDataFrame(geometry=cent)
+        self.addEntry(name+'_centroids', cent)
+        self.plot()
+        return
+
+    def apply_geometry(self, func):
+        """Apply function to geoseries"""
+
+        item = self.tree.selectedItems()[0]
+        name = item.text(0)
+        layer = self.layers[name]
+        new = getattr(layer.gdf.geometry, func)
+        new = gpd.GeoDataFrame(geometry=new)
+        self.addEntry(name+'_%s' %func, new)
+        self.plot()
+        return
+        return
+
     def simulateShapes(self, n=5):
         """Make synthetic objects"""
 
@@ -337,9 +399,13 @@ class GISPlugin(Plugin):
     def about(self):
         """About this plugin"""
 
-        txt = "This plugin implements ...\n"+\
-               "version: %s" %self.version
-        return txt
+        text = "This plugin implements a simple GIS "+\
+                "plugin with the ability to load and plot shapefiles. "+\
+                "Version: %s" %version
+
+        #icon = QIcon(os.path.join(core.pluginiconpath,self.iconfile))
+        msg = QMessageBox.about(self.main, "About", text)
+        return
 
 def make_points(n=5, bounds=(1,1,50,50)):
     """Make points"""
