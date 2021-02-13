@@ -37,10 +37,10 @@ import shapely
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 
 homepath = os.path.expanduser("~")
-qcolors = ['blue','gray','green','crimson','blueviolet','brown','burlywood','cadetblue','chartreuse',
-            'coral','gold','cornflowerblue','cornsilk','khaki','orange','pink','chocolate',
+qcolors = ['blue','green','crimson','cadetblue','gold','burlywood','blueviolet','chartreuse',
+            'coral','cornflowerblue','cornsilk','khaki','orange','pink','chocolate',
             'red','lime','mediumvioletred','navy','teal','darkblue','purple','orange',
-            'marooon','salmon']
+            'marooon','salmon','brown']
 name = 'Simple GIS'
 version = 0.1
 
@@ -53,7 +53,7 @@ class Layer(object):
         self.lw = 1
         self.ec = 'black'
         self.color = 'white'
-        self.alpha = .9
+        self.alpha = .8
         self.column_color = ''
         self.column_label = ''
         self.colormap = ''
@@ -92,7 +92,11 @@ class GISPlugin(Plugin):
         self.file_menu.addAction('Import URL', self.importURL)
         self.file_menu.addAction('Load Test Map', self.loadTest)
         self.menubar.addMenu(self.file_menu)
+        self.layers_menu = QMenu('Layers', self.main)
+        self.layers_menu.addAction('Clear', self.clear)
+        self.menubar.addMenu(self.layers_menu)
         self.tools_menu = QMenu('Tools', self.main)
+        self.tools_menu.addAction('Simulate Shapes', self.simulateShapes)
         self.geom_menu = QMenu('Geometry', self.tools_menu)
         self.geom_menu.addAction('Centroid', lambda: self.apply_geometry('centroid'))
         self.geom_menu.addAction('Convex hull', lambda: self.apply_geometry('convex_hull'))
@@ -128,8 +132,9 @@ class GISPlugin(Plugin):
 
         layout.addWidget(self.tree)
         #add some buttons
-        bw = self.createButtons(self.frame)
-        layout.addWidget(bw)
+        #bw = self.createToolBar(self.frame)
+        self.toolbar = self.createToolBar(self.frame)
+        layout.addWidget(self.toolbar)
         return
 
     def createButtons(self, parent):
@@ -150,6 +155,17 @@ class GISPlugin(Plugin):
         button.clicked.connect(self.quit)
         vbox.addWidget(button)
         return bw
+
+    def createToolBar(self, parent):
+        items = {'plot': {'action':self.plot,'file':'plot'},
+                 'moveup': {'action':self.moveLayer,'file':'arrow-up'},
+                 'movedown': {'action':lambda: self.moveLayer(-1),'file':'arrow-down'},
+                 'delete': {'action':self.delete,'file':'delete'},
+                 }
+        toolbar = QToolBar("Toolbar")
+        toolbar.setOrientation(QtCore.Qt.Vertical)
+        dialogs.addToolBarItems(toolbar, self.main, items)
+        return toolbar
 
     def showTreeMenu(self, pos):
         """Show right cick tree menu"""
@@ -177,6 +193,19 @@ class GISPlugin(Plugin):
     def loadTest(self):
         """Load a test map"""
 
+        url = 'https://github.com/dmnfarrell/tablexplore/blob/master/data/zim_level2_districts.zip?raw=true'
+        self.importShapefile(url)
+        return
+
+    def importShapefile(self, filename):
+
+        ext = os.path.splitext(filename)[1]
+        if ext == '.zip':
+            filename = 'zip://'+filename
+        gdf = gpd.read_file(filename)
+        name = os.path.basename(filename)
+        self.addEntry(name, gdf, filename)
+        self.plot()
         return
 
     def importFile(self):
@@ -188,16 +217,11 @@ class GISPlugin(Plugin):
                                                   options=options)
         if not filename:
             return
-        ext = os.path.splitext(filename)[1]
-        if ext == '.zip':
-            filename = 'zip://'+filename
-        gdf = gpd.read_file(filename)
-        name = os.path.basename(filename)
-        self.addEntry(name, gdf, filename)
-        self.plot()
+        self.importShapefile(filename)
         return
 
     def importURL(self):
+
         opts = {'url':{'label':'Address','type':'entry','default':'',
                      'width':600 }}
         dlg = dialogs.MultipleInputDialog(self.main, opts, title='Import URL', width=600)
@@ -205,10 +229,7 @@ class GISPlugin(Plugin):
         if not dlg.accepted:
             return False
         url = dlg.values['url']
-        gdf = gpd.read_file(url)
-        name = os.path.basename(filename)
-        self.addEntry(name, gdf, filename)
-        self.plot()
+        self.importShapefile(url)
         return
 
     def addEntry(self, name, gdf, filename=None):
@@ -242,12 +263,13 @@ class GISPlugin(Plugin):
     def plot(self):
         """Plot maps"""
 
+        order = self.getLayerOrder()
         #get the plot frame from parent table widget
         pf = self.tablewidget.pf
         ax = pf.ax
         ax.clear()
         column=None
-        for name in self.layers:
+        for name in order:
             layer = self.layers[name]
             clr = layer.color
             df = layer.gdf
@@ -275,9 +297,43 @@ class GISPlugin(Plugin):
         self.plot()
         return
 
-    def delete(self, item):
+    def moveLayer(self, n=1):
+        """Move layer up in tree"""
+
+        l = self.tree.topLevelItemCount()
+        item = self.tree.selectedItems()[0]
+        row = self.tree.selectedIndexes()[0].row()
+        name = item.text(0)
+        if row-n >= l:
+            return
+        self.tree.takeTopLevelItem(row)
+        self.tree.insertTopLevelItem(row - n, item)
+        self.tree.setCurrentItem(item)
+        return
+
+    def getLayerOrder(self):
+
+        order = []
+        for i in range(self.tree.topLevelItemCount()):
+            item = self.tree.topLevelItem(i)
+            order.append(item.text(0))
+        return order[::-1]
+
+    def clear(self):
+        """Clear all layers"""
+
+        reply = QMessageBox.question(self.main, 'Clear All',
+                             'Are you sure?', QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.No:
+            return False
+        self.layers = {}
+        self.tree.clear()
+        return
+
+    def delete(self):
         """Remove layer"""
 
+        item = self.tree.selectedItems()[0]
         name = item.text(0)
         del self.layers[name]
         self.tree.removeItemWidget(item, 0)
@@ -301,6 +357,7 @@ class GISPlugin(Plugin):
         layer = self.layers[name]
         crs_vals = ['','EPSG:29990']
         cols = ['']+list(layer.gdf.columns)
+        cols.remove('geometry')
         opts = {'name':{'type':'entry','default':layer.name},
                 'crs': {'type':'combobox','default':layer.crs,'items':crs_vals,'label':'CRS'},
                 'linewidth': {'type':'spinbox','default':layer.lw,'range':(1,10)},
@@ -354,7 +411,6 @@ class GISPlugin(Plugin):
         new = gpd.GeoDataFrame(geometry=new)
         self.addEntry(name+'_%s' %func, new)
         self.plot()
-        return
         return
 
     def simulateShapes(self, n=5):
