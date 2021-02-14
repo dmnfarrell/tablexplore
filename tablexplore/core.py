@@ -30,6 +30,7 @@ from .qt import *
 
 module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
+pluginiconpath = os.path.join(module_path, 'plugins', 'icons')
 textalignment = None
 MODES = ['default','spreadsheet','locked']
 FONT = 'monospace'

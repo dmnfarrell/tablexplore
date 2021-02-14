@@ -209,51 +209,51 @@ class Application(QMainWindow):
         self.file_menu.addAction(icon, '&Save', self.saveProject,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_S)
         self.file_menu.addAction('&Save As', self.saveAsProject)
-        self.file_menu.addAction('&Import File', self.importFile)
-        self.file_menu.addAction('&Import HDF5', self.importHDF)
-        self.file_menu.addAction('&Import URL', self.importURL)
-        self.file_menu.addAction('&Export As', self.exportAs)
+        self.file_menu.addAction('Import File', self.importFile)
+        self.file_menu.addAction('Import HDF5', self.importHDF)
+        self.file_menu.addAction('Import URL', self.importURL)
+        self.file_menu.addAction('Export As', self.exportAs)
         icon = QIcon(os.path.join(iconpath,'application-exit.png'))
         self.file_menu.addAction(icon, '&Quit', self.fileQuit,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Q)
         self.menuBar().addMenu(self.file_menu)
 
-        self.edit_menu = QMenu('&Edit', self)
+        self.edit_menu = QMenu('Edit', self)
         self.menuBar().addMenu(self.edit_menu)
-        self.undo_item = self.edit_menu.addAction('&Undo', self.undo,
+        self.undo_item = self.edit_menu.addAction('Undo', self.undo,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Z)
         #self.undo_item.setDisabled(True)
         #self.edit_menu.addAction('&Run Last Action', self.runLastAction)
         icon = QIcon(os.path.join(iconpath,'preferences-system.png'))
         self.edit_menu.addAction(icon, '&Preferences', self.preferences)
 
-        self.view_menu = QMenu('&View', self)
+        self.view_menu = QMenu('View', self)
         self.menuBar().addMenu(self.view_menu)
         icon = QIcon(os.path.join(iconpath,'zoom-in.png'))
-        self.view_menu.addAction(icon, '&Zoom In', self.zoomIn,
+        self.view_menu.addAction(icon, 'Zoom In', self.zoomIn,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Equal)
         icon = QIcon(os.path.join(iconpath,'zoom-out.png'))
-        self.view_menu.addAction(icon, '&Zoom Out', self.zoomOut,
+        self.view_menu.addAction(icon, 'Zoom Out', self.zoomOut,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Minus)
         icon = QIcon(os.path.join(iconpath,'decrease-width.png'))
-        self.view_menu.addAction(icon, '&Decrease Column Width', lambda: self.changeColumnWidths(.9))
+        self.view_menu.addAction(icon, 'Decrease Column Width', lambda: self.changeColumnWidths(.9))
         icon = QIcon(os.path.join(iconpath,'increase-width.png'))
-        self.view_menu.addAction(icon, '&Increase Column Width', self.changeColumnWidths)
+        self.view_menu.addAction(icon, 'Increase Column Width', self.changeColumnWidths)
         self.style_menu = QMenu("Styles",  self.view_menu)
-        self.style_menu.addAction('&Default', self.setStyle)
-        self.style_menu.addAction('&Light', lambda: self.setStyle('light'))
-        self.style_menu.addAction('&Dark', lambda: self.setStyle('dark'))
+        self.style_menu.addAction('Default', self.setStyle)
+        self.style_menu.addAction('Light', lambda: self.setStyle('light'))
+        self.style_menu.addAction('Dark', lambda: self.setStyle('dark'))
         self.view_menu.addAction(self.style_menu.menuAction())
 
-        self.sheet_menu = QMenu('&Sheet', self)
+        self.sheet_menu = QMenu('Sheet', self)
         self.menuBar().addMenu(self.sheet_menu)
         icon = QIcon(os.path.join(iconpath,'add.png'))
-        self.sheet_menu.addAction(icon, '&Add', self.addSheet)
-        self.sheet_menu.addAction('&Rename', self.renameSheet)
+        self.sheet_menu.addAction(icon, 'Add', self.addSheet)
+        self.sheet_menu.addAction('Rename', self.renameSheet)
         icon = QIcon(os.path.join(iconpath,'copy.png'))
         self.sheet_menu.addAction(icon, '&Copy', self.copySheet)
 
-        self.tools_menu = QMenu('&Tools', self)
+        self.tools_menu = QMenu('Tools', self)
         icon = QIcon(os.path.join(iconpath,'tableinfo.png'))
         self.tools_menu.addAction(icon, '&Table Info', lambda: self._call('info'),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_I)
@@ -261,29 +261,29 @@ class Application(QMainWindow):
         self.tools_menu.addAction(icon, '&Clean Data', lambda: self._call('cleanData'))
         icon = QIcon(os.path.join(iconpath,'table-duplicates.png'))
         self.tools_menu.addAction(icon, '&Find Duplicates', lambda: self._call('findDuplicates'))
-        self.tools_menu.addAction('&Convert Numeric', lambda: self._call('convertNumeric'))
-        self.tools_menu.addAction('&Convert Column Names', lambda: self._call('convertColumnNames'))
-        self.tools_menu.addAction('&Time Series Resample', lambda: self._call('resample'))
+        self.tools_menu.addAction('Convert Numeric', lambda: self._call('convertNumeric'))
+        self.tools_menu.addAction('Convert Column Names', lambda: self._call('convertColumnNames'))
+        self.tools_menu.addAction('Time Series Resample', lambda: self._call('resample'))
         icon = QIcon(os.path.join(iconpath,'tabletotext.png'))
         self.tools_menu.addAction(icon, '&Table to Text', lambda: self._call('showAsText'),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_T)
         icon = QIcon(os.path.join(iconpath,'interpreter.png'))
-        self.tools_menu.addAction(icon, '&Python Interpreter', self.interpreter)
+        self.tools_menu.addAction(icon, 'Python Interpreter', self.interpreter)
         self.menuBar().addMenu(self.tools_menu)
 
-        self.dataset_menu = QMenu('&Datasets', self)
+        self.dataset_menu = QMenu('Datasets', self)
         self.menuBar().addMenu(self.dataset_menu)
-        self.dataset_menu.addAction('&Sample', lambda: self.getSampleData('sample'))
-        self.dataset_menu.addAction('&Iris', lambda: self.getSampleData('iris'))
-        self.dataset_menu.addAction('&Titanic', lambda: self.getSampleData('titanic'))
-        self.dataset_menu.addAction('&Pima Diabetes', lambda: self.getSampleData('pima'))
+        self.dataset_menu.addAction('Sample', lambda: self.getSampleData('sample'))
+        self.dataset_menu.addAction('Iris', lambda: self.getSampleData('iris'))
+        self.dataset_menu.addAction('Titanic', lambda: self.getSampleData('titanic'))
+        self.dataset_menu.addAction('Pima Diabetes', lambda: self.getSampleData('pima'))
 
-        self.plots_menu = QMenu('&Plots', self)
+        self.plots_menu = QMenu('Plots', self)
         self.menuBar().addMenu(self.plots_menu)
-        self.plots_menu.addAction('&Store Plot', lambda: self.storePlot())
-        self.plots_menu.addAction('&Show Plots', lambda: self.showPlotGallery())
+        self.plots_menu.addAction('Store Plot', lambda: self.storePlot())
+        self.plots_menu.addAction('Show Plots', lambda: self.showPlotGallery())
 
-        self.plugin_menu = QMenu('&Plugins', self)
+        self.plugin_menu = QMenu('Plugins', self)
         self.menuBar().addMenu(self.plugin_menu)
         #self.plugin_menu.addAction('&Store Plot', lambda: self.storePlot())
 
@@ -921,7 +921,7 @@ class Application(QMainWindow):
             def func(p, **kwargs):
                 def new():
                    self.loadPlugin(p)
-                return new    
+                return new
             if hasattr(plg,'iconfile'):
                 icon = QIcon(os.path.join(pluginiconpath,plg.iconfile))
                 plgmenu.addAction(icon, plg.menuentry, func(plg))
