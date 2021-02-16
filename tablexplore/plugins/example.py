@@ -35,7 +35,8 @@ class ExamplePlugin(Plugin):
     capabilities = ['gui','docked']
     requires = ['']
     menuentry = 'Example Plugin'
-
+    name = 'Example Plugin'
+    
     def __init__(self, parent=None, table=None):
         """Customise this and/or doFrame for your widgets"""
 

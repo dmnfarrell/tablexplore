@@ -36,6 +36,7 @@ class ExamplePlugin(Plugin):
     requires = ['']
     menuentry = 'Testing'
     iconfile = 'tests.png'
+    name = 'Testing'
 
     def __init__(self, parent=None, table=None):
         """Customise this and/or doFrame for your widgets"""
