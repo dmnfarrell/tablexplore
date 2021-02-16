@@ -37,11 +37,10 @@ import shapely
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 
 homepath = os.path.expanduser("~")
-qcolors = ['blue','green','crimson','cadetblue','gold','burlywood','blueviolet','chartreuse',
-            'coral','cornflowerblue','cornsilk','khaki','orange','pink','chocolate',
+qcolors = ['blue','green','crimson','lightblue','gold','burlywood','blueviolet','chartreuse',
+            'cadetblue','coral','cornflowerblue','cornsilk','khaki','orange','pink','chocolate',
             'red','lime','mediumvioletred','navy','teal','darkblue','purple','orange',
-            'marooon','salmon','brown']
-name = 'Simple GIS'
+            'salmon','brown']
 version = 0.1
 
 class Layer(object):
@@ -51,13 +50,14 @@ class Layer(object):
         self.filename = None
         self.crs = crs
         self.lw = 1
-        self.ec = 'black'
         self.color = 'white'
-        self.alpha = .8
+        self.ec = 'black'
+        self.alpha = .7
         self.column_color = ''
         self.column_label = ''
         self.colormap = ''
         self.pointsize = 50
+        self.labelsize = 10
         return
 
 class GISPlugin(Plugin):
@@ -69,7 +69,8 @@ class GISPlugin(Plugin):
     version = 0.1
     menuentry = 'Simple GIS'
     iconfile = 'globe.png'
-
+    name = 'Simple GIS'
+    
     def __init__(self, parent=None, table=None):
         """Customise this and/or doFrame for your widgets"""
 
@@ -99,9 +100,25 @@ class GISPlugin(Plugin):
         self.tools_menu.addAction('Simulate Shapes', self.simulateShapes)
         self.geom_menu = QMenu('Geometry', self.tools_menu)
         self.geom_menu.addAction('Centroid', lambda: self.apply_geometry('centroid'))
+        self.geom_menu.addAction('Boundary', lambda: self.apply_geometry('boundary'))
+        self.geom_menu.addAction('Envelope', lambda: self.apply_geometry('envelope'))
         self.geom_menu.addAction('Convex hull', lambda: self.apply_geometry('convex_hull'))
-        self.geom_menu.addAction('Union', lambda: self.apply_geometry('unary_union'))
+        self.geom_menu.addAction('Buffer', lambda: self.apply_geometry('buffer'))
+        self.geom_menu.addAction('Simplify', lambda: self.apply_geometry('simplify'))
         self.tools_menu.addAction(self.geom_menu.menuAction())
+        self.transform_menu = QMenu('Transform', self.tools_menu)
+        self.transform_menu.addAction('Scale', lambda: self.apply_geometry('scale'))
+        self.transform_menu.addAction('Rotate', lambda: self.apply_geometry('rotate'))
+        self.transform_menu.addAction('Skew', lambda: self.apply_geometry('skew'))
+        self.tools_menu.addAction(self.transform_menu.menuAction())
+        self.set_menu = QMenu('Set', self.tools_menu)
+        self.set_menu.addAction('Union', self.overlay)
+        self.set_menu.addAction('Intersection', lambda: self.overlay('intersection'))
+        self.set_menu.addAction('Difference', lambda: self.overlay('difference'))
+        self.tools_menu.addAction(self.set_menu.menuAction())
+        self.analysis_menu = QMenu('Analysis', self.tools_menu)
+        self.tools_menu.addAction(self.analysis_menu.menuAction())
+        self.analysis_menu.addAction('Distance Matrix', self.getDistanceMatrix)
         self.menubar.addMenu(self.tools_menu)
         self.help_menu = QMenu('Help', self.main)
         self.menubar.addMenu(self.help_menu)
@@ -124,12 +141,11 @@ class GISPlugin(Plugin):
         self.tree = QTreeWidget()
         self.tree.setHeaderItem(QTreeWidgetItem(["name","file"]))
         self.tree.setColumnWidth(0, 200)
-
+        self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
-
         self.tree.customContextMenuRequested.connect(self.showTreeMenu)
         #self.tree.itemDoubleClicked.connect(handler)
-
+        self.tree.itemChanged.connect(self.itemClicked)
         layout.addWidget(self.tree)
         #add some buttons
         #bw = self.createToolBar(self.frame)
@@ -137,28 +153,9 @@ class GISPlugin(Plugin):
         layout.addWidget(self.toolbar)
         return
 
-    def createButtons(self, parent):
-        """Buttons"""
-
-        bw = QWidget(parent)
-        vbox = QVBoxLayout(bw)
-        button = QPushButton("Import shape file")
-        button.clicked.connect(self.importFile)
-        vbox.addWidget(button)
-        button = QPushButton("Simulate Shapes")
-        button.clicked.connect(self.simulateShapes)
-        vbox.addWidget(button)
-        button = QPushButton("Plot")
-        button.clicked.connect(self.plot)
-        vbox.addWidget(button)
-        button = QPushButton("Close")
-        button.clicked.connect(self.quit)
-        vbox.addWidget(button)
-        return bw
-
     def createToolBar(self, parent):
-        items = {'plot': {'action':self.plot,'file':'plot'},
-                 'moveup': {'action':self.moveLayer,'file':'arrow-up'},
+        items = {'plot': {'action':self.plot,'file':'plot-map'},
+                 'moveup': {'action':lambda: self.moveLayer(1),'file':'arrow-up'},
                  'movedown': {'action':lambda: self.moveLayer(-1),'file':'arrow-down'},
                  'delete': {'action':self.delete,'file':'delete'},
                  }
@@ -232,6 +229,12 @@ class GISPlugin(Plugin):
         self.importShapefile(url)
         return
 
+    def itemClicked(self, item, column):
+
+        #if item.checkState(column) == Qt.Checked:
+        #    self.replot()
+        return
+
     def addEntry(self, name, gdf, filename=None):
         """Add geopandas dataframe entry to tree"""
 
@@ -258,18 +261,22 @@ class GISPlugin(Plugin):
         item.setBackground(0 , qcolor)
         name = item.text(0)
         self.layers[name].color = qcolor.name()
+        self.replot()
         return
 
-    def plot(self):
+    def plot(self, evt=None, limits=None):
         """Plot maps"""
 
         order = self.getLayerOrder()
+        checked = self.getChecked()
         #get the plot frame from parent table widget
         pf = self.tablewidget.pf
         ax = pf.ax
         ax.clear()
         column=None
         for name in order:
+            if name not in checked:
+                continue
             layer = self.layers[name]
             clr = layer.color
             df = layer.gdf
@@ -282,19 +289,29 @@ class GISPlugin(Plugin):
             else:
                 df.plot(ax=ax,color=clr,ec=layer.ec,lw=layer.lw,
                     markersize=layer.pointsize,alpha=layer.alpha)
+            #labels
             if layer.column_label != '':
                 col = layer.column_label
                 df.apply(lambda x: ax.annotate(text=x[col],
-                    xy=x.geometry.centroid.coords[0], ha='right', fontsize=10),axis=1)
-
+                    xy=x.geometry.centroid.coords[0], ha='right', fontsize=layer.labelsize),axis=1)
+        if limits != None:
+            ax.set_xlim(limits[0])
+            ax.set_ylim(limits[1])
         pf.canvas.draw()
         plt.tight_layout()
         return
 
-    def plotSelected(self):
-        """Plot only selected rows from a table"""
+    def getPlotLimits(self):
 
-        self.plot()
+        pf = self.tablewidget.pf
+        ax = pf.ax
+        return (ax.get_xlim(),ax.get_ylim())
+
+    def replot(self):
+        """Plot after edits to layers"""
+
+        xlim,ylim = self.getPlotLimits()
+        self.plot(limits=(xlim,ylim))
         return
 
     def moveLayer(self, n=1):
@@ -304,7 +321,7 @@ class GISPlugin(Plugin):
         item = self.tree.selectedItems()[0]
         row = self.tree.selectedIndexes()[0].row()
         name = item.text(0)
-        if row-n >= l:
+        if row-n >= l or row-n<0:
             return
         self.tree.takeTopLevelItem(row)
         self.tree.insertTopLevelItem(row - n, item)
@@ -318,6 +335,15 @@ class GISPlugin(Plugin):
             item = self.tree.topLevelItem(i)
             order.append(item.text(0))
         return order[::-1]
+
+    def getChecked(self):
+
+        names=[]
+        for i in range(self.tree.topLevelItemCount()):
+            item = self.tree.topLevelItem(i)
+            if item.checkState(0) == Qt.CheckState.Checked:
+                names.append(item.text(0))
+        return names
 
     def clear(self):
         """Clear all layers"""
@@ -334,9 +360,10 @@ class GISPlugin(Plugin):
         """Remove layer"""
 
         item = self.tree.selectedItems()[0]
+        row = self.tree.selectedIndexes()[0].row()
         name = item.text(0)
         del self.layers[name]
-        self.tree.removeItemWidget(item, 0)
+        self.tree.takeTopLevelItem(row)
         return
 
     def edit(self, item):
@@ -358,15 +385,18 @@ class GISPlugin(Plugin):
         crs_vals = ['','EPSG:29990']
         cols = ['']+list(layer.gdf.columns)
         cols.remove('geometry')
+        clrs = ['black','white']+qcolors
         opts = {'name':{'type':'entry','default':layer.name},
                 'crs': {'type':'combobox','default':layer.crs,'items':crs_vals,'label':'CRS'},
-                'linewidth': {'type':'spinbox','default':layer.lw,'range':(1,10)},
+                'line width': {'type':'spinbox','default':layer.lw,'range':(0,15)},
+                'edge color': {'type':'combobox','default':layer.ec,'items':clrs},
                 'pointsize': {'type':'spinbox','default':layer.pointsize,'range':(50,500)},
                 'alpha': {'type':'spinbox','default':layer.alpha,'range':(0.1,1),'interval':0.1},
                 'colorby': {'type':'combobox','default':layer.column_color,'items':cols,
                 'label':'color by'},
                 'labelby': {'type':'combobox','default':layer.column_label,'items':cols,
                 'label':'labels'},
+                'labelsize':  {'type':'spinbox','default':layer.labelsize,'range':(5,40)},
                 'cmap': {'type':'combobox','default':layer.colormap,'items':colormaps},
                 }
         dlg = dialogs.MultipleInputDialog(self.main, opts, title='Layer Properties', width=200)
@@ -375,42 +405,106 @@ class GISPlugin(Plugin):
             return False
 
         layer.name = dlg.values['name']
-        layer.lw = dlg.values['linewidth']
+        layer.lw = dlg.values['line width']
+        layer.ec = dlg.values['edge color']
         layer.pointsize = dlg.values['pointsize']
         layer.alpha = dlg.values['alpha']
         layer.column_color = dlg.values['colorby']
         layer.column_label = dlg.values['labelby']
         layer.colormap = dlg.values['cmap']
+        layer.labelsize = dlg.values['labelsize']
         item.setText(0, name)
-        self.plot()
+        self.replot()
         return
 
     def export(self, item):
 
         return
 
-    def centroid(self):
-        """Find centroids"""
+    def overlay(self, how='union'):
+        """Find difference"""
 
-        item = self.tree.selectedItems()[0]
-        name = item.text(0)
-        layer = self.layers[name]
-        cent = layer.gdf.geometry.centroid
-        cent = gpd.GeoDataFrame(geometry=cent)
-        self.addEntry(name+'_centroids', cent)
-        self.plot()
+        items = self.tree.selectedItems()[:2]
+        print (items)
+        names = [i.text(0) for i in items]
+        df1 = self.layers[names[0]].gdf
+        df2 = self.layers[names[1]].gdf
+        new = gpd.overlay(df1, df2, how=how)
+        self.addEntry(names[0]+'_'+names[1]+'_'+how, new)
+        self.replot()
         return
 
     def apply_geometry(self, func):
         """Apply function to geoseries"""
 
+        params = {'buffer':
+                  {'distance':{'type':'spinbox','default':0.1,'range':(1,100),'interval':0.1}},
+                  'simplify':
+                  {'tolerance':{'type':'spinbox','default':0.1,'range':(1,10),'interval':0.1}},
+                  'scale':
+                  {'xfact':{'type':'spinbox','default':0.1,'range':(1,10),'interval':0.1},
+                   'yfact':{'type':'spinbox','default':0.1,'range':(1,10),'interval':0.1}},
+                  'rotate':
+                  {'angle':{'type':'spinbox','default':0.1,'range':(1,180),'interval':0.2}},
+                  'skew':
+                  {'xs':{'type':'spinbox','default':0.1,'range':(1,180),'interval':0.2},
+                   'ys':{'type':'spinbox','default':0.1,'range':(1,180),'interval':0.2}, },
+                 }
+        if func in params:
+            opts = params[func]
+            dlg = dialogs.MultipleInputDialog(self.main, opts, title=func, width=200)
+            dlg.exec_()
+            if not dlg.accepted:
+                return False
+
         item = self.tree.selectedItems()[0]
         name = item.text(0)
         layer = self.layers[name]
-        new = getattr(layer.gdf.geometry, func)
+        if func in params:
+            new = getattr(layer.gdf.geometry, func)(**dlg.values)
+        else:
+            new = getattr(layer.gdf.geometry, func)
         new = gpd.GeoDataFrame(geometry=new)
         self.addEntry(name+'_%s' %func, new)
-        self.plot()
+        self.replot()
+        return
+
+    def distance_matrix(self, gdf, index=None):
+        """Distance matrix from points"""
+
+        def distance(x,point):
+            return x.distance(point)
+
+        X=[]
+        for i,r in gdf.iterrows():
+            point = r.geometry
+            x = gdf.geometry.apply(lambda x: round(distance(x,point),3))
+            X.append(x)
+        if index == None:
+            index = gdf.index
+        else:
+            index = list(gdf[index])
+        X = pd.DataFrame(X,index=index)#,columns=index)
+        return X
+
+    def getDistanceMatrix(self):
+        """Get dist matrix"""
+
+        item = self.tree.selectedItems()[0]
+        name = item.text(0)
+        layer = self.layers[name]
+
+        cols = list(layer.gdf.columns)
+        opts = {'index':{'type':'combobox','default':cols[0],'items':cols}}
+        dlg = dialogs.MultipleInputDialog(self.main, opts, title='distance matrix', width=200)
+        dlg.exec_()
+        if not dlg.accepted:
+            return False
+
+        X = self.distance_matrix(layer.gdf, index=dlg.values['index'])
+        table = self.tablewidget.table
+        table.model.df = X
+        table.refresh()
         return
 
     def simulateShapes(self, n=5):
@@ -434,7 +528,7 @@ class GISPlugin(Plugin):
         kind = dlg.values['kind']
         bounds = dlg.values['bounds'].split(',')
         bounds = [int(i)for i in bounds]
-        print(bounds)
+
         if kind == 'polygons':
             polygons = make_polygons(n, pts=sides, bounds=bounds)
             gdf = gpd.GeoDataFrame(geometry= gpd.GeoSeries(polygons))

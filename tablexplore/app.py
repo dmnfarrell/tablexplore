@@ -92,7 +92,6 @@ class Application(QMainWindow):
         self.recent_files = ['']
         self.recent_urls = []
         self.plots = {}
-        self.openplugins = {}
 
         self.loadSettings()
         self.showRecentFiles()
@@ -895,20 +894,27 @@ class Application(QMainWindow):
         index = self.main.currentIndex()
         name = self.main.tabText(index)
         tablew = self.sheets[name]
+        if not hasattr(tablew, 'openplugins'):
+            tablew.openplugins = {}
+        openplugins = tablew.openplugins
 
-        #plugin should be added to the splitter as a dock widget
-        #should also be able to add standalone windows
-        try:
-            p = plugin(parent=self, table=tablew)
-        except Exception as e:
-            QMessageBox.information(self, "Plugin error", str(e))
+        if plugin.name in openplugins:
+            p = openplugins[plugin.name]
+            p.main.show()
+        else:
+            #plugin should be added to the splitter as a dock widget
+            #should also be able to add standalone windows
+            try:
+                p = plugin(parent=self, table=tablew)
+                #track which plugin is running
+                openplugins[plugin.name] = p
+            except Exception as e:
+                QMessageBox.information(self, "Plugin error", str(e))
 
-        tablew.splitter.addWidget(p.main)
-        index = tablew.splitter.indexOf(p.main)
-        tablew.splitter.setCollapsible(index, False)
+            tablew.splitter.addWidget(p.main)
+            index = tablew.splitter.indexOf(p.main)
+            tablew.splitter.setCollapsible(index, False)
 
-        #track which plugin is running so the last one is removed?
-        self.openplugins[name] = p
         return
 
     def updatePluginMenu(self):
