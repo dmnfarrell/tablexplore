@@ -21,7 +21,7 @@ AppDir:
     id: org.tablexplore.python-tablexplore
     name: tablexplore
     icon: tablexplore
-    version: 0.3.0
+    version: 0.4.0
     # Set the python executable as entry point
     exec: usr/bin/python3
     # Set the application main script path as argument. Use '$@' to forward CLI parameters

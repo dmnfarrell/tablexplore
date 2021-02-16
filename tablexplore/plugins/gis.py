@@ -70,7 +70,7 @@ class GISPlugin(Plugin):
     menuentry = 'Simple GIS'
     iconfile = 'globe.png'
     name = 'Simple GIS'
-    
+
     def __init__(self, parent=None, table=None):
         """Customise this and/or doFrame for your widgets"""
 
@@ -92,6 +92,7 @@ class GISPlugin(Plugin):
         self.file_menu.addAction('Import', self.importFile)
         self.file_menu.addAction('Import URL', self.importURL)
         self.file_menu.addAction('Load Test Map', self.loadTest)
+        self.file_menu.addAction('Load World Map', self.loadWorldMap)
         self.menubar.addMenu(self.file_menu)
         self.layers_menu = QMenu('Layers', self.main)
         self.layers_menu.addAction('Clear', self.clear)
@@ -105,6 +106,7 @@ class GISPlugin(Plugin):
         self.geom_menu.addAction('Convex hull', lambda: self.apply_geometry('convex_hull'))
         self.geom_menu.addAction('Buffer', lambda: self.apply_geometry('buffer'))
         self.geom_menu.addAction('Simplify', lambda: self.apply_geometry('simplify'))
+        self.geom_menu.addAction('Merge Overlapping', self.mergeOverlap)
         self.tools_menu.addAction(self.geom_menu.menuAction())
         self.transform_menu = QMenu('Transform', self.tools_menu)
         self.transform_menu.addAction('Scale', lambda: self.apply_geometry('scale'))
@@ -118,7 +120,8 @@ class GISPlugin(Plugin):
         self.tools_menu.addAction(self.set_menu.menuAction())
         self.analysis_menu = QMenu('Analysis', self.tools_menu)
         self.tools_menu.addAction(self.analysis_menu.menuAction())
-        self.analysis_menu.addAction('Distance Matrix', self.getDistanceMatrix)
+        self.analysis_menu.addAction('Distance Matrix', self.distanceMatrix)
+        self.analysis_menu.addAction('Nearest Neighbour', self.nearestNeighbour)
         self.menubar.addMenu(self.tools_menu)
         self.help_menu = QMenu('Help', self.main)
         self.menubar.addMenu(self.help_menu)
@@ -185,6 +188,15 @@ class GISPlugin(Plugin):
             self.delete(item)
         elif action == exportAction:
             self.export(item)
+        return
+
+    def loadWorldMap(self):
+        """Load a world map"""
+
+        world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+        world = world[['continent', 'geometry']]
+        self.addEntry('world',world)
+        self.plot()
         return
 
     def loadTest(self):
@@ -469,25 +481,16 @@ class GISPlugin(Plugin):
         self.replot()
         return
 
-    def distance_matrix(self, gdf, index=None):
-        """Distance matrix from points"""
+    def mergeOverlap(self):
 
-        def distance(x,point):
-            return x.distance(point)
+        item = self.tree.selectedItems()[0]
+        name = item.text(0)
+        layer = self.layers[name]
+        new = merge_overlap(layer.gdf)
+        self.addEntry(name+'_merged', new)
+        return
 
-        X=[]
-        for i,r in gdf.iterrows():
-            point = r.geometry
-            x = gdf.geometry.apply(lambda x: round(distance(x,point),3))
-            X.append(x)
-        if index == None:
-            index = gdf.index
-        else:
-            index = list(gdf[index])
-        X = pd.DataFrame(X,index=index)#,columns=index)
-        return X
-
-    def getDistanceMatrix(self):
+    def distanceMatrix(self):
         """Get dist matrix"""
 
         item = self.tree.selectedItems()[0]
@@ -501,10 +504,26 @@ class GISPlugin(Plugin):
         if not dlg.accepted:
             return False
 
-        X = self.distance_matrix(layer.gdf, index=dlg.values['index'])
+        X = distance_matrix(layer.gdf, index=dlg.values['index'])
         table = self.tablewidget.table
         table.model.df = X
         table.refresh()
+        return
+
+    def nearestNeighbour(self):
+        """get nearest neighbours"""
+
+        item = self.tree.selectedItems()[0]
+        name = item.text(0)
+        layer = self.layers[name]
+        cent = layer.gdf.centroid
+        cent['nearest'] = cent.geometry.apply(lambda x: nearest(x, cent))
+
+        from shapely.geometry import Point, LineString
+
+        lines = cent.apply(lambda x: LineString((x.geometry,x.nearest)),1)
+        new = gpd.GeoDataFrame(geometry=lines)
+        self.addEntry(name+'_nn', new)
         return
 
     def simulateShapes(self, n=5):
@@ -515,6 +534,7 @@ class GISPlugin(Plugin):
                 'kind':  {'type':'combobox','default':'polygons','items':kinds,'label':'Type'},
                 'objects': {'type':'spinbox','default':3,'range':(1,500)},
                 'sides': {'type':'spinbox','default':6,'range':(1,50)},
+                'size': {'type':'spinbox','default':.1,'range':(.01,1),'interval':0.01},
                 'bounds':{'type':'entry','default':'0,0,50,50'},
                 }
 
@@ -527,11 +547,13 @@ class GISPlugin(Plugin):
         sides = dlg.values['sides']
         kind = dlg.values['kind']
         bounds = dlg.values['bounds'].split(',')
+        size = dlg.values['size']
         bounds = [int(i)for i in bounds]
 
         if kind == 'polygons':
-            polygons = make_polygons(n, pts=sides, bounds=bounds)
+            polygons = make_polygons(n, pts=sides, bounds=bounds, size=size)
             gdf = gpd.GeoDataFrame(geometry= gpd.GeoSeries(polygons))
+            gdf = merge_overlap(gdf)
         elif kind == 'points':
             points = make_points(n, bounds=bounds)
             gdf = gpd.GeoDataFrame(geometry= gpd.GeoSeries(points))
@@ -557,6 +579,39 @@ class GISPlugin(Plugin):
         msg = QMessageBox.about(self.main, "About", text)
         return
 
+# module level functions
+
+def merge_overlap(gdf):
+    """Merges overlapping polygons """
+
+    intersection= gpd.overlay(gdf, gdf, how='intersection')
+    union = intersection.unary_union
+    shapes = gpd.GeoSeries([polygon for polygon in union])
+    new = gpd.GeoDataFrame(geometry=shapes)
+    return new
+
+def nearest(point, gdf):
+    gdf['dist'] = gdf.apply(lambda row:  point.distance(row.geometry),axis=1)
+    return gdf.iloc[gdf['dist'].argmin()].geometry
+
+def distance_matrix(gdf, index=None):
+    """Distance matrix from points"""
+
+    def distance(x,point):
+        return x.distance(point)
+
+    X=[]
+    for i,r in gdf.iterrows():
+        point = r.geometry
+        x = gdf.geometry.apply(lambda x: round(distance(x,point),3))
+        X.append(x)
+    if index == None:
+        index = gdf.index
+    else:
+        index = list(gdf[index])
+    X = pd.DataFrame(X,index=index)#,columns=index)
+    return X
+
 def make_points(n=5, bounds=(1,1,50,50)):
     """Make points"""
 
@@ -571,13 +626,15 @@ def point_pos(x0, y0, d, theta):
     theta_rad = np.pi/2 - np.radians(theta)
     return x0 + d*np.cos(theta_rad), y0 + d*np.sin(theta_rad)
 
-def make_polygons(n=5, pts=5, r=5, bounds=(1,1,50,50)):
+def make_polygons(n=5, pts=5, bounds=(1,1,50,50), size=0.1):
     """Make polygons inside specific bounds"""
 
     centers = make_points(n, bounds)
-    pts = random.randint(3,pts*2)
+    pts = random.randint(pts-2,pts+2)
     polys = []
     for c in centers:
+        r = abs(bounds[2]-bounds[0])*size
+        r = np.random.normal(r,r)
         poly = make_polygon(c.x,c.y,pts,r)
         polys.append(poly)
     return polys
@@ -588,7 +645,7 @@ def make_polygon(x=1,y=1,pts=10,r=5):
     coords = []
     angles = sorted(np.random.randint(0,360,pts))
     for i in angles:
-        d = np.random.normal(r,r/10)
+        d = r/2
         x1,y1 = point_pos(x,y,d,i)
         coords.append((x1,y1))
     poly = Polygon(coords)

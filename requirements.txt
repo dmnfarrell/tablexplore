@@ -1,3 +1,4 @@
+pyqt5 #used instead of pyside2 for appimage and snap
 numpy
 pandas
 matplotlib

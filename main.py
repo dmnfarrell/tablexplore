@@ -20,7 +20,11 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-from PySide2.QtWidgets import *
+try:
+    from PySide2.QtWidgets import *
+except:
+    from PyQt5.QtWidgets import *
+
 from tablexplore import app
 
 def main():
