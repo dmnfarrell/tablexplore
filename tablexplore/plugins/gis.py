@@ -60,6 +60,13 @@ class Layer(object):
         self.labelsize = 10
         return
 
+    def save(self):
+        """Save if filename present"""
+
+        if self.filename != None:
+            self.gdf.to_file(filename)
+        return
+
 class GISPlugin(Plugin):
     """Geopandas map plotting plugin for TableExplore"""
 
@@ -121,8 +128,12 @@ class GISPlugin(Plugin):
         self.analysis_menu = QMenu('Analysis', self.tools_menu)
         self.tools_menu.addAction(self.analysis_menu.menuAction())
         self.analysis_menu.addAction('Distance Matrix', self.distanceMatrix)
-        self.analysis_menu.addAction('Nearest Neighbour', self.nearestNeighbour)
+        #self.analysis_menu.addAction('Nearest Neighbour', self.nearestNeighbour)
         self.menubar.addMenu(self.tools_menu)
+        self.options_menu = QMenu('Options', self.main)
+        self.subplotsaction = QAction('Multiple Subplots', self.options_menu, checkable=True)
+        self.options_menu.addAction(self.subplotsaction)
+        self.menubar.addMenu(self.options_menu)
         self.help_menu = QMenu('Help', self.main)
         self.menubar.addMenu(self.help_menu)
         self.help_menu.addAction('About', self.about)
@@ -176,7 +187,7 @@ class GISPlugin(Plugin):
         propsAction = menu.addAction("Properties")
         colorAction = menu.addAction("Set Color")
         deleteAction = menu.addAction("Delete")
-        exportAction = menu.addAction("Export")
+        setfileAction = menu.addAction("Set File")
         action = menu.exec_(self.tree.mapToGlobal(pos))
         if action == editAction:
             self.edit(item)
@@ -186,8 +197,8 @@ class GISPlugin(Plugin):
             self.setProperties(item)
         elif action == deleteAction:
             self.delete(item)
-        elif action == exportAction:
-            self.export(item)
+        elif action == setfileAction:
+            self.setFile(item)
         return
 
     def loadWorldMap(self):
@@ -221,7 +232,7 @@ class GISPlugin(Plugin):
         """Import shapefile"""
 
         options = QFileDialog.Options()
-        filename, _ = QFileDialog.getOpenFileName(self.main,"Save Project",
+        filename, _ = QFileDialog.getOpenFileName(self.main,"Import File",
                                                   '.',"shapefile (*.shp);;zip (*.zip);;All files (*.*)",
                                                   options=options)
         if not filename:
@@ -239,6 +250,25 @@ class GISPlugin(Plugin):
             return False
         url = dlg.values['url']
         self.importShapefile(url)
+        return
+
+    def setFile(self, item=None):
+        """Attach a file to the layer"""
+
+        if item is None:
+            item = self.tree.selectedItems()[0]
+        name = item.text(0)
+        layer = self.layers[name]
+        options = QFileDialog.Options()
+        filename, _ = QFileDialog.getSaveFileName(self.main,"Save to File",
+                                                  '.',"shapefile (*.shp);;All files (*.*)",
+                                                  options=options)
+        ext = os.path.splitext(filename)[1]
+        if ext != '.shp':
+            filename += '.shp'
+        layer.gdf.to_file(filename)
+        layer.filename = filename
+        item.setText(1, filename)
         return
 
     def itemClicked(self, item, column):
@@ -276,19 +306,33 @@ class GISPlugin(Plugin):
         self.replot()
         return
 
-    def plot(self, evt=None, limits=None):
+    def plot(self, evt=None, ax=None, limits={}):
         """Plot maps"""
 
+        subplots = self.subplotsaction.isChecked()
         order = self.getLayerOrder()
         checked = self.getChecked()
         #get the plot frame from parent table widget
         pf = self.tablewidget.pf
-        ax = pf.ax
-        ax.clear()
-        column=None
+        column = None
+        i=1
+        pf.fig.clear()
+        if ax == None:
+            if subplots == 1:
+                size = len(order)
+                nrows = int(round(np.sqrt(size),0))
+                ncols = int(np.ceil(size/nrows))
+            else:
+                ax = pf.fig.add_subplot(111)
+
+        #pf.setStyle()
+        #pf.applyPlotoptions()
         for name in order:
             if name not in checked:
                 continue
+            if subplots == 1:
+                ax = pf.fig.add_subplot(nrows,ncols,i,label=name)
+                ax.set_title(name)
             layer = self.layers[name]
             clr = layer.color
             df = layer.gdf
@@ -306,9 +350,13 @@ class GISPlugin(Plugin):
                 col = layer.column_label
                 df.apply(lambda x: ax.annotate(text=x[col],
                     xy=x.geometry.centroid.coords[0], ha='right', fontsize=layer.labelsize),axis=1)
-        if limits != None:
-            ax.set_xlim(limits[0])
-            ax.set_ylim(limits[1])
+            if name in limits:
+                lims = limits[name]
+                ax.set_xlim(lims[0])
+                ax.set_ylim(lims[1])
+            i+=1
+            ax.id = name
+
         pf.canvas.draw()
         plt.tight_layout()
         return
@@ -316,14 +364,18 @@ class GISPlugin(Plugin):
     def getPlotLimits(self):
 
         pf = self.tablewidget.pf
-        ax = pf.ax
-        return (ax.get_xlim(),ax.get_ylim())
+        axes = pf.fig.axes
+        limits = {}
+        for ax in axes:
+            limits[ax.id] = (ax.get_xlim(),ax.get_ylim())
+        return limits
 
     def replot(self):
         """Plot after edits to layers"""
 
-        xlim,ylim = self.getPlotLimits()
-        self.plot(limits=(xlim,ylim))
+        lims = self.getPlotLimits()
+        pf = self.tablewidget.pf
+        self.plot(limits=lims)
         return
 
     def moveLayer(self, n=1):
@@ -554,9 +606,11 @@ class GISPlugin(Plugin):
             polygons = make_polygons(n, pts=sides, bounds=bounds, size=size)
             gdf = gpd.GeoDataFrame(geometry= gpd.GeoSeries(polygons))
             gdf = merge_overlap(gdf)
+            gdf['area'] = gdf.geometry.area
         elif kind == 'points':
             points = make_points(n, bounds=bounds)
             gdf = gpd.GeoDataFrame(geometry= gpd.GeoSeries(points))
+
         gdf['label'] = random_labels(len(gdf))
         self.addEntry(name, gdf)
         self.plot()
