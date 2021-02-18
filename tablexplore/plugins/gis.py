@@ -156,7 +156,7 @@ class GISPlugin(Plugin):
         self.tree.setHeaderItem(QTreeWidgetItem(["name","file"]))
         self.tree.setColumnWidth(0, 200)
         self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.tree.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.showTreeMenu)
         #self.tree.itemDoubleClicked.connect(handler)
         self.tree.itemChanged.connect(self.itemClicked)
@@ -283,8 +283,8 @@ class GISPlugin(Plugin):
         if name in self.layers:
             name = name+str(len(self.layers))
         item = QTreeWidgetItem(self.tree)
-        item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-        item.setCheckState(0, Qt.Checked)
+        item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+        item.setCheckState(0, QtCore.Qt.Checked)
         item.setText(0, name)
         item.setText(1, filename)
         #add to layers
@@ -405,7 +405,7 @@ class GISPlugin(Plugin):
         names=[]
         for i in range(self.tree.topLevelItemCount()):
             item = self.tree.topLevelItem(i)
-            if item.checkState(0) == Qt.CheckState.Checked:
+            if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                 names.append(item.text(0))
         return names
 

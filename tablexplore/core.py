@@ -1329,6 +1329,7 @@ class DataFrameTable(QTableView):
         deleteColumnAction = colmenu.addAction("Delete Column")
         renameColumnAction = colmenu.addAction("Rename Column")
         addColumnAction = colmenu.addAction("Add Column")
+        setTypeAction = colmenu.addAction("Set Data Type")
         menu.addAction(colmenu.menuAction())
         fillAction = menu.addAction("Fill Data")
         applyFunctionAction = menu.addAction("Apply Function")
@@ -1346,6 +1347,8 @@ class DataFrameTable(QTableView):
             self.renameColumn(column)
         elif action == addColumnAction:
             self.addColumn()
+        elif action == setTypeAction:
+            self.setColumnType(column)
         elif action == setIndexAction:
             self.setIndex(column)
         elif action == datetimeAction:
@@ -1509,6 +1512,26 @@ class DataFrameTable(QTableView):
             self.refresh()
         return
 
+    def setColumnType(self, column=None):
+        """Change the column dtype"""
+
+        idx = self.getSelectedColumns()
+        if len(idx)>0:
+            cols = self.model.df.columns[idx]
+        else:
+            cols = [column]
+        types = ['float','int','object','datetime']
+        newtype, ok = QInputDialog().getItem(self, "New Column Type",
+                                             "Type:", types, 0, False)
+        if not ok:
+            return
+        self.storeCurrent()
+        df = self.model.df
+        for c in cols:
+            df[c] = df[c].astype(newtype)
+        self.refresh()
+        return
+
     def zoomIn(self, fontsize=None):
         """Zoom in table"""
 
@@ -1595,12 +1618,18 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         elif (role == QtCore.Qt.EditRole):
             value = self.df.iloc[i, j]
             #print (coltype)
-            try:
-                return float(value)
-            except:
-                return str(value)
+            #print (value)
+            if type(value) is str:
+                return value
+            if coltype in [float,np.float64]:
+                try:
+                    return float(value)
+                except:
+                    return str(value)
+
             if np.isnan(value):
                 return ''
+
         elif role == QtCore.Qt.BackgroundRole:
             return QColor(self.bg)
 

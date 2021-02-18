@@ -22,7 +22,7 @@ setup(
     install_requires=['matplotlib>=3.0',
                       'pandas>=1.1',
                       'PySide2',
-                      'xlrd>=1.0'
+                      'xlrd>=1.0',
                       #uncomment below only for snap building
                       #'geopandas'
                       ],

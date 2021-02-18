@@ -238,6 +238,9 @@ class Application(QMainWindow):
         self.view_menu.addAction(icon, 'Decrease Column Width', lambda: self.changeColumnWidths(.9))
         icon = QIcon(os.path.join(iconpath,'increase-width.png'))
         self.view_menu.addAction(icon, 'Increase Column Width', self.changeColumnWidths)
+        icon = QIcon(os.path.join(iconpath,'preferences-system.png'))
+        self.view_menu.addAction(icon, 'Show Plot Options', self.showPlotOptions)
+
         self.style_menu = QMenu("Styles",  self.view_menu)
         self.style_menu.addAction('Default', self.setStyle)
         self.style_menu.addAction('Light', lambda: self.setStyle('light'))
@@ -708,6 +711,13 @@ class Application(QMainWindow):
                     QLineEdit.Normal, name+'_copy')
         if ok:
             self.addSheet(new, df)
+        return
+
+    def showPlotOptions(self):
+
+        index = self.main.currentIndex()
+        name = self.main.tabText(index)
+        self.sheets[name].pf.dock.show()
         return
 
     def load_dataframe(self, df, name=None, select=False):
