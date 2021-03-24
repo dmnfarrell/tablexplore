@@ -66,7 +66,7 @@ class Application(QMainWindow):
 
         QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setWindowTitle("Tablexplore")
+        self.setWindowTitle("Myriam MVP")
         self.setWindowIcon(QIcon(os.path.join(module_path,'logo.png')))
 
         self.createMenu()
