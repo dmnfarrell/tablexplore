@@ -51,6 +51,10 @@ A Windows standalone binary can be downloaded [here](https://dmnfarrell.github.i
 
 <img src=docs/images/scr1.png width=600px>
 
+## Videos
+
+https://www.youtube.com/watch?v=nscmtsG5SKQ
+
 ## Use the widget in Python
 
 ```python
