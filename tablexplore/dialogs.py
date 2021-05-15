@@ -112,6 +112,9 @@ def dialogFromOptions(parent, opts, sections=None,
             elif t == 'entry':
                 w = QLineEdit()
                 w.setText(str(val))
+                if 'width' in opt:
+                    w.setMaximumWidth(opt['width'])
+                    w.resize(opt['width'], 20)
             elif t == 'textarea':
                 w = QPlainTextEdit()
                 #w.setSizePolicy(sizepolicy)
@@ -289,7 +292,7 @@ class MultipleInputDialog(QDialog):
         super(MultipleInputDialog, self).__init__(parent)
         self.values = None
         self.accepted = False
-        self.setMinimumSize(width, height)
+        self.setMinimumSize(width, height)        
         self.setWindowTitle(title)
         dialog, self.widgets = dialogFromOptions(self, options)
         vbox = QVBoxLayout(self)

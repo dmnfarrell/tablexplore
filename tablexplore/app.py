@@ -160,7 +160,7 @@ class Application(QMainWindow):
 
     def createToolBar(self):
 
-        items = {'new': {'action': lambda: self.newProject(ask=True),'file':'document-new'},
+        items = {'new project': {'action': lambda: self.newProject(ask=True),'file':'document-new'},
                  'open': {'action':self.openProject,'file':'document-open'},
                  'save': {'action': lambda: self.saveProject(None),'file':'save'},
                  'zoom out': {'action':self.zoomOut,'file':'zoom-out'},
@@ -168,6 +168,7 @@ class Application(QMainWindow):
                  'decrease columns': {'action': lambda: self.changeColumnWidths(.9),'file':'decrease-width'},
                  'increase columns': {'action': lambda: self.changeColumnWidths(1.1),'file':'increase-width'},
                  'add sheet': {'action': lambda: self.addSheet(name=None),'file':'add'},
+                 'add column': {'action': lambda: self._call('addColumn'),'file':'add-column'},
                  #'lock': {'action':self.lockTable,'file':'lock'},
                  'clean data': {'action':lambda: self._call('cleanData'),'file':'clean'},
                  'table to text': {'action':lambda: self._call('showAsText'),'file':'tabletotext'},
@@ -359,6 +360,8 @@ class Application(QMainWindow):
                                  QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
             if reply == QMessageBox.Yes:
                 self.saveProject()
+            elif reply == QMessageBox.Cancel:
+                return
         if not type(data) is dict:
             data = None
         self.main.clear()
@@ -406,7 +409,7 @@ class Application(QMainWindow):
             return
         if not os.path.exists(filename):
             print ('no such file')
-            self.removeRecent(filename)
+            #self.removeRecent(filename)
             return
         ext = os.path.splitext(filename)[1]
         if ext != '.txpl':

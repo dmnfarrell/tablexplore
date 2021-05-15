@@ -24,7 +24,8 @@ setup(
                       'PySide2',
                       'xlrd>=1.0',
                       #uncomment below only for snap building
-                      #'geopandas'
+                      #'geopandas',
+                      #'pygeos'
                       ],
     entry_points = { 'gui_scripts': [
                      'tablexplore = tablexplore.app:main']},

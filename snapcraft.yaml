@@ -1,5 +1,5 @@
 name: tablexplore
-version: '0.3.0-22-geab30c4'
+version: '0.3.0-23-g7622d8b'
 #version-script: git describe --abbrev=1 --tags
 summary: data plotting and analysis package
 description: |
@@ -32,5 +32,4 @@ parts:
     stage-packages:
         - xsel
         - python3-pyqt5
-    #stage:
-    #    - -lib/python3.6/site-packages/PySide2/
+        - libgeos-3.6.2

@@ -289,6 +289,9 @@ class DataFrameWidget(QWidget):
         self.refresh()
         return
 
+    def addColumn(self):
+        self.table.addColumn()
+
     def plot(self):
         """Plot from selection"""
 
@@ -698,7 +701,8 @@ class DataFrameWidget(QWidget):
 
         dists = ['normal','gamma','uniform','random int','logistic']
         df = self.table.model.df
-        opts = {'random':  {'type':'checkbox','default':0,'label':'Random Noise',
+        opts = {'value': {'type':'entry','default':'','label':'Single Value'},
+                'random':  {'type':'checkbox','default':0,'label':'Random Noise',
                                         'tooltip':' '},
                 'dist':  {'type':'combobox','default':'int',
                     'items':dists,'label':'Distribution', 'tooltip':' '},
@@ -714,6 +718,7 @@ class DataFrameWidget(QWidget):
             return
         kwds = dlg.values
 
+        value = kwds['value']
         low = kwds['low']
         high = kwds['high']
         random = kwds['random']
@@ -727,7 +732,9 @@ class DataFrameWidget(QWidget):
             except:
                 logging.error("Exception occurred", exc_info=True)
                 return
-        if random == True:
+        if value != '':
+            data = value
+        elif random == True:
             if dist == 'normal':
                 data = np.random.normal(param1, param2, len(df))
             elif dist == 'gamma':
@@ -1447,14 +1454,25 @@ class DataFrameTable(QTableView):
     def addColumn(self):
         """Add a  column"""
 
+        opts = {'name':{'label':'Name','type':'entry','default':'' },
+                'fill':{'label':'Fill With','type':'entry','default':'' }
+                }
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Add Column',
+                                          width=400,height=150)
+        dlg.exec_()
+        if not dlg.accepted:
+            return False
+        name = dlg.values['name']
+        fill = dlg.values['fill']
+
         df = self.model.df
-        name, ok = QInputDialog().getText(self, "Enter Column Name",
-                                             "Name:", QLineEdit.Normal)
-        if ok and name:
-            if name in df.columns:
-                return
+        if not name or name in df.columns:
+            return
+        if fill != '':
+            df[name] = fill
+        else:
             df[name] = pd.Series()
-            self.refresh()
+        self.refresh()
         return
 
     def deleteColumn(self, column=None):
@@ -1506,7 +1524,7 @@ class DataFrameTable(QTableView):
     def renameColumn(self, column=None):
 
         name, ok = QInputDialog().getText(self, "Enter New Column Name",
-                                             "Name:", QLineEdit.Normal)
+                                             "Name:", QLineEdit.Normal, text=column)
         if ok and name:
             self.model.df.rename(columns={column:name},inplace=True)
             self.refresh()
