@@ -1,5 +1,8 @@
+#this is mainly meant for the appimage build
 pyqt5 #used instead of pyside2 for appimage and snap
+PyQt5-sip==4.1.1
 numpy
 pandas
 matplotlib
 xlrd
+geopandas

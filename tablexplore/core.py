@@ -185,6 +185,10 @@ class DataFrameWidget(QWidget):
     def save(self):
         return
 
+    def getFileType(self):
+
+        return ftype
+
     def importFile(self, filename=None, dialog=True, **kwargs):
         """Import csv file"""
 
@@ -203,6 +207,17 @@ class DataFrameWidget(QWidget):
             self.refresh()
         elif filename != None:
             self.table.model.df = pd.read_csv(filename)
+            self.refresh()
+        return
+
+    def importPickle(self):
+
+        options = QFileDialog.Options()
+        filename, _ = QFileDialog.getOpenFileName(self,"Import Pickle",
+                             "","pickle files (*.pkl *.pickle);;All Files (*)",
+                             options=options)
+        if filename:
+            self.table.model.df = pd.read_pickle(filename)
             self.refresh()
         return
 
