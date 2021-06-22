@@ -35,6 +35,15 @@ from . import util, core
 module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
 
+
+def getName(parent, current='', txt='Enter value'):
+    """Wrapper for text inpuit dialog"""
+
+    name, ok = QInputDialog().getText(parent, txt,
+                                     "Name:", QLineEdit.Normal, text=current)
+    if ok:
+        return name
+
 def dialogFromOptions(parent, opts, sections=None,
                       wrap=2, section_wrap=4,
                       style=None):
@@ -292,7 +301,7 @@ class MultipleInputDialog(QDialog):
         super(MultipleInputDialog, self).__init__(parent)
         self.values = None
         self.accepted = False
-        self.setMinimumSize(width, height)        
+        self.setMinimumSize(width, height)
         self.setWindowTitle(title)
         dialog, self.widgets = dialogFromOptions(self, options)
         vbox = QVBoxLayout(self)
@@ -937,7 +946,7 @@ class PreferencesDialog(QDialog):
                 'default': options['columnwidth'], 'label':'column width'},
                 'alignment':{'type':'combobox','default':'w','items':['left','right','center'],'label':'text align'},
                 'font':{'type':'font','default':'Arial','default':options['font']},
-                'fontsize':{'type':'slider','default':options['fontsize'],'range':(5,40),
+                'fontsize':{'type':'spinbox','default':options['fontsize'],'range':(5,40),
                             'interval':1,'label':'font size'},
                 'timeformat':{'type':'combobox','default':options['timeformat'],
                             'items':timeformats,'label':'Date/Time format'}

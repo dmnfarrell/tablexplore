@@ -705,7 +705,7 @@ class DataFrameWidget(QWidget):
                 df[col] = result
             else:
                 if newcol in df.columns:
-                    df.drop(columns=newcol)
+                    newcol = dialogs.getName(self, txt="Enter Column Name")
                 idx = df.columns.get_loc(col)
                 df.insert(idx+1, newcol, result)
         self.refresh()
@@ -1141,6 +1141,10 @@ class DataFrameTable(QTableView):
         self.setCornerButtonEnabled(True)
         #self.setSortingEnabled(True)
         self.updateFont()
+
+        #wrapping
+        #self.setWordWrap(True)
+        #self.resizeRowsToContents()
 
         tm = DataFrameModel(dataframe)
         self.setModel(tm)

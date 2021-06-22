@@ -210,7 +210,7 @@ class Application(QMainWindow):
                 QtCore.Qt.CTRL + QtCore.Qt.Key_S)
         self.file_menu.addAction('&Save As', self.saveAsProject)
         self.file_menu.addAction('Import CSV file', self.importFile)
-        self.file_menu.addAction('Import Pickle file', self.importPickle)    
+        self.file_menu.addAction('Import Pickle file', self.importPickle)
         self.file_menu.addAction('Import HDF5', self.importHDF)
         self.file_menu.addAction('Import URL', self.importURL)
         self.file_menu.addAction('Export As', self.exportAs)
@@ -668,7 +668,7 @@ class Application(QMainWindow):
         #provide reference to self to dataframewidget
         dfw = DataFrameWidget(sheet, dataframe=df, app=self,
                                 font=core.FONT, fontsize=core.FONTSIZE,
-                                columnwidth=core.COLUMNWIDTH, timeformat=core.TIMEFORMAT)
+                                columnwidth=core.COLUMNWIDTH, timeformat=core.TIMEFORMAT)        
         sheet.addWidget(dfw)
 
         self.sheets[name] = dfw
