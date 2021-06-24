@@ -248,7 +248,7 @@ class ProgressWidget(QDialog):
     def __init__(self, parent=None, label=''):
         super(ProgressWidget, self).__init__(parent)
         layout = QVBoxLayout(self)
-        self.setWindowTitle('Saving..')
+        self.setWindowTitle(label)
         self.setMinimumSize(400,100)
         self.setGeometry(
                 QStyle.alignedRect(

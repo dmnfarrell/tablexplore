@@ -1440,7 +1440,7 @@ class DataFrameTable(QTableView):
         if action == copyAction:
             self.parent.copy()
         elif action == importAction:
-            self.importFile()
+            self.parent.importFile()
         elif action == exportAction:
             self.parent.exportTable()
         elif action == plotAction:
@@ -1641,8 +1641,11 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         isdate = is_datetime(coltype)
         if role == QtCore.Qt.DisplayRole:
             value = self.df.iloc[i, j]
-            if isdate:
-                return value.strftime(TIMEFORMAT)
+            if isdate and not value is pd.NaT:
+                try:
+                    return value.strftime(TIMEFORMAT)
+                except:
+                    return ''
             elif type(value) != str:
                 if type(value) in [float,np.float64] and np.isnan(value):
                     return ''
