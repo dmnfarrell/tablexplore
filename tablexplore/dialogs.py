@@ -243,6 +243,74 @@ def addToolBarItems(toolbar, parent, items):
         toolbar.addAction(btn)
     return toolbar
 
+class ProgressWidget(QDialog):
+    """Progress widget class"""
+    def __init__(self, parent=None, label=''):
+        super(ProgressWidget, self).__init__(parent)
+        layout = QVBoxLayout(self)
+        self.setWindowTitle('Saving..')
+        self.setMinimumSize(400,100)
+        self.setGeometry(
+                QStyle.alignedRect(
+                    QtCore.Qt.LeftToRight,
+                    QtCore.Qt.AlignCenter,
+                    self.size(),
+                    QGuiApplication.primaryScreen().availableGeometry(),
+                ))
+        self.setMaximumHeight(100)
+        self.label = QLabel(label)
+        layout.addWidget(self.label)
+        # Create a progress bar
+        self.progressbar = QProgressBar(self)
+        layout.addWidget(self.progressbar)
+        self.progressbar.setGeometry(30, 40, 400, 200)
+
+        return
+
+#https://www.learnpyqt.com/courses/concurrent-execution/multithreading-pyqt-applications-qthreadpool/
+class Worker(QtCore.QRunnable):
+    """Worker thread for running background tasks."""
+
+    def __init__(self, fn, *args, **kwargs):
+        super(Worker, self).__init__()
+        # Store constructor arguments (re-used for processing)
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = WorkerSignals()
+        self.kwargs['progress_callback'] = self.signals.progress
+
+    @QtCore.Slot()
+    def run(self):
+        try:
+            result = self.fn(
+                *self.args, **self.kwargs,
+            )
+        except:
+            traceback.print_exc()
+            exctype, value = sys.exc_info()[:2]
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
+        else:
+            self.signals.result.emit(result)
+        finally:
+            self.signals.finished.emit()
+
+class WorkerSignals(QtCore.QObject):
+    """
+    Defines the signals available from a running worker thread.
+    Supported signals are:
+    finished
+        No data
+    error
+        `tuple` (exctype, value, traceback.format_exc() )
+    result
+        `object` data returned from processing, anything
+    """
+    finished = QtCore.Signal()
+    error = QtCore.Signal(tuple)
+    result = QtCore.Signal(object)
+    progress = QtCore.Signal(str)
+
 class PlainTextEditor(QPlainTextEdit):
     def __init__(self, parent=None, **kwargs):
         super(PlainTextEditor, self).__init__(parent, **kwargs)

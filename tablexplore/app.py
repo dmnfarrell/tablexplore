@@ -37,30 +37,6 @@ stylepath = os.path.join(module_path, 'styles')
 iconpath = os.path.join(module_path, 'icons')
 pluginiconpath = os.path.join(module_path, 'plugins', 'icons')
 
-class ProgressWidget(QDialog):
-    """Progress widget class"""
-    def __init__(self, parent=None, label=''):
-        super(ProgressWidget, self).__init__(parent)
-        layout = QVBoxLayout(self)
-        self.setWindowTitle('Saving..')
-        self.setMinimumSize(400,100)
-        self.setGeometry(
-                QStyle.alignedRect(
-                    QtCore.Qt.LeftToRight,
-                    QtCore.Qt.AlignCenter,
-                    self.size(),
-                    QGuiApplication.primaryScreen().availableGeometry(),
-                ))
-        self.setMaximumHeight(100)
-        self.label = QLabel(label)
-        layout.addWidget(self.label)
-        # Create a progress bar
-        self.progressbar = QProgressBar(self)
-        layout.addWidget(self.progressbar)
-        self.progressbar.setGeometry(30, 40, 400, 200)
-
-        return
-
 class Application(QMainWindow):
     def __init__(self, project_file=None, csv_file=None):
 
@@ -470,7 +446,7 @@ class Application(QMainWindow):
     def saveWithProgress(self, filename):
         """Save with progress bar"""
 
-        self.savedlg = dlg = ProgressWidget(label='Saving to %s' %filename)
+        self.savedlg = dlg = dialogs.ProgressWidget(label='Saving to %s' %filename)
         dlg.show()
         def func(progress_callback):
             self.do_saveProject(self.filename)
@@ -482,7 +458,7 @@ class Application(QMainWindow):
 
         #if self.running == True:
         #    return
-        worker = Worker(fn=process)
+        worker = dialogs.Worker(fn=process)
         self.threadpool.start(worker)
         worker.signals.finished.connect(on_complete)
         #worker.signals.progress.connect(self.progress_fn)
@@ -668,7 +644,7 @@ class Application(QMainWindow):
         #provide reference to self to dataframewidget
         dfw = DataFrameWidget(sheet, dataframe=df, app=self,
                                 font=core.FONT, fontsize=core.FONTSIZE,
-                                columnwidth=core.COLUMNWIDTH, timeformat=core.TIMEFORMAT)        
+                                columnwidth=core.COLUMNWIDTH, timeformat=core.TIMEFORMAT)
         sheet.addWidget(dfw)
 
         self.sheets[name] = dfw
@@ -932,9 +908,10 @@ class Application(QMainWindow):
             except Exception as e:
                 QMessageBox.information(self, "Plugin error", str(e))
 
-            tablew.splitter.addWidget(p.main)
-            index = tablew.splitter.indexOf(p.main)
-            tablew.splitter.setCollapsible(index, False)
+            if 'docked' in p.capabilities:
+                tablew.splitter.addWidget(p.main)
+                index = tablew.splitter.indexOf(p.main)
+                tablew.splitter.setCollapsible(index, False)
 
         return
 
@@ -1000,50 +977,6 @@ class Application(QMainWindow):
 
         msg = QMessageBox.about(self, "About", text)
         return
-
-#https://www.learnpyqt.com/courses/concurrent-execution/multithreading-pyqt-applications-qthreadpool/
-class Worker(QtCore.QRunnable):
-    """Worker thread for running background tasks."""
-
-    def __init__(self, fn, *args, **kwargs):
-        super(Worker, self).__init__()
-        # Store constructor arguments (re-used for processing)
-        self.fn = fn
-        self.args = args
-        self.kwargs = kwargs
-        self.signals = WorkerSignals()
-        self.kwargs['progress_callback'] = self.signals.progress
-
-    @QtCore.Slot()
-    def run(self):
-        try:
-            result = self.fn(
-                *self.args, **self.kwargs,
-            )
-        except:
-            traceback.print_exc()
-            exctype, value = sys.exc_info()[:2]
-            self.signals.error.emit((exctype, value, traceback.format_exc()))
-        else:
-            self.signals.result.emit(result)
-        finally:
-            self.signals.finished.emit()
-
-class WorkerSignals(QtCore.QObject):
-    """
-    Defines the signals available from a running worker thread.
-    Supported signals are:
-    finished
-        No data
-    error
-        `tuple` (exctype, value, traceback.format_exc() )
-    result
-        `object` data returned from processing, anything
-    """
-    finished = QtCore.Signal()
-    error = QtCore.Signal(tuple)
-    result = QtCore.Signal(object)
-    progress = QtCore.Signal(str)
 
 def main():
     import sys, os
