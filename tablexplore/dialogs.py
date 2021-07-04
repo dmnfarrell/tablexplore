@@ -236,10 +236,12 @@ def addToolBarItems(toolbar, parent, items):
         else:
             icon = QIcon.fromTheme(items[i]['icon'])
         btn = QAction(icon, i, parent)
-        btn.triggered.connect(items[i]['action'])
+        if 'action' in items[i]:
+            btn.triggered.connect(items[i]['action'])
         if 'shortcut' in items[i]:
             btn.setShortcut(QKeySequence(items[i]['shortcut']))
-        #btn.setCheckable(True)
+        if 'checkable' in items[i]:
+            btn.setCheckable(True)
         toolbar.addAction(btn)
     return toolbar
 
@@ -1058,16 +1060,18 @@ class PreferencesDialog(QDialog):
 
 class FilterDialog(QWidget):
     """Qdialog for table query/filtering"""
-    def __init__(self, parent, table, title=None):
+    def __init__(self, parent, table, title=None, app=None):
 
         super(FilterDialog, self).__init__(parent)
         self.parent = parent
         #self.app = self.parent.app
         self.table = table
+        self.app = app
         self.setWindowTitle(title)
         self.resize(400,200)
         self.createWidgets()
         self.filters = []
+        self.ignorecase = True
         #self.setMinimumHeight(200)
         #self.show()
         return
@@ -1076,13 +1080,14 @@ class FilterDialog(QWidget):
 
         items = {'Apply': {'action':self.apply,'file':'filter'},
                  'Add': {'action':self.addFilter,'file':'add'},
-                 'Refresh': {'action':self.refresh,'file':'table-refresh'},
-                 'Subtract': {'action':self.removeFiltered,'file':'table-remove'}
+                 'Reset': {'action':self.refresh,'file':'table-refresh'},
+                 'Copy to New Table': {'action':self.copyResult,'file':'subtable'},
+                 'Subtract': {'action':self.removeFiltered,'file':'table-remove'},
+                 'Ignore Case': {'action':self.togglecase,'file':'lowercase','checkable':True}
                  }
         toolbar = QToolBar("Toolbar")
         toolbar.setOrientation(QtCore.Qt.Horizontal)
         addToolBarItems(toolbar, self, items)
-        #vbox.addWidget(toolbar)
         return toolbar
 
     def createWidgets(self):
@@ -1124,6 +1129,21 @@ class FilterDialog(QWidget):
         cols = list(df.columns)
         self.column_w.clear()
         self.column_w.addItems(cols)
+        return
+
+    def togglecase(self):
+
+        sender = self.sender()
+        self.ignorecase = sender.isChecked()
+        return
+
+    def copyResult(self):
+
+        table = self.table
+        if table.filtered == False:
+            return
+        df = table.model.df
+        self.app.addSheet(None, df)
         return
 
     def addFilter(self):
@@ -1181,9 +1201,15 @@ class FilterDialog(QWidget):
                 val = float(val)
             except:
                 pass
-            print (col, val, op, b)
+            #print (col, val, op, b)
+            print (self.ignorecase)
+            if self.ignorecase == True:
+                strval = "(?i)"+str(val).lower()
+            else:
+                strval = str(val)
+
             if op == 'contains':
-                m = df[col].str.contains(str(val))
+                m = df[col].astype(str).str.contains(strval)
             elif op == 'equals':
                 m = df[col]==val
             elif op == 'not equals':
@@ -1197,9 +1223,11 @@ class FilterDialog(QWidget):
             elif op == 'not empty':
                 m = ~df[col].isnull()
             elif op == 'excludes':
-                m = -df[col].str.contains(val)
+                m = -df[col].str.contains(strval)
             elif op == 'starts with':
-                m = df[col].str.startswith(val)
+                m = df[col].str.startswith(strval)
+            elif op == 'ends with':
+                m = df[col].str.endswith(strval)
             elif op == 'has length':
                 m = df[col].str.len()>val
             elif op == 'is number':
@@ -1274,6 +1302,7 @@ class FilterBar(QWidget):
         l.addWidget(self.operator_w)
 
         self.term_w = QLineEdit()
+        self.term_w.returnPressed.connect(self.parent.apply)
         l.addWidget(self.term_w )
         icon = QIcon(os.path.join(iconpath,'remove.png'))
         btn = QPushButton()

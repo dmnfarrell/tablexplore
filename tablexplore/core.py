@@ -997,7 +997,7 @@ class DataFrameWidget(QWidget):
             self.splitter.setSizes((500,200))
             index = self.splitter.indexOf(dock)
             self.splitter.setCollapsible(index, False)
-            self.filterdialog = dlg = dialogs.FilterDialog(dock, self.table)
+            self.filterdialog = dlg = dialogs.FilterDialog(dock, self.table, app=self.app)
             dock.setWidget(dlg)
         else:
             self.filterdock.show()
