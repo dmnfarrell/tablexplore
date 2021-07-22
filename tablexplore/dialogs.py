@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-    Implements some dialog utilities for tableexplore
+    Implements some dialog utilities for tablexplore
     Created Feb 2019
     Copyright (C) Damien Farrell
 
@@ -430,8 +430,6 @@ class ImportDialog(QDialog):
                         'items':delimiters, 'tooltip':'seperator'},
                      #'header':{'type':'entry','default':0,'label':'header',
                      #          'tooltip':'position of column header'},
-                     #'index_col':{'type':'spinbox','default':-1,'range':(-1,1000),'label':'index column',
-                    #            'tooltip':''},
                      'decimal':{'type':'combobox','default':'.','items':['.',','],
                                 'tooltip':'decimal point symbol'},
                      'comment':{'type':'entry','default':'#','label':'comment',
@@ -451,9 +449,7 @@ class ImportDialog(QDialog):
                      #'prefix':{'type':'entry','default':None,'label':'prefix',
                      #           'tooltip':''}
                      'rowsperfile':{'type':'spinbox','default':0,'label':'rows per file',
-                                'tooltip':'rows to read'},
-                     #'names':{'type':'entry','default':'','label':'column names',
-                    #            'tooltip':'col labels'},
+                                'tooltip':'rows to read'}
                      }
 
         optsframe, self.widgets = dialogFromOptions(self, opts, grps, wrap=1, section_wrap=1)
@@ -471,8 +467,13 @@ class ImportDialog(QDialog):
         self.textarea = PlainTextEditor(main)
         main.addWidget(self.textarea)
         self.textarea.resize(200,200)
+        main.addWidget(self.textarea)
 
         t = self.previewtable = core.DataFrameTable(main, font=core.FONT)
+        t.mode = 'locked'
+        main.addWidget(t)
+
+        t = self.typestable = core.DataFrameTable(main)
         main.addWidget(t)
         self.setLayout(layout)
         return
@@ -495,13 +496,11 @@ class ImportDialog(QDialog):
     def showText(self):
         """Show text contents"""
 
-        with open(self.filename, 'r') as stream:
-            try:
-                text = stream.read()
-            except:
-                text = 'failed to preview, check encoding and then update preview\n'
         self.textarea.clear()
-        self.textarea.insertPlainText(text)
+        file = open(self.filename, 'r')
+        for i in range(100):
+             line = file.readline()
+             self.textarea.insertPlainText(line)
         self.textarea.verticalScrollBar().setValue(1)
         return
 
@@ -515,13 +514,13 @@ class ImportDialog(QDialog):
             dateparse=None
         else:
             dateparse = lambda x: pd.datetime.strptime(x, timeformat)
+
         del self.values['time format']
         del self.values['rowsperfile']
+
         for k in self.values:
             if self.values[k] == '':
                 self.values[k] = None
-        #if self.values['index_col'] == -1:
-        #    self.values['index_col'] = None
 
         try:
             f = pd.read_csv(self.filename, chunksize=400, error_bad_lines=False,
@@ -541,19 +540,62 @@ class ImportDialog(QDialog):
 
         self.previewtable.model.df = df
         self.previewtable.refresh()
+
+        #update types table
+        tdf = df.dtypes.to_frame(name='dtype').reset_index()
+        tdf=tdf.rename(columns={'index':'name'})
+        tdf['dtype'] = tdf.dtype.astype(str)
+        self.typestable.model.df = tdf
+        self.typestable.refresh()
+        items = ['int64','float64','object','datetime']
+        self.typestable.setItemDelegateForColumn(1,ComboDelegate(self.typestable, items))
+        self.typestable.setEditTriggers(QAbstractItemView.CurrentChanged)
         return
 
     def doImport(self):
         """Do the import"""
 
         self.update()
+        #get types if changed?
+        tf = self.typestable.model.df
+        dtypes = dict(zip(tf.name, tf.dtype))
+        #print (dtypes)
         self.df = pd.read_csv(self.filename, **self.values)
         self.close()
         return
 
+    #def closeEvent(self, event):
+    #    self.accepted = None
+
     def quit(self):
+        self.accepted = None
         self.close()
         return
+
+class ComboDelegate(QItemDelegate):
+    """
+    A delegate to add QComboBox in every cell of the given column
+    """
+
+    def __init__(self, parent, items):
+        super(ComboDelegate, self).__init__(parent)
+        self.parent = parent
+        self.items = items
+
+    def createEditor(self, parent, option, index):
+        combobox = QComboBox(parent)
+        combobox.addItems(self.items)
+        #combobox.currentTextChanged.connect(lambda value: self.currentIndexChanged(index, value))
+        return combobox
+
+    def setEditorData(self, editor, index):
+        value = index.data(QtCore.Qt.DisplayRole)
+        num = self.items.index(value)
+        editor.setCurrentIndex(num)
+
+    def setModelData(self, editor, model, index):
+        value = editor.currentData()
+        model.setData(index, value, QtCore.Qt.EditRole)
 
 class BasicDialog(QDialog):
     """Qdialog for table operations interfaces"""

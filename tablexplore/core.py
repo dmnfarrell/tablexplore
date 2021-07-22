@@ -268,7 +268,7 @@ class DataFrameWidget(QWidget):
         """Export table"""
 
         options = QFileDialog.Options()
-        options.setDefaultSuffix('csv')
+        #options.setDefaultSuffix('csv')
         filename, _ = QFileDialog.getSaveFileName(self,"Export",
                              "","csv files (*.csv);;xlsx files (*.xlsx);;xls Files (*.xls);;All Files (*)",
                              options=options)
@@ -1128,8 +1128,10 @@ class DataFrameTable(QTableView):
         hh.setSelectionMode(QAbstractItemView.ExtendedSelection)
         hh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         hh.customContextMenuRequested.connect(self.columnHeaderMenu)
-        hh.sectionClicked.connect(self.columnSelected)
-
+        #hh.sectionClicked.connect(self.columnSelected)
+        hh.sectionPressed.connect(self.columnClicked)
+        #hh.sectionPressed.disconnect()
+        
         #formats
         self.setDragEnabled(True)
         self.viewport().setAcceptDrops(True)
@@ -1285,12 +1287,14 @@ class DataFrameTable(QTableView):
 
         hheader = self.horizontalHeader()
         df = self.model.df
-        self.model.df = df.sort_values(df.columns[col])
+        #print (df[:2])
+        #self.model.df = df.sort_values(df.columns[col])
         return
 
-    def columnSelected(self, col):
-        hheader = self.horizontalHeader()
-        self.selectColumn(col)
+    def selectColumn(self, event):
+        print (self.model.df)
+        #hheader = self.horizontalHeader()
+
 
     def sort(self, idx):
         """Sort by selected columns"""
