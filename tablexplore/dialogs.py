@@ -547,7 +547,7 @@ class ImportDialog(QDialog):
         tdf['dtype'] = tdf.dtype.astype(str)
         self.typestable.model.df = tdf
         self.typestable.refresh()
-        items = ['int64','float64','object','datetime']
+        items = ['Int64','Float64','object']
         self.typestable.setItemDelegateForColumn(1,ComboDelegate(self.typestable, items))
         self.typestable.setEditTriggers(QAbstractItemView.CurrentChanged)
         return
@@ -555,12 +555,15 @@ class ImportDialog(QDialog):
     def doImport(self):
         """Do the import"""
 
-        self.update()
+        #self.update()
         #get types if changed?
         tf = self.typestable.model.df
         dtypes = dict(zip(tf.name, tf.dtype))
-        #print (dtypes)
-        self.df = pd.read_csv(self.filename, **self.values)
+        print (dtypes)
+        #dtmap = {'int32':int32,'float32':float64}
+        #for i in dtypes:
+        #    dtypes[i] = dtmap[i]
+        self.df = pd.read_csv(self.filename, dtype=dtypes, **self.values)
         self.close()
         return
 
@@ -583,19 +586,24 @@ class ComboDelegate(QItemDelegate):
         self.items = items
 
     def createEditor(self, parent, option, index):
-        combobox = QComboBox(parent)
-        combobox.addItems(self.items)
-        #combobox.currentTextChanged.connect(lambda value: self.currentIndexChanged(index, value))
-        return combobox
+        self.combobox = QComboBox(parent)
+        self.combobox.addItems(self.items)
+        self.combobox.currentIndexChanged.connect(self.currentIndexChanged)
+        return self.combobox
 
     def setEditorData(self, editor, index):
-        value = index.data(QtCore.Qt.DisplayRole)
+        value = index.data(QtCore.Qt.EditRole)
         num = self.items.index(value)
         editor.setCurrentIndex(num)
 
-    def setModelData(self, editor, model, index):
-        value = editor.currentData()
-        model.setData(index, value, QtCore.Qt.EditRole)
+    def setModelData(self, combo, model, index):
+        comboIndex = combo.currentIndex()
+        text=self.items[comboIndex]
+        model.setData(index, text)
+
+    @Slot()
+    def currentIndexChanged(self):
+        self.commitData.emit(self.sender())
 
 class BasicDialog(QDialog):
     """Qdialog for table operations interfaces"""
