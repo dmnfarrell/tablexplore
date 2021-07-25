@@ -186,6 +186,7 @@ class Application(QMainWindow):
                 QtCore.Qt.CTRL + QtCore.Qt.Key_S)
         self.file_menu.addAction('&Save As', self.saveAsProject)
         self.file_menu.addAction('Import CSV file', self.importFile)
+        self.file_menu.addAction('Import Multiple', self.importMultiple)
         self.file_menu.addAction('Import Pickle file', self.importPickle)
         self.file_menu.addAction('Import HDF5', self.importHDF)
         self.file_menu.addAction('Import URL', self.importURL)
@@ -232,6 +233,9 @@ class Application(QMainWindow):
         self.sheet_menu.addAction('Rename', self.renameSheet)
         icon = QIcon(os.path.join(iconpath,'copy.png'))
         self.sheet_menu.addAction(icon, '&Copy', self.copySheet)
+        self.sheet_menu.addAction('Concat', self.concatSheets)
+        icon = QIcon(os.path.join(iconpath,'merge.png'))
+        self.sheet_menu.addAction(icon, 'Merge', self.mergeSheets)
 
         self.tools_menu = QMenu('Tools', self)
         icon = QIcon(os.path.join(iconpath,'tableinfo.png'))
@@ -585,6 +589,26 @@ class Application(QMainWindow):
         w.importFile(filename)
         return
 
+    def importMultiple(self):
+        """Import many files"""
+
+        options = QFileDialog.Options()
+        filenames, _ = QFileDialog.getOpenFileNames(self,"Import Files",
+                             "","CSV files (*.csv);;Text Files (*.txt);;All Files (*)",
+                             options=options)
+        if not filenames:
+            return
+
+        for f in filenames:
+            name = os.path.splitext(os.path.basename(f))[0]
+            if name in self.sheets:
+                name+='_1'
+            self.addSheet(name)
+            w = self.getCurrentTable()
+            w.importFile(f, dialog=False)
+
+        return
+
     def importPickle(self):
 
         self.addSheet()
@@ -698,6 +722,54 @@ class Application(QMainWindow):
                     QLineEdit.Normal, name+'_copy')
         if ok:
             self.addSheet(new, df)
+        return
+
+    def concatSheets(self):
+        """Combine sheets into one table"""
+
+        names = self.sheets.keys()
+        if len(names) < 2:
+            return
+        ops=['concat']
+        opts = {'sheets':{'type':'list','default':'','items':names},
+                'new name':{'type':'entry','default':'combined'}
+                }
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Combine',
+                            width=250,height=150)
+        dlg.exec_()
+        if not dlg.accepted:
+            return
+        kwds = dlg.values
+
+        names = kwds['sheets']
+        new = []
+        for n in names:
+            df = self.sheets[n].table.model.df
+            new.append(df)
+        new = pd.concat(new)
+        label = kwds['new name']
+        self.addSheet(label,df=new)
+        return
+
+    def mergeSheets(self):
+        """Merge two sheets"""
+
+        names = self.sheets.keys()
+        opts = {'sheet1':{'type':'combobox','default':'','items':names},
+                'sheet2':{'type':'combobox','default':'','items':names}
+                }
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Merge sheets',
+                            width=250,height=150)
+        dlg.exec_()
+        if not dlg.accepted:
+            return
+        kwds = dlg.values
+        table1 = self.sheets[kwds['sheet1']].table
+        table2 = self.sheets[kwds['sheet2']].table
+        dlg = dialogs.MergeDialog(self, df=table1.model.df, df2=table2.model.df, app=self)
+        dlg.exec_()
+        if not dlg.accepted:
+            return
         return
 
     def showPlotOptions(self):

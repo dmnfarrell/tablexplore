@@ -7,6 +7,9 @@
 * plugin system
 * GIS plugin
 * fill option with add column
+* fixes to import dialog
+* import multiple files
+* merge/concat sheets
 
 -----
 0.3.0

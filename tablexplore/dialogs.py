@@ -547,7 +547,7 @@ class ImportDialog(QDialog):
         tdf['dtype'] = tdf.dtype.astype(str)
         self.typestable.model.df = tdf
         self.typestable.refresh()
-        items = ['Int64','Float64','object']
+        items = ['int64','float64','object']
         self.typestable.setItemDelegateForColumn(1,ComboDelegate(self.typestable, items))
         self.typestable.setEditTriggers(QAbstractItemView.CurrentChanged)
         return
@@ -607,12 +607,15 @@ class ComboDelegate(QItemDelegate):
 
 class BasicDialog(QDialog):
     """Qdialog for table operations interfaces"""
-    def __init__(self, parent, df, title=None):
+    def __init__(self, parent, df, title=None, app=None):
 
         super(BasicDialog, self).__init__(parent)
         self.parent = parent
         self.df = df
-        self.app = self.parent.app
+        if app != None:
+            self.app = app
+        else:
+            self.app = self.parent.app
         self.setWindowTitle(title)
         self.createWidgets()
         self.setGeometry(QtCore.QRect(400, 300, 1000, 600))
@@ -632,9 +635,10 @@ class BasicDialog(QDialog):
         button = QPushButton("Apply")
         button.clicked.connect(self.apply)
         vbox.addWidget(button)
-        button = QPushButton("Copy to sub-table")
-        button.clicked.connect(self.copy_to_subtable)
-        vbox.addWidget(button)
+        if hasattr(self.parent, 'subtable'):
+            button = QPushButton("Copy to sub-table")
+            button.clicked.connect(self.copy_to_subtable)
+            vbox.addWidget(button)
         button = QPushButton("Copy to clipboard")
         button.clicked.connect(self.copy_to_clipboard)
         vbox.addWidget(button)
@@ -872,19 +876,21 @@ class MeltDialog(BasicDialog):
 
 class MergeDialog(BasicDialog):
     """Dialog to melt table"""
-    def __init__(self, parent, df, title='Merge Tables'):
+    def __init__(self, parent, df, df2=None, title='Merge Tables', app=None):
 
-        BasicDialog.__init__(self, parent, df, title)
+        self.df2 = df2
+        BasicDialog.__init__(self, parent, df, title, app)
         return
 
     def createWidgets(self):
         """Create widgets"""
 
-        if hasattr(self.parent, 'subtable') and self.parent.subtable != None:
-            self.df2 = self.parent.subtable.table.model.df
+        if self.df2 is None:
+            if hasattr(self.parent, 'subtable') and self.parent.subtable != None:
+                self.df2 = self.parent.subtable.table.model.df
+        try:
             cols2 = self.df2.columns
-        else:
-            self.df2 = None
+        except:
             cols2 = []
         cols = list(self.df.columns)
         ops = ['merge','concat']
