@@ -218,7 +218,8 @@ class Application(QMainWindow):
         icon = QIcon(os.path.join(iconpath,'increase-width.png'))
         self.view_menu.addAction(icon, 'Increase Column Width', self.changeColumnWidths)
         icon = QIcon(os.path.join(iconpath,'preferences-system.png'))
-        self.view_menu.addAction(icon, 'Show Plot Options', self.showPlotOptions)
+        action=self.view_menu.addAction(icon, 'Show Plotter', self.showPlotFrame)
+        action.setCheckable(True)
 
         self.style_menu = QMenu("Styles",  self.view_menu)
         self.style_menu.addAction('Default', self.setStyle)
@@ -772,11 +773,17 @@ class Application(QMainWindow):
             return
         return
 
-    def showPlotOptions(self):
+    def showPlotFrame(self):
+        """Show/hide the plot frame"""
 
         index = self.main.currentIndex()
         name = self.main.tabText(index)
-        self.sheets[name].pf.dock.show()
+        pf = self.sheets[name].pf
+        if pf.isHidden():
+            pf.show()
+            pf.dock.show()
+        else:
+            pf.hide()        
         return
 
     def load_dataframe(self, df, name=None, select=False):
