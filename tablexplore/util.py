@@ -27,6 +27,9 @@ import numpy as np
 import pandas as pd
 import matplotlib
 
+def valueToBool(value):
+    return value.lower() == 'true' if isinstance(value, str) else bool(value)
+
 def getEmptyData(rows=10,columns=4):
 
     colnames = list(string.ascii_lowercase[:columns])

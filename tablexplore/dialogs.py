@@ -44,6 +44,10 @@ def getName(parent, current='', txt='Enter value'):
     if ok:
         return name
 
+def showMessage(parent, msg, type='error'):
+    QMessageBox.information(parent, type, msg)
+    return
+
 def dialogFromOptions(parent, opts, sections=None,
                       wrap=2, section_wrap=4,
                       style=None):
@@ -968,14 +972,17 @@ class MergeDialog(BasicDialog):
         how = self.how_w.currentText()
         op = self.ops_w.currentText()
         if op == 'merge':
-            res = pd.merge(self.df, self.df2,
-                            left_on=lefton,
-                            right_on=righton,
-                            left_index=left_index,
-                            right_index=right_index,
-                            how=how,
-                            suffixes=(self.left_suffw .text(),self.right_suffw.text())
-                            )
+            try:
+                res = pd.merge(self.df, self.df2,
+                                left_on=lefton,
+                                right_on=righton,
+                                left_index=left_index,
+                                right_index=right_index,
+                                how=how,
+                                suffixes=(self.left_suffw .text(),self.right_suffw.text())
+                                )
+            except Exception as e:
+                showMessage(self, str(e))
         else:
             res = pd.concat([self.df, self.df2])
         self.table.model.df = res
@@ -1075,10 +1082,12 @@ class PreferencesDialog(QDialog):
                 'fontsize':{'type':'spinbox','default':options['fontsize'],'range':(5,40),
                             'interval':1,'label':'font size'},
                 'timeformat':{'type':'combobox','default':options['timeformat'],
-                            'items':timeformats,'label':'Date/Time format'}
+                            'items':timeformats,'label':'Date/Time format'},
+                'showplotter': {'type':'checkbox','default':bool(options['showplotter']), 'label':'show plotter'},
                 #'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
                 }
         sections = {'table':['alignment','rowheight','columnwidth'],
+                    'view':['showplotter'],
                     'formats':['font','fontsize','timeformat']}
 
         dialog, self.widgets = dialogFromOptions(self, self.opts, sections)
@@ -1111,6 +1120,7 @@ class PreferencesDialog(QDialog):
         core.FONTSIZE = kwds['fontsize']
         core.COLUMNWIDTH = kwds['columnwidth']
         core.TIMEFORMAT = kwds['timeformat']
+        core.SHOWPLOTTER = kwds['showplotter']
         self.parent.refresh()
         return
 

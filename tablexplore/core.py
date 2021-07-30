@@ -38,6 +38,7 @@ FONTSIZE = 12
 FONTSTYLE = ''
 COLUMNWIDTH = 80
 TIMEFORMAT = '%m/%d/%Y'
+SHOWPLOTTER = True
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -1131,7 +1132,7 @@ class DataFrameTable(QTableView):
         #hh.sectionClicked.connect(self.columnSelected)
         hh.sectionPressed.connect(self.columnClicked)
         #hh.sectionPressed.disconnect()
-        
+
         #formats
         self.setDragEnabled(True)
         self.viewport().setAcceptDrops(True)

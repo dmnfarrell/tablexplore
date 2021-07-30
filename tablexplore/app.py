@@ -94,6 +94,7 @@ class Application(QMainWindow):
             core.FONTSIZE = int(s.value("fontsize"))
             core.COLUMNWIDTH = int(s.value("columnwidth"))
             core.TIMEFORMAT = s.value("timeformat")
+            core.SHOWPLOTTER = util.valueToBool(s.value("showplotter"))
             r = s.value("recent_files")
             if r != '':
                 self.recent_files = r.split(',')
@@ -114,6 +115,7 @@ class Application(QMainWindow):
         self.settings.setValue('font', core.FONT)
         self.settings.setValue('fontsize', core.FONTSIZE)
         self.settings.setValue('timeformat', core.TIMEFORMAT)
+        self.settings.setValue('showplotter', core.SHOWPLOTTER)
         self.settings.setValue('recent_files',','.join(self.recent_files))
         self.settings.setValue('recent_urls','^^'.join(self.recent_urls))
         if hasattr(self, 'plotgallery'):
@@ -681,6 +683,8 @@ class Application(QMainWindow):
         if meta != None:
             self.loadMeta(dfw, meta)
         self.main.setCurrentIndex(idx)
+        if core.SHOWPLOTTER == False:
+            pf.hide()
         return
 
     def removeSheet(self, index, ask=True):
@@ -783,7 +787,7 @@ class Application(QMainWindow):
             pf.show()
             pf.dock.show()
         else:
-            pf.hide()        
+            pf.hide()
         return
 
     def load_dataframe(self, df, name=None, select=False):
@@ -1016,7 +1020,7 @@ class Application(QMainWindow):
         """Preferences dialog"""
 
         from . import dialogs
-        opts = {'font':core.FONT, 'fontsize':core.FONTSIZE,
+        opts = {'font':core.FONT, 'fontsize':core.FONTSIZE, 'showplotter': core.SHOWPLOTTER,
                 'columnwidth':core.COLUMNWIDTH, 'timeformat':core.TIMEFORMAT}
         dlg = dialogs.PreferencesDialog(self, opts)
         dlg.exec_()
