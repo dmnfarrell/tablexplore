@@ -22,6 +22,7 @@
 from __future__ import absolute_import, division, print_function
 import math, time
 import os, types
+import random
 import string, copy
 import numpy as np
 import pandas as pd
@@ -31,14 +32,22 @@ def getEmptyData(rows=10,columns=4):
     df = pd.DataFrame(index=range(rows),columns=colnames)
     return df
 
-def getSampleData(rows=400, cols=5):
+def genstr(n=2):
+    return ''.join(random.choice(string.ascii_lowercase) for i in range(n))
+
+def getSampleData(rows=400, cols=5, namelen=1):
     """Generate sample data"""
 
-    colnames = list(string.ascii_lowercase[:cols])
+    if namelen == 1:
+        colnames = list(string.ascii_lowercase[:cols])
+    else:
+        colnames = [genstr(namelen) for i in range(cols)]
     coldata = [np.random.normal(x,1,rows) for x in np.random.normal(5,3,cols)]
     n = np.array(coldata).T
     df = pd.DataFrame(n, columns=colnames)
-    df['b'] = df.a*np.random.normal(.8, 0.1, len(df))
+    l0=df.columns[0]
+    l1 = df.columns[1]
+    df[l1] = df[l0]*np.random.normal(.8, 0.1, len(df))
     df = np.round(df, 3)
     cats = ['green','blue','red','orange','yellow']
     df['label'] = [cats[i] for i in np.random.randint(0,5,rows)]

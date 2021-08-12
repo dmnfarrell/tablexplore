@@ -1048,6 +1048,76 @@ class ConvertTypesDialog(BasicDialog):
         self.table.refresh()
         return
 
+class OrganiseDialog(BasicDialog):
+    """Qdialog for table query/filtering"""
+    def __init__(self, parent, df, title='Organise', app=None):
+
+        BasicDialog.__init__(self, parent, df, title)
+        self.table = self.parent.table
+        return
+
+    def createWidgets(self):
+        """Create widgets - override this"""
+
+        cols = list(self.df.columns)
+        vbox = QHBoxLayout(self)
+        main = QWidget(self)
+        main.setMaximumWidth(250)
+        vbox.addWidget(main)
+        w = self.cols_w = QListWidget()
+        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        w.addItems(cols)
+        vbox.addWidget(w)
+        bf = self.createButtons(self)
+        vbox.addWidget(bf)
+        return
+
+    def createButtons(self, parent):
+
+        bw = self.button_widget = QWidget(parent)
+        vbox = QVBoxLayout(bw)
+        vbox.setAlignment(QtCore.Qt.AlignTop)
+        button = QPushButton("Delete Selected")
+        button.clicked.connect(self.delete)
+        vbox.addWidget(button)
+        button = QPushButton("Sort Columns")
+        button.clicked.connect(self.sort)
+        vbox.addWidget(button)
+        button = QPushButton("Undo")
+        button.clicked.connect(self.undo)
+        vbox.addWidget(button)
+        button = QPushButton("Close")
+        button.clicked.connect(self.close)
+        vbox.addWidget(button)
+        return bw
+
+    def delete(self):
+
+        self.table.storeCurrent()
+        names = [i.text() for i in self.cols_w.selectedItems()]
+        df = self.table.model.df
+        self.table.model.df = df.drop(columns=names)
+        self.table.refresh()
+        self.cols_w.clear()
+        self.cols_w.addItems(self.table.model.df.columns)
+        return
+
+    def sort(self):
+
+        df=self.table.model.df
+        cols = df.columns
+        self.cols_w.clear()
+        self.table.model.df.columns = sorted(cols)
+        self.cols_w.addItems(self.table.model.df.columns)
+        self.table.refresh()
+        return
+
+    def undo(self):
+        self.table.undo()
+        self.cols_w.clear()
+        self.cols_w.addItems(self.table.model.df.columns)
+
+        
 class PreferencesDialog(QDialog):
     """Preferences dialog from config parser options"""
 
@@ -1123,6 +1193,142 @@ class PreferencesDialog(QDialog):
         core.SHOWPLOTTER = kwds['showplotter']
         self.parent.refresh()
         return
+
+class FindReplaceDialog(QWidget):
+    """Qdialog for table query/filtering"""
+    def __init__(self, parent, table, title=None, app=None):
+
+        super(FindReplaceDialog, self).__init__(parent)
+        self.parent = parent
+        self.table = table
+        self.app = app
+        self.setWindowTitle(title)
+        self.resize(400,200)
+        self.case = True
+        self.current = 0 #coords of found cells
+        self.createWidgets()
+        self.setMaximumHeight(180)
+        return
+
+    def createWidgets(self):
+        """Create widgets"""
+
+        df = self.table.model.df
+        cols = list(df.columns)
+        self.layout = QVBoxLayout(self)
+        self.setLayout(self.layout)
+        self.query_w = QLineEdit()
+        self.layout.addWidget(QLabel('Query String'))
+        self.layout.addWidget(self.query_w )
+        self.query_w.returnPressed.connect(self.findAll)
+        self.replace_w = QLineEdit()
+        self.layout.addWidget(QLabel('Replace With'))
+        self.layout.addWidget(self.replace_w )
+
+        tb = self.createToolBar(self)
+        self.layout.addWidget(tb)
+        self.adjustSize()
+        return
+
+    def createToolBar(self, parent):
+
+        items = {'Find All': {'action':self.findAll,'file':'findall'},
+                 'Find Next': {'action':self.findNext,'file':'find'},
+                 'Replace': {'action':self.replace,'file':'findreplace'},
+                 'Case Sensitive': {'action':self.togglecase,'file':'lowercase','checkable':True}
+                 }
+        toolbar = QToolBar("Toolbar")
+        toolbar.setOrientation(QtCore.Qt.Horizontal)
+        addToolBarItems(toolbar, self, items)
+        return toolbar
+
+    def findAll(self):
+        """Apply"""
+
+        self.find()
+        self.table.refresh()
+        return
+
+    def findNext(self):
+        """Show next cell of search results"""
+
+        table = self.table
+        s = self.query_w.text()
+        if len(self.coords)==0  or self.search_changed == True:
+            self.find()
+        if len(self.coords)==0:
+            return
+        idx = self.current
+        i,j = self.coords[idx]
+        index = table.model.index(i,j)
+        #table.scrollTo(index, QAbstractItemView.EnsureVisible)
+        table.selectRow(i)
+        table.refresh()
+        self.current+=1
+        if self.current>=len(self.coords):
+            self.current=0
+        return
+
+    def togglecase(self):
+
+        sender = self.sender()
+        self.case = sender.isChecked()
+        return
+
+    def find(self):
+        """Do string search. Creates a masked dataframe for results and then stores each cell
+        coordinate in a list."""
+
+        table = self.table
+        df = table.model.df
+        df = df.astype('object').astype('str')
+        s = self.query_w.text()
+        self.search_changed = False
+        self.clear()
+        if s == '':
+            return
+        found = pd.DataFrame()
+        for col in df:
+            found[col] = df[col].str.contains(s, na=False, case=self.case)
+        #set the masked dataframe so that highlighted cells are shown on redraw
+        table.model.highlighted = found
+        i=0
+        self.coords = []
+        for r,row in found.iterrows():
+            j=0
+            for col,val in row.iteritems():
+                if val is True:
+                    #print (r,col,val, i, j)
+                    self.coords.append((i,j))
+                j+=1
+            i+=1
+        self.current = 0
+        #print (self.coords)
+        return
+
+    def replace(self):
+        """Replace all instances of search text"""
+
+        table = self.table
+        table.storeCurrent()
+        df = table.model.df
+        s=self.query_w.text()
+        r=self.replace_w.text()
+        case = self.case
+        table.model.df = df.replace(s,r,regex=True)
+        table.refresh()
+        self.search_changed = True
+        return
+
+    def clear(self):
+
+        self.table.model.highlighted = None
+        self.table.refresh()
+
+    def onClose(self):
+
+        self.clear()
+        self.close()
 
 class FilterDialog(QWidget):
     """Qdialog for table query/filtering"""
@@ -1252,7 +1458,6 @@ class FilterDialog(QWidget):
         table.model.df = df
         table.model.layoutChanged.emit()
         table.refresh()
-
         return
 
     def applyWidgetFilters(self, df, mask=None):

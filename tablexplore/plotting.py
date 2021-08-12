@@ -1437,7 +1437,7 @@ class MPLBaseOptions(BaseOptions):
                 #'loc':{'type':'combobox','default':'best','items':self.legendlocs,'label':'legend loc'},
                 'kind':{'type':'combobox','default':'line','items':self.kinds,'label':'plot type'},
                 'stacked':{'type':'checkbox','default':0,'label':'stacked'},
-                'linewidth':{'type':'slider','default':2,'range':(0,10),'interval':1,'label':'line width'},
+                'linewidth':{'type':'spinbox','default':2,'range':(1,15),'interval':1,'label':'line width'},
                 'alpha':{'type':'spinbox','default':9,'range':(1,10),'interval':1,'label':'alpha'},
                 #'subplots':{'type':'checkbox','default':0,'label':'multiple subplots'},
                 'axes_layout':{'type':'combobox','default':'single','items':layouts,'label':'axes layout'},

@@ -77,6 +77,34 @@ class RowHeader(QHeaderView):
         super(QHeaderView, self).__init__()
         return
 
+class SubWidget(QDockWidget):
+    def __init__(self, parent, table):
+        super(SubWidget, self).__init__(parent)
+        self.table=table
+        #self.setSizePolicy(QSizePolicy.Expanding , QSizePolicy.Expanding)
+    def closeEvent(self, ce):
+        self.table.showAll()
+        self.table.model.highlighted = None
+        self.table.refresh()
+        #we should actually do this:
+        #for i in xrange(self.layout.count()):
+        #    item = self.layout.itemAt(i)
+        #    widget = item.widget()
+        #    widget.onClose()
+
+class ItemEditorFactory(QItemEditorFactory):
+    def __init__(self):
+        super().__init__()
+
+    def createEditor(self, userType, parent):
+        if userType == QtCore.QVariant.Double:
+            doubleSpinBox = QDoubleSpinBox(parent)
+            doubleSpinBox.setDecimals(3)
+            #doubleSpinBox.setMaximum(1000)
+            return doubleSpinBox
+        else:
+            return super().createEditor(userType, parent)
+
 class DataFrameWidget(QWidget):
     """Widget containing a tableview and toolbars"""
     def __init__(self, parent=None, dataframe=None, app=None,
@@ -100,6 +128,7 @@ class DataFrameWidget(QWidget):
         self.subtabledock = None
         self.subtable = None
         self.filterdock = None
+        self.finddock = None
         self.mode = 'default'
         self.table.model.dataChanged.connect(self.stateChanged)
         return
@@ -308,6 +337,9 @@ class DataFrameWidget(QWidget):
     def addColumn(self):
         self.table.addColumn()
 
+    def addRows(self):
+        self.table.addRows()
+
     def plot(self):
         """Plot from selection"""
 
@@ -389,6 +421,16 @@ class DataFrameWidget(QWidget):
         else:
             self.showSubTable(new)
         return
+
+    def organise(self):
+        """Edit columns"""
+
+        df = self.table.model.df
+        cols = df.columns
+        dlg = dialogs.OrganiseDialog(self, df)
+        dlg.exec_()
+        if not dlg.accepted:
+            return        
 
     def cleanData(self):
         """Deal with missing data"""
@@ -984,14 +1026,6 @@ class DataFrameWidget(QWidget):
     def filter(self):
         """Show filter dialog"""
 
-        class SubWidget(QDockWidget):
-            def __init__(self, parent, table):
-                super(SubWidget, self).__init__(parent)
-                self.table=table
-                #self.setSizePolicy(QSizePolicy.Expanding , QSizePolicy.Expanding)
-            def closeEvent(self, ce):
-                self.table.showAll()
-
         if self.filterdock == None:
             dock = self.filterdock = dock = SubWidget(self.splitter, self.table)
             dock.setFeatures(QDockWidget.DockWidgetClosable)
@@ -1004,6 +1038,24 @@ class DataFrameWidget(QWidget):
             self.filterdock.show()
             self.splitter.setSizes((500,200))
             self.filterdialog.update()
+        return
+
+    def findreplace(self):
+        """Find/replace dialog"""
+
+        if self.finddock == None:
+            dock = self.finddock = dock = SubWidget(self.splitter, self.table)
+            dock.setFeatures(QDockWidget.DockWidgetClosable)
+            self.splitter.setSizes((500,200))
+            index = self.splitter.indexOf(dock)
+            self.splitter.setCollapsible(index, False)
+            self.finddialog = dlg = dialogs.FindReplaceDialog(dock, self.table, app=self.app)
+            dock.setWidget(dlg)
+        else:
+            self.finddock.show()
+            self.splitter.setSizes((500,200))
+            self.finddialog.update()
+
         return
 
     def selectAll(self):
@@ -1092,6 +1144,15 @@ class DataFrameWidget(QWidget):
             self.consoledock.show()
         return
 
+class HeaderProxyStyle(QProxyStyle):
+    def drawControl(self, element, option, painter, widget=None):
+        if element == QStyle.CE_Header:
+            option.state &= ~QStyle.State_On
+            option.state &= ~QStyle.State_Sunken
+        super(HeaderProxyStyle, self).drawControl(
+            element, option, painter, widget
+        )
+
 class DataFrameTable(QTableView):
     """
     QTableView with pandas DataFrame as model.
@@ -1124,20 +1185,20 @@ class DataFrameTable(QTableView):
         #hh.setStretchLastSection(True)
         #hh.setSectionResizeMode(QHeaderView.Interactive)
         hh.setDefaultSectionSize(columnwidth)
-        hh.setSelectionBehavior(QTableView.SelectColumns)
-        hh.setSectionsMovable(True)
-        hh.setSelectionMode(QAbstractItemView.ExtendedSelection)
         hh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         hh.customContextMenuRequested.connect(self.columnHeaderMenu)
         #hh.sectionClicked.connect(self.columnSelected)
         hh.sectionPressed.connect(self.columnClicked)
         #hh.sectionPressed.disconnect()
+        hh.setSectionsMovable(True)
+        hh.setSelectionBehavior(QTableView.SelectColumns)
+        hh.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         #formats
         self.setDragEnabled(True)
         self.viewport().setAcceptDrops(True)
 
-        self.setDragDropMode(QAbstractItemView.InternalMove)
+        #self.setDragDropMode(QAbstractItemView.InternalMove)
         self.setDropIndicatorShown(True)
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
@@ -1153,8 +1214,19 @@ class DataFrameTable(QTableView):
         self.setModel(tm)
         self.model = tm
         self.filtered = False
-        #self.resizeColumnsToContents()
-        self.setWordWrap(False)
+        self.setWordWrap(True)
+        df = self.model.df
+        #disable column dragging for large tables
+        if len(df) > 1e5:
+            #print (len(df))
+            #hh.setHighlightSections(False)
+            hh.setSectionsClickable(False)
+            #hh.setStyle(HeaderProxyStyle())
+
+        #styledItemDelegate=QStyledItemDelegate()
+        #styledItemDelegate.setItemEditorFactory(ItemEditorFactory())
+        #self.setItemDelegate(styledItemDelegate)
+
         #temp file for undo
         file, self.undo_file = tempfile.mkstemp(suffix='.pkl')
         try:
@@ -1621,6 +1693,7 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         else:
             self.df = dataframe
         self.bg = '#F4F4F3'
+        self.highlighted = None
         return
 
     def update(self, df):
@@ -1636,6 +1709,7 @@ class DataFrameModel(QtCore.QAbstractTableModel):
     def data(self, index, role=QtCore.Qt.DisplayRole):
         """Edit or display roles. Handles what happens when the Cells
         are edited or what appears in each cell.
+        https://www.pythonguis.com/tutorials/pyside-qtableview-modelviews-numpy-pandas/
         """
 
         i = index.row()
@@ -1663,20 +1737,25 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         elif (role == QtCore.Qt.EditRole):
             value = self.df.iloc[i, j]
             #print (coltype)
-            #print (value)
+            #print (value,type(value))
+            if np.isnan(value):
+                return ''
             if type(value) is str:
                 return value
-            if coltype in [float,np.float64]:
+            if type(value) in [float,np.float64]:
                 try:
                     return float(value)
                 except:
                     return str(value)
 
-            if np.isnan(value):
-                return ''
-
         elif role == QtCore.Qt.BackgroundRole:
-            return QColor(self.bg)
+            if self.highlighted is None:
+                return QColor(self.bg)
+            value = self.highlighted.iloc[i, j]
+            if value == True:
+                return QColor('lightblue')
+            else:
+                return QColor(self.bg)
 
     def headerData(self, col, orientation, role):
         """What's displayed in the headers"""
@@ -1693,7 +1772,7 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         i = index.row()
         j = index.column()
         curr = self.df.iloc[i,j]
-        #print (curr, value)
+        print (curr, value)
         self.df.iloc[i,j] = value
         return True
 

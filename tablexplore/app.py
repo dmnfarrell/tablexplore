@@ -147,6 +147,7 @@ class Application(QMainWindow):
                  'increase columns': {'action': lambda: self.changeColumnWidths(1.1),'file':'increase-width'},
                  'add sheet': {'action': lambda: self.addSheet(name=None),'file':'add'},
                  'add column': {'action': lambda: self._call('addColumn'),'file':'add-column'},
+                 'add row': {'action': lambda: self._call('addRows'),'file':'add-row'},
                  #'lock': {'action':self.lockTable,'file':'lock'},
                  'clean data': {'action':lambda: self._call('cleanData'),'file':'clean'},
                  'table to text': {'action':lambda: self._call('showAsText'),'file':'tabletotext'},
@@ -204,8 +205,11 @@ class Application(QMainWindow):
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Z)
         #self.undo_item.setDisabled(True)
         #self.edit_menu.addAction('&Run Last Action', self.runLastAction)
+        icon = QIcon(os.path.join(iconpath,'findreplace.png'))
+        self.edit_menu.addAction(icon, 'Find/Replace', self.findReplace,
+                QtCore.Qt.CTRL + QtCore.Qt.Key_F)
         icon = QIcon(os.path.join(iconpath,'preferences-system.png'))
-        self.edit_menu.addAction(icon, '&Preferences', self.preferences)
+        self.edit_menu.addAction(icon, 'Preferences', self.preferences)
 
         self.view_menu = QMenu('View', self)
         self.menuBar().addMenu(self.view_menu)
@@ -244,10 +248,11 @@ class Application(QMainWindow):
         icon = QIcon(os.path.join(iconpath,'tableinfo.png'))
         self.tools_menu.addAction(icon, '&Table Info', lambda: self._call('info'),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_I)
+        self.tools_menu.addAction('Organise', lambda: self._call('organise'))
         icon = QIcon(os.path.join(iconpath,'clean.png'))
-        self.tools_menu.addAction(icon, '&Clean Data', lambda: self._call('cleanData'))
+        self.tools_menu.addAction(icon, 'Clean Data', lambda: self._call('cleanData'))
         icon = QIcon(os.path.join(iconpath,'table-duplicates.png'))
-        self.tools_menu.addAction(icon, '&Find Duplicates', lambda: self._call('findDuplicates'))
+        self.tools_menu.addAction(icon, 'Find Duplicates', lambda: self._call('findDuplicates'))
         self.tools_menu.addAction('Convert Numeric', lambda: self._call('convertNumeric'))
         self.tools_menu.addAction('Convert Column Names', lambda: self._call('convertColumnNames'))
         self.tools_menu.addAction('Time Series Resample', lambda: self._call('resample'))
@@ -848,7 +853,8 @@ class Application(QMainWindow):
         if name == 'sample':
             if rows is None:
                 opts = {'rows':{'type':'spinbox','default':10,'range':(1,1e7)},
-                        'cols':{'type':'spinbox','default':5,'range':(1,26)}}
+                        'cols':{'type':'spinbox','default':5,'range':(1,26)},
+                        'n':{'type':'spinbox','default':1,'range':(1,20)},}
                 dlg = dialogs.MultipleInputDialog(self, opts, title='Sample data',
                                     width=250,height=150)
                 dlg.exec_()
@@ -857,8 +863,9 @@ class Application(QMainWindow):
                 kwds = dlg.values
                 rows = kwds['rows']
                 cols = kwds['cols']
+                n = kwds['n']
             if ok:
-                df = data.getSampleData(rows,cols)
+                df = data.getSampleData(rows,cols,n)
             else:
                 return
         else:
@@ -908,6 +915,13 @@ class Application(QMainWindow):
         w = self.getCurrentTable()
         w.runLastAction()
         return'''
+
+    def findReplace(self):
+        """Find or replace"""
+
+        w = self.getCurrentTable()
+        w.findreplace()
+        return
 
     def refresh(self):
         """Refresh all tables"""

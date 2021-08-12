@@ -11,6 +11,9 @@
 * import multiple files
 * merge/concat sheets
 * hide plotter
+* disable col highlight for large tables
+* find/replace dialog
+* organise cols dialog
 
 -----
 0.3.0
