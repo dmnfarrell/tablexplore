@@ -1054,6 +1054,7 @@ class OrganiseDialog(BasicDialog):
 
         BasicDialog.__init__(self, parent, df, title)
         self.table = self.parent.table
+        self.setGeometry(QtCore.QRect(400, 300, 600, 600))
         return
 
     def createWidgets(self):
@@ -1117,7 +1118,7 @@ class OrganiseDialog(BasicDialog):
         self.cols_w.clear()
         self.cols_w.addItems(self.table.model.df.columns)
 
-        
+
 class PreferencesDialog(QDialog):
     """Preferences dialog from config parser options"""
 

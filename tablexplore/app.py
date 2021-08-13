@@ -51,7 +51,8 @@ class Application(QMainWindow):
         self.main.tabCloseRequested.connect(lambda index: self.removeSheet(index))
         screen_resolution = QGuiApplication.primaryScreen().availableGeometry()
         width, height = screen_resolution.width()*0.7, screen_resolution.height()*.7
-        self.setGeometry(QtCore.QRect(200, 200, width, height))
+        if screen_resolution.width()>1024:
+            self.setGeometry(QtCore.QRect(200, 200, width, height))
         self.setMinimumSize(400,300)
 
         self.main.setFocus()
@@ -254,7 +255,7 @@ class Application(QMainWindow):
         icon = QIcon(os.path.join(iconpath,'table-duplicates.png'))
         self.tools_menu.addAction(icon, 'Find Duplicates', lambda: self._call('findDuplicates'))
         self.tools_menu.addAction('Convert Numeric', lambda: self._call('convertNumeric'))
-        self.tools_menu.addAction('Convert Column Names', lambda: self._call('convertColumnNames'))
+        self.tools_menu.addAction('Format Column Names', lambda: self._call('convertColumnNames'))
         self.tools_menu.addAction('Time Series Resample', lambda: self._call('resample'))
         icon = QIcon(os.path.join(iconpath,'tabletotext.png'))
         self.tools_menu.addAction(icon, '&Table to Text', lambda: self._call('showAsText'),
@@ -853,8 +854,8 @@ class Application(QMainWindow):
         if name == 'sample':
             if rows is None:
                 opts = {'rows':{'type':'spinbox','default':10,'range':(1,1e7)},
-                        'cols':{'type':'spinbox','default':5,'range':(1,26)},
-                        'n':{'type':'spinbox','default':1,'range':(1,20)},}
+                        'cols':{'type':'spinbox','default':5,'range':(1,100)},
+                        'n':{'type':'spinbox','default':2,'range':(1,30),'label':'name length'},}
                 dlg = dialogs.MultipleInputDialog(self, opts, title='Sample data',
                                     width=250,height=150)
                 dlg.exec_()

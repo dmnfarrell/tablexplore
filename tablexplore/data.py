@@ -35,13 +35,15 @@ def getEmptyData(rows=10,columns=4):
 def genstr(n=2):
     return ''.join(random.choice(string.ascii_lowercase) for i in range(n))
 
-def getSampleData(rows=400, cols=5, namelen=1):
+def getSampleData(rows=400, cols=5, namelen=2):
     """Generate sample data"""
 
     if namelen == 1:
         colnames = list(string.ascii_lowercase[:cols])
     else:
         colnames = [genstr(namelen) for i in range(cols)]
+    if namelen==1 and cols>26:
+        cols=26
     coldata = [np.random.normal(x,1,rows) for x in np.random.normal(5,3,cols)]
     n = np.array(coldata).T
     df = pd.DataFrame(n, columns=colnames)

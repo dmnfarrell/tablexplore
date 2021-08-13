@@ -430,7 +430,7 @@ class DataFrameWidget(QWidget):
         dlg = dialogs.OrganiseDialog(self, df)
         dlg.exec_()
         if not dlg.accepted:
-            return        
+            return
 
     def cleanData(self):
         """Deal with missing data"""
@@ -568,30 +568,39 @@ class DataFrameWidget(QWidget):
         df = self.table.model.df
         opts = {'replace':  {'type':'entry','default':'','label':'Replace'},
                 'with':  {'type':'entry','default':'','label':'With'},
-
+                'prefix':  {'type':'entry','default':'','label':'Prefix'},
+                'truncate':  {'type':'spinbox','default':0,'label':'Truncate',range:(0,100)},
+                'convertcase':  {'type':'combobox','default':'','items':['','upper','lower','title'],
+                'label':'Convert Case'}
                }
-
-        #'add symbol to start:', 'make lowercase','make uppercase'],
 
         dlg = dialogs.MultipleInputDialog(self, opts, title='Format Column Names', width=300)
         dlg.exec_()
         if not dlg.accepted:
             return
         kwds = dlg.values
-        self.storeCurrent()
+        repl = kwds['replace']
+        wth = kwds['with']
+        trunc = kwds['truncate']
+        convertcase = kwds['convertcase']
+        self.table.storeCurrent()
 
-        #pattern =
-
-        df = self.model.df
-        if start != '':
-            df.columns = start + df.columns
-        if pattern != '':
-            df.columns = [i.replace(pattern,repl) for i in df.columns]
-        if lower == 1:
+        df = self.table.model.df
+        if repl != '':
+            df.columns = [i.replace(repl,wth) for i in df.columns]
+        if kwds['prefix'] != '':
+            df.columns = kwds['prefix'] + df.columns
+        #if pattern != '':
+        #    df.columns = [i.replace(pattern,repl) for i in df.columns]
+        if convertcase == 'lower':
             df.columns = df.columns.str.lower()
-        elif upper == 1:
+        elif convertcase == 'upper':
             df.columns = df.columns.str.upper()
+        elif convertcase == 'title':
+            df.columns = df.columns.str.title()
 
+        if trunc > 0:
+            df.columns = [i[:trunc] for i in df.columns]
         self.refresh()
         return
 
