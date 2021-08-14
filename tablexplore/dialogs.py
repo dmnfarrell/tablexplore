@@ -286,7 +286,7 @@ class Worker(QtCore.QRunnable):
         self.signals = WorkerSignals()
         self.kwargs['progress_callback'] = self.signals.progress
 
-    @QtCore.Slot()
+    @Slot()
     def run(self):
         try:
             result = self.fn(
@@ -312,10 +312,10 @@ class WorkerSignals(QtCore.QObject):
     result
         `object` data returned from processing, anything
     """
-    finished = QtCore.Signal()
-    error = QtCore.Signal(tuple)
-    result = QtCore.Signal(object)
-    progress = QtCore.Signal(str)
+    finished = Signal()
+    error = Signal(tuple)
+    result = Signal(object)
+    progress = Signal(str)
 
 class PlainTextEditor(QPlainTextEdit):
     def __init__(self, parent=None, **kwargs):
