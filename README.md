@@ -58,19 +58,21 @@ https://www.youtube.com/watch?v=nscmtsG5SKQ
 ## Use the widget in Python
 
 ```python
-from PySide2 import QtCore
-from PySide2.QtWidgets import *
-from PySide2.QtGui import *
 import pandas as pd
+import sys
+
+from qtpy.QtCore import Qt, QRect
+from qtpy.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+
 from tablexplore import data, core, plotting, interpreter
 
 class TestApp(QMainWindow):
     def __init__(self, project_file=None, csv_file=None):
 
         QMainWindow.__init__(self)
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WA_DeleteOnClose)
         self.setWindowTitle("Example")
-        self.setGeometry(QtCore.QRect(200, 200, 800, 600))
+        self.setGeometry(QRect(200, 200, 800, 600))
         self.main = QWidget()
         self.setCentralWidget(self.main)
         layout = QVBoxLayout(self.main)
@@ -82,10 +84,10 @@ class TestApp(QMainWindow):
         return
 
 if __name__ == '__main__':
-    import sys
     app = QApplication(sys.argv)
     aw = TestApp()
     aw.show()
+
     app.exec_()
 ```
 
