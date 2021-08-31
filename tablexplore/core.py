@@ -901,6 +901,7 @@ class DataFrameWidget(QWidget):
         pat = kwds['pat']
         repl = kwds['repl']
         inplace = kwds['inplace']
+        x = None
 
         if func == 'split':
             new = df[col].str.split(sep).apply(pd.Series)
@@ -1030,6 +1031,13 @@ class DataFrameWidget(QWidget):
         dlg.exec_()
         if not dlg.accepted:
             return
+        return
+
+    def bin(self):
+        """Split into bins using cut"""
+
+        df = self.table.model.df
+        new = pd.cut(df, bins, labels)        
         return
 
     def filter(self):
@@ -1224,6 +1232,7 @@ class DataFrameTable(QTableView):
         self.model = tm
         self.filtered = False
         self.setWordWrap(True)
+
         df = self.model.df
         #disable column dragging for large tables
         if len(df) > 1e5:

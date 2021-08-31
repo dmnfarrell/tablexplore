@@ -105,6 +105,7 @@ def dialogFromOptions(parent, opts, sections=None,
             val = opt['default']
             t = opt['type']
             lbl = QLabel(label)
+            lbl.setMinimumWidth(150)
             gl.addWidget(lbl,row,col)
             lbl.setStyleSheet(style)
             if t == 'combobox':
@@ -132,6 +133,7 @@ def dialogFromOptions(parent, opts, sections=None,
                 w = QPlainTextEdit()
                 #w.setSizePolicy(sizepolicy)
                 w.insertPlainText(str(val))
+                w.setMaximumHeight(100)
             elif t == 'slider':
                 w = QSlider(QtCore.Qt.Horizontal)
                 s,e = opt['range']
@@ -1378,7 +1380,7 @@ class FilterDialog(QWidget):
         w.setSelectionMode(QAbstractItemView.MultiSelection)
         #w.setFixedHeight(60)
         w.addItems(cols)
-        self.layout.addWidget(QLabel('Filter Columns'))
+        self.layout.addWidget(QLabel('Display Columns'))
         self.layout.addWidget(self.column_w)
         tb = self.createToolBar(self)
         self.layout.addWidget(tb)

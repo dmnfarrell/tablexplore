@@ -706,14 +706,12 @@ QAbstractSpinBox::up-arrow,
 QAbstractSpinBox::up-arrow:disabled,
 QAbstractSpinBox::up-arrow:off
 {
-    border-image: url(:/light/up_arrow_disabled.svg);
     width: 0.9ex;
     height: 0.6ex;
 }
 
 QAbstractSpinBox::up-arrow:hover
 {
-    border-image: url(:/light/up_arrow.svg);
     width: 0.9ex;
     height: 0.6ex;
 }
@@ -722,14 +720,13 @@ QAbstractSpinBox::down-arrow,
 QAbstractSpinBox::down-arrow:disabled,
 QAbstractSpinBox::down-arrow:off
 {
-    border-image: url(:/light/down_arrow_disabled.svg);
+    background: red;
     width: 0.9ex;
     height: 0.6ex;
 }
 
 QAbstractSpinBox::down-arrow:hover
 {
-    border-image: url(:/light/down_arrow.svg);
     width: 0.9ex;
     height: 0.6ex;
 }
