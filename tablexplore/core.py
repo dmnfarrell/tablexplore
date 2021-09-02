@@ -84,6 +84,7 @@ class SubWidget(QDockWidget):
         #self.setSizePolicy(QSizePolicy.Expanding , QSizePolicy.Expanding)
     def closeEvent(self, ce):
         self.table.showAll()
+        #self.table.filtered = False
         self.table.model.highlighted = None
         self.table.refresh()
         #we should actually do this:
@@ -1037,7 +1038,7 @@ class DataFrameWidget(QWidget):
         """Split into bins using cut"""
 
         df = self.table.model.df
-        new = pd.cut(df, bins, labels)        
+        new = pd.cut(df, bins, labels)
         return
 
     def filter(self):
@@ -1199,8 +1200,8 @@ class DataFrameTable(QTableView):
 
         hh = self.horizontalHeader()
         hh.setVisible(True)
-        #hh.setStretchLastSection(True)
-        #hh.setSectionResizeMode(QHeaderView.Interactive)
+
+        #hh.setSectionResizeMode(QHeaderView.ResizeToContents)
         hh.setDefaultSectionSize(columnwidth)
         hh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         hh.customContextMenuRequested.connect(self.columnHeaderMenu)
@@ -1210,7 +1211,9 @@ class DataFrameTable(QTableView):
         hh.setSectionsMovable(True)
         hh.setSelectionBehavior(QTableView.SelectColumns)
         hh.setSelectionMode(QAbstractItemView.ExtendedSelection)
-
+        hh.setDefaultAlignment(Qt.AlignLeft | Qt.Alignment(QtCore.Qt.TextWordWrap))
+        #hh.resizeSection( 1, 20 )
+        hh.setMaximumHeight(30)
         #formats
         self.setDragEnabled(True)
         self.viewport().setAcceptDrops(True)

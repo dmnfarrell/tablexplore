@@ -37,6 +37,15 @@ stylepath = os.path.join(module_path, 'styles')
 iconpath = os.path.join(module_path, 'icons')
 pluginiconpath = os.path.join(module_path, 'plugins', 'icons')
 
+splittercss = """QSplitter::handle:hover {
+border: 0.1ex dashed #777;
+width: 15px;
+margin-top: 10px;
+margin-bottom: 10px;
+border-radius: 4px;
+}
+"""
+
 class Application(QMainWindow):
     def __init__(self, project_file=None, csv_file=None):
 
@@ -98,7 +107,8 @@ class Application(QMainWindow):
             core.SHOWPLOTTER = util.valueToBool(s.value("showplotter"))
             r = s.value("recent_files")
             if r != '':
-                self.recent_files = r.split(',')
+                rct = r.split(',')
+                self.recent_files = [f for f in rct if os.path.exists(f)]
             r = s.value("recent_urls")
             if r != '':
                 self.recent_urls = r.split('^^')
@@ -430,9 +440,9 @@ class Application(QMainWindow):
         if not filename:
             return
 
-        self.filename = filename
         if not os.path.splitext(filename)[1] == '.txpl':
-            self.filename += '.txpl'
+            filename += '.txpl'
+        self.filename = filename
         self.do_saveProject(filename)
         self.addRecentFile(filename)
         self.proj_label.setText(self.filename)
@@ -445,14 +455,15 @@ class Application(QMainWindow):
             filename = self.filename
         if filename is None:
             self.saveAsProject()
+        #if not os.path.splitext(filename)[1] == '.txpl':
+        #    filename += '.txpl'
         if not filename:
             return
         self.running = True
-        self.filename = filename
         if not os.path.splitext(filename)[1] == '.txpl':
-            self.filename += '.txpl'
+            filename += '.txpl'
+        self.filename = filename
         self.defaultsavedir = os.path.dirname(os.path.abspath(filename))
-        #self.do_saveProject(self.filename)
         self.saveWithProgress(self.filename)
         return
 
@@ -502,12 +513,15 @@ class Application(QMainWindow):
             data[i] = {}
             #save dataframe with current column order
             if table.filtered == True:
-                df = table.dataframe
-            else:
-                df = table.model.df
+                table.showAll()
+                #df = table.dataframe
+            #else:
+            df = table.model.df
             cols = table.getColumnOrder()
-            data[i]['table'] = df[cols]
+            df = df[cols]
+            data[i]['table'] = df
             data[i]['meta'] = self.saveMeta(tablewidget)
+
         data['plots'] = self.plots
         file = gzip.GzipFile(filename, 'w')
         pickle.dump(data, file)
@@ -529,6 +543,7 @@ class Application(QMainWindow):
 
         #save table selections
         meta['table'] = util.getAttributes(table)
+        meta['table']['filtered'] = False
         meta['table']['column_widths'] = table.getColumnWidths()
         meta['plotviewer'] = util.getAttributes(pf)
         #print (meta['plotviewer'])
@@ -673,6 +688,7 @@ class Application(QMainWindow):
             name = 'dataset'+str(random.randint(i,100))
 
         sheet = QSplitter(self.main)
+        sheet.setStyleSheet(splittercss)
         idx = self.main.addTab(sheet, name)
         #provide reference to self to dataframewidget
         dfw = DataFrameWidget(sheet, dataframe=df, app=self,
