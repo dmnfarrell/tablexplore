@@ -1390,16 +1390,16 @@ class DataFrameTable(QTableView):
         #hheader = self.horizontalHeader()
 
 
-    def sort(self, idx):
+    def sort(self, idx, ascending=True):
         """Sort by selected columns"""
 
         df = self.model.df
         sel = self.getSelectedColumns()
         if len(sel)>1:
             for i in sel:
-                self.model.sort(i, order=QtCore.Qt.DescendingOrder)
+                self.model.sort(i, ascending)
         else:
-            self.model.sort(idx, order=QtCore.Qt.DescendingOrder)
+            self.model.sort(idx, ascending)
         return
 
     def deleteCells(self, rows, cols, answer=None):
@@ -1427,12 +1427,18 @@ class DataFrameTable(QTableView):
         menu = QMenu(self)
 
         resetIndexAction = menu.addAction("Reset Index")
-        sortIndexAction = menu.addAction("Sort By Index")
+        sortIndexAction = menu.addAction("Sort By Index \u2193")
+        sortIndexDescAction = menu.addAction("Sort By Index \u2191")
+        setTypeAction = menu.addAction("Set Type")
         action = menu.exec_(self.mapToGlobal(pos))
         if action == resetIndexAction:
             self.resetIndex()
         elif action == sortIndexAction:
             self.sortIndex()
+        elif action == sortIndexDescAction:
+            self.sortIndex(ascending=False)
+        elif action == setTypeAction:
+            self.setIndexType()
         return
 
     def columnHeaderMenu(self, pos):
@@ -1444,7 +1450,8 @@ class DataFrameTable(QTableView):
         #model = self.model
         menu = QMenu(self)
 
-        sortAction = menu.addAction("Sort ")
+        sortAction = menu.addAction("Sort \u2193")
+        sortDescAction = menu.addAction("Sort \u2191")
         iconw = QIcon.fromTheme("open")
         sortAction.setIcon(iconw)
         setIndexAction = menu.addAction("Set as Index")
@@ -1465,6 +1472,8 @@ class DataFrameTable(QTableView):
         action = menu.exec_(self.mapToGlobal(pos))
         if action == sortAction:
             self.sort(idx)
+        elif action == sortDescAction:
+            self.sort(idx, ascending=False)
         elif action == deleteColumnAction:
             self.deleteColumn(column)
         elif action == renameColumnAction:
@@ -1562,9 +1571,25 @@ class DataFrameTable(QTableView):
         self.refresh()
         return
 
-    def sortIndex(self):
+    def sortIndex(self, ascending=True):
+        """Sort by inde,"""
 
-        self.model.df = self.model.df.sort_index(axis=0)
+        self.model.df = self.model.df.sort_index(axis=0,ascending=ascending)
+        self.refresh()
+        return
+
+    def setIndexType(self):
+        """Set the type of the index"""
+
+        types = ['float','int','object']
+        newtype, ok = QInputDialog().getItem(self, "New Type",
+                                             "Type:", types, 0, False)
+        if not ok:
+            return
+        self.storeCurrent()
+        df = self.model.df
+        #currtype = df.index.dtype
+        df.index = df.index.astype(newtype)
         self.refresh()
         return
 
@@ -1809,12 +1834,12 @@ class DataFrameModel(QtCore.QAbstractTableModel):
 
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable
 
-    def sort(self, idx, order):
+    def sort(self, idx, ascending=True):
         """Sort table by given column number """
 
         self.layoutAboutToBeChanged.emit()
         col = self.df.columns[idx]
-        self.df = self.df.sort_values(col)
+        self.df = self.df.sort_values(col, ascending=ascending)
         self.layoutChanged.emit()
         return
 
