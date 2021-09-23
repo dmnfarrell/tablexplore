@@ -39,6 +39,7 @@ FONTSTYLE = ''
 COLUMNWIDTH = 80
 TIMEFORMAT = '%m/%d/%Y'
 SHOWPLOTTER = True
+ICONSIZE = 26
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -176,6 +177,7 @@ class DataFrameWidget(QWidget):
                  }
 
         toolbar = QToolBar("Toolbar")
+        toolbar.setIconSize(QtCore.QSize(ICONSIZE, ICONSIZE))
         toolbar.setOrientation(QtCore.Qt.Vertical)
         dialogs.addToolBarItems(toolbar, self, items)
         self.layout.addWidget(toolbar,1,2)

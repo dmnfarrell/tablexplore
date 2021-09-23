@@ -52,8 +52,7 @@ class Application(QMainWindow):
         QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowTitle("Tablexplore")
-        self.setWindowIcon(QIcon(os.path.join(module_path,'logo.png')))
-
+        self.setWindowIcon(QIcon(os.path.join(module_path,'logo.svg')))
         self.createMenu()
         self.main = QTabWidget(self)
         self.main.setTabsClosable(True)
@@ -80,6 +79,7 @@ class Application(QMainWindow):
         self.plots = {}
 
         self.loadSettings()
+        self.setIconSize(QtCore.QSize(core.ICONSIZE, core.ICONSIZE))
         self.showRecentFiles()
         if project_file != None:
             self.openProject(project_file)
@@ -105,6 +105,7 @@ class Application(QMainWindow):
             core.COLUMNWIDTH = int(s.value("columnwidth"))
             core.TIMEFORMAT = s.value("timeformat")
             core.SHOWPLOTTER = util.valueToBool(s.value("showplotter"))
+            core.ICONSIZE = int(s.value("iconsize"))
             r = s.value("recent_files")
             if r != '':
                 rct = r.split(',')
@@ -123,6 +124,7 @@ class Application(QMainWindow):
         self.settings.setValue('window_position', self.pos())
         self.settings.setValue('style', self.style)
         self.settings.setValue('columnwidth', core.COLUMNWIDTH)
+        self.settings.setValue('iconsize', core.ICONSIZE)
         self.settings.setValue('font', core.FONT)
         self.settings.setValue('fontsize', core.FONTSIZE)
         self.settings.setValue('timeformat', core.TIMEFORMAT)
@@ -759,7 +761,8 @@ class Application(QMainWindow):
             return
         ops=['concat']
         opts = {'sheets':{'type':'list','default':'','items':names},
-                'new name':{'type':'entry','default':'combined'}
+                'new name':{'type':'entry','default':'combined'},
+                'add label column':{'type':'checkbox','default':False},
                 }
         dlg = dialogs.MultipleInputDialog(self, opts, title='Combine',
                             width=250,height=150)
@@ -769,9 +772,12 @@ class Application(QMainWindow):
         kwds = dlg.values
 
         names = kwds['sheets']
+        lblcol = kwds['add label column']
         new = []
         for n in names:
             df = self.sheets[n].table.model.df
+            if lblcol == True:
+                df['label'] = n
             new.append(df)
         new = pd.concat(new)
         label = kwds['new name']
@@ -1052,6 +1058,7 @@ class Application(QMainWindow):
 
         from . import dialogs
         opts = {'font':core.FONT, 'fontsize':core.FONTSIZE, 'showplotter': core.SHOWPLOTTER,
+                'iconsize':core.ICONSIZE,
                 'columnwidth':core.COLUMNWIDTH, 'timeformat':core.TIMEFORMAT}
         dlg = dialogs.PreferencesDialog(self, opts)
         dlg.exec_()

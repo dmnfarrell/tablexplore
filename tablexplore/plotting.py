@@ -679,7 +679,8 @@ class PlotViewer(QWidget):
         """Core plotting method where the individual plot functions are called"""
 
         kwargs = kwargs.copy()
-        kwargs['alpha'] = kwargs['alpha']/10
+        if 'alpha' in kwargs:
+            kwargs['alpha'] = kwargs['alpha']/10
 
         cols = data.columns
         if kind == 'line':

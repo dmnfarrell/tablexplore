@@ -1158,10 +1158,11 @@ class PreferencesDialog(QDialog):
                 'timeformat':{'type':'combobox','default':options['timeformat'],
                             'items':timeformats,'label':'Date/Time format'},
                 'showplotter': {'type':'checkbox','default':bool(options['showplotter']), 'label':'show plotter'},
+                'iconsize':{'type':'spinbox','default':options['iconsize'],'range':(16,64)},
                 #'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
                 }
         sections = {'table':['alignment','rowheight','columnwidth'],
-                    'view':['showplotter'],
+                    'view':['iconsize','showplotter'],
                     'formats':['font','fontsize','timeformat']}
 
         dialog, self.widgets = dialogFromOptions(self, self.opts, sections)
@@ -1195,6 +1196,7 @@ class PreferencesDialog(QDialog):
         core.COLUMNWIDTH = kwds['columnwidth']
         core.TIMEFORMAT = kwds['timeformat']
         core.SHOWPLOTTER = kwds['showplotter']
+        core.ICONSIZE = kwds['iconsize']
         self.parent.refresh()
         return
 
