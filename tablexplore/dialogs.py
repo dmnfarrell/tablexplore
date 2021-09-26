@@ -1158,7 +1158,7 @@ class PreferencesDialog(QDialog):
                 'timeformat':{'type':'combobox','default':options['timeformat'],
                             'items':timeformats,'label':'Date/Time format'},
                 'showplotter': {'type':'checkbox','default':bool(options['showplotter']), 'label':'show plotter'},
-                'iconsize':{'type':'spinbox','default':options['iconsize'],'range':(16,64)},
+                'iconsize':{'type':'spinbox','default':options['iconsize'],'range':(16,64), 'label':'icon size'},
                 #'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
                 }
         sections = {'table':['alignment','rowheight','columnwidth'],
@@ -1198,6 +1198,7 @@ class PreferencesDialog(QDialog):
         core.SHOWPLOTTER = kwds['showplotter']
         core.ICONSIZE = kwds['iconsize']
         self.parent.refresh()
+        self.parent.applySettings()
         return
 
 class FindReplaceDialog(QWidget):

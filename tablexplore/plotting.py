@@ -318,6 +318,10 @@ class PlotViewer(QWidget):
     def plotCurrent(self, redraw=True):
         """Plot the current data"""
 
+        #set some mpl defaults
+        mpl.rcParams['grid.linestyle'] = '--'
+        mpl.rcParams['grid.linewidth'] = 1
+
         plot3d = self.generalopts.kwds['3D plot']
         self._initFigure()
         if plot3d == 1:
@@ -679,6 +683,7 @@ class PlotViewer(QWidget):
         """Core plotting method where the individual plot functions are called"""
 
         kwargs = kwargs.copy()
+
         if 'alpha' in kwargs:
             kwargs['alpha'] = kwargs['alpha']/10
 
@@ -821,6 +826,7 @@ class PlotViewer(QWidget):
         return axs
 
     def setStyle(self):
+        """Apply style"""
 
         if self.style == None:
             mpl.rcParams.update(mpl.rcParamsDefault)
@@ -979,7 +985,7 @@ class PlotViewer(QWidget):
             handles.append(mkr)
             ax.set_xlabel(cols[0])
             if grid == 1:
-                ax.grid(True)
+                ax.grid(True, linestyle='--')
             if axes_layout == 'multiple':
                 ax.set_title(cols[i])
             if colormap is not None and kwds['colorbar'] == True:

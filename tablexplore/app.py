@@ -136,6 +136,15 @@ class Application(QMainWindow):
         self.settings.sync()
         return
 
+    def applySettings(self):
+        """Apply settings to GUI when changed"""
+
+        self.setIconSize(QtCore.QSize(core.ICONSIZE, core.ICONSIZE))
+        for s in self.sheets:
+            table = self.sheets[s]
+            table.toolbar.setIconSize(QtCore.QSize(core.ICONSIZE, core.ICONSIZE))
+        return
+
     def setStyle(self, style='default'):
         """Change interface style."""
 

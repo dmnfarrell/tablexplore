@@ -38,6 +38,7 @@ FONTSIZE = 12
 FONTSTYLE = ''
 COLUMNWIDTH = 80
 TIMEFORMAT = '%m/%d/%Y'
+PRECISION = 3
 SHOWPLOTTER = True
 ICONSIZE = 26
 
@@ -176,7 +177,7 @@ class DataFrameWidget(QWidget):
                  'clear': {'action':self.clear,'file':'clear'},
                  }
 
-        toolbar = QToolBar("Toolbar")
+        self.toolbar = toolbar = QToolBar("Toolbar")
         toolbar.setIconSize(QtCore.QSize(ICONSIZE, ICONSIZE))
         toolbar.setOrientation(QtCore.Qt.Vertical)
         dialogs.addToolBarItems(toolbar, self, items)
@@ -619,11 +620,11 @@ class DataFrameWidget(QWidget):
         if len(cols) == 0:
             cols = [column]
 
-        singlefuncs = ['round','floor','ceil','trunc','power','log','exp','log10','log2',
-                 'negative','sign','diff',
-                 'sin','cos','tan','degrees','radians']
-        multifuncs = ['mean','std','max','min',
-                 'sum','subtract','divide','mod','remainder','convolve']
+        singlefuncs = ['divide','mod','subtract','round','floor','ceil','trunc',
+                        'power','log','exp','log10','log2',
+                        'negative','sign','diff',
+                        'sin','cos','tan','degrees','radians']
+        multifuncs = ['mean','std','max','min','sum']
 
         if len(cols)>1:
             funcs = multifuncs+singlefuncs
@@ -631,6 +632,7 @@ class DataFrameWidget(QWidget):
             funcs = singlefuncs
         types = ['float','int']
         opts = {'funcname':  {'type':'combobox','default':'int','items':funcs,'label':'Function'},
+                'scalar': {'type':'entry','default':1,'label':'Argument'},
                 'newcol':  {'type':'entry','default':'','items':funcs,'label':'New column name'},
                 'inplace':  {'type':'checkbox','default':False,'label':'Update in place'},
                 'suffix':  {'type':'entry','default':'_x','items':funcs,'label':'Suffix'},
@@ -642,6 +644,7 @@ class DataFrameWidget(QWidget):
             return
         kwds = dlg.values
         funcname = kwds['funcname']
+        arg = kwds['scalar']
         newcol = kwds['newcol']
         inplace = kwds['inplace']
         suffix = kwds['suffix']
@@ -661,10 +664,15 @@ class DataFrameWidget(QWidget):
                 s =  '(%s)' %(','.join(cols))[:20]
             newcol = funcname + s
 
-        if len(cols) == 2 and funcname in ['sum','subtract','divide','mod','remainder','convolve']:
-            newcol = cols[0]+' '+ funcname +' '+cols[1]
-            result = df[cols[0]].combine(df[cols[1]], func=func)
-        elif len(cols) > 2:
+        if funcname == 'divide':
+            result = df[cols] / float(arg)
+        elif funcname == 'mod':
+            result = df[cols] % float(arg)
+        elif funcname == 'subtract':
+            result = df[cols] - float(arg)
+        elif funcname == 'power':
+            result = df[cols]**float(arg)
+        elif len(cols) >= 2:
             result = df[cols].apply(func, 1)
         else:
             if inplace == True:
@@ -674,8 +682,8 @@ class DataFrameWidget(QWidget):
             else:
                 result = df[col].apply(func, 1)
 
-        if inplace == True:
-            df[col] = result
+        if inplace == True or funcname in ['divide','mod','subtract','power']:
+            df[cols] = result
         else:
             idx = df.columns.get_loc(col)
             df.insert(idx+1, newcol, result)
@@ -755,7 +763,7 @@ class DataFrameWidget(QWidget):
             if result is None:
                 return
             if newcol == '' or len(cols)>1:
-                newcol = winfunc+'('+col+')'
+                newcol = winfunc+'('+str(col)+')'
             if inplace == True:
                 df[col] = result
             else:
@@ -1432,6 +1440,7 @@ class DataFrameTable(QTableView):
         sortIndexAction = menu.addAction("Sort By Index \u2193")
         sortIndexDescAction = menu.addAction("Sort By Index \u2191")
         setTypeAction = menu.addAction("Set Type")
+        deleteAction = menu.addAction("Delete Rows")
         action = menu.exec_(self.mapToGlobal(pos))
         if action == resetIndexAction:
             self.resetIndex()
@@ -1441,6 +1450,8 @@ class DataFrameTable(QTableView):
             self.sortIndex(ascending=False)
         elif action == setTypeAction:
             self.setIndexType()
+        elif action == deleteAction:
+            self.deleteRows()
         return
 
     def columnHeaderMenu(self, pos):
@@ -1809,7 +1820,7 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         """What's displayed in the headers"""
 
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
-            return self.df.columns[col]
+            return str(self.df.columns[col])
         if orientation == QtCore.Qt.Vertical and role == QtCore.Qt.DisplayRole:
             return str(self.df.index[col])
         return None
