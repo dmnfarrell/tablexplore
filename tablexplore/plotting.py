@@ -22,7 +22,7 @@
 """
 
 from __future__ import absolute_import, division, print_function
-import sys,os,random
+import sys,os,random,platform
 from collections import OrderedDict
 
 import matplotlib as mpl
@@ -132,6 +132,17 @@ class PlotViewer(QWidget):
         self.fig = self.canvas.figure
         self.ax = self.canvas.ax
         self.toolbar = NavigationToolbar(self.canvas, layout)
+
+        #add custom buttons
+        iconfile = os.path.join(iconpath,'zoom-out.png')
+        a = QAction(QIcon(iconfile), "Reduce",  self)
+        QtCore.QObject.connect(a,QtCore.SIGNAL("triggered()"), lambda: self.zoom(zoomin=False))
+        self.toolbar.addAction(a)
+        iconfile = os.path.join(iconpath,'zoom-in.png')
+        a = QAction(QIcon(iconfile), "Enlarge",  self)
+        QtCore.QObject.connect(a,QtCore.SIGNAL("triggered()"), self.zoom)
+        self.toolbar.addAction(a)
+
         vbox.addWidget(self.toolbar)
         vbox.addWidget(self.canvas)
         return
@@ -286,6 +297,9 @@ class PlotViewer(QWidget):
             val=-1.0
         else:
             val=1.0
+
+        if len(self.generalopts.kwds) == 0:
+            return
         self.generalopts.increment('linewidth',val)
         self.generalopts.increment('ms',val)
         self.labelopts.increment('fontsize',val)
@@ -934,8 +948,8 @@ class PlotViewer(QWidget):
             marker = 'o'
         if axes_layout == 'multiple':
             size = plots-1
-            nrows = round(np.sqrt(size),0)
-            ncols = np.ceil(size/nrows)
+            nrows = int(round(np.sqrt(size),0))
+            ncols = int(np.ceil(size/nrows))
             self.fig.clear()
         if c is not None:
             colormap = kwds['colormap']
@@ -1486,13 +1500,17 @@ class AnnotationOptions(BaseOptions):
         fillpatterns = ['-', '+', 'x', '\\', '*', 'o', 'O', '.']
         bstyles = ['square','round','round4','circle','rarrow','larrow','sawtooth']
         fonts = util.getFonts()
-        defaultfont = 'Arial'
+        if 'Windows' in platform.platform():
+            defaultfont = 'Arial'
+        else:
+            defaultfont = 'FreeSans'
         fontweights = ['normal','bold','heavy','light','ultrabold','ultralight']
         alignments = ['left','center','right']
+        colors = ['black','gray','red','blue','green','orange','purple','cyan','pink']
 
         self.parent = parent
         self.groups = grps = {'global labels':['title','xlabel','ylabel','rot'],
-                             'format': ['font','fontsize','fontweight','align'],
+                             'format': ['font','fontsize','fontweight','color'],
                              # 'textbox': ['boxstyle','facecolor','linecolor','rotate'],
                              # 'text to add': ['text']
                              }
@@ -1507,10 +1525,12 @@ class AnnotationOptions(BaseOptions):
                 'rotate':{'type':'scale','default':0,'range':(-180,180),'interval':1,'label':'rotate'},
                 'boxstyle':{'type':'combobox','default':'square','items': bstyles},
                 'text':{'type':'scrolledtext','default':'','width':20},
-                'align':{'type':'combobox','default':'center','items': alignments},
+                #'align':{'type':'combobox','default':'center','items': alignments},
+                #'titley':{'type':'spinbox','default':0,'range':(-2,2),'label':'title y'},
                 'font':{'type':'combobox','default':defaultfont,'items':fonts},
                 'fontsize':{'type':'spinbox','default':12,'range':(4,50),'label':'font size'},
                 'fontweight':{'type':'combobox','default':'normal','items': fontweights},
+                'color':{'type':'combobox','default':'black','items': colors},
                 'rot':{'type':'entry','default':0, 'label':'ticklabel angle'}
                 }
         self.kwds = {}
@@ -1529,6 +1549,7 @@ class AnnotationOptions(BaseOptions):
 
         plt.rc("font", family=self.kwds['font'], size=size)#, weight=self.kwds['fontweight'])
         plt.rc('legend', fontsize=size-1)
+        plt.rc('text', color=self.kwds['color'])
         return
 
 class AxesOptions(BaseOptions):

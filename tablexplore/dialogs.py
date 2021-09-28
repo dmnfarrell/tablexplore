@@ -1142,6 +1142,11 @@ class PreferencesDialog(QDialog):
         """create widgets"""
 
         import pylab as plt
+        import platform        
+        if 'Windows' in platform.platform():
+            defaultfont = 'Arial'
+        else:
+            defaultfont = 'FreeSans'
         colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
         timeformats = ['%m/%d/%Y','%d/%m/%Y','%d/%m/%y',
                 '%Y/%m/%d','%y/%m/%d','%Y/%d/%m',
@@ -1152,7 +1157,7 @@ class PreferencesDialog(QDialog):
                 'columnwidth':{'type':'spinbox','range':(10,300),
                 'default': options['columnwidth'], 'label':'column width'},
                 'alignment':{'type':'combobox','default':'w','items':['left','right','center'],'label':'text align'},
-                'font':{'type':'font','default':'Arial','default':options['font']},
+                'font':{'type':'font','default':defaultfont,'default':options['font']},
                 'fontsize':{'type':'spinbox','default':options['fontsize'],'range':(5,40),
                             'interval':1,'label':'font size'},
                 'timeformat':{'type':'combobox','default':options['timeformat'],

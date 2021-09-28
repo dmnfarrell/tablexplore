@@ -620,7 +620,7 @@ class DataFrameWidget(QWidget):
         if len(cols) == 0:
             cols = [column]
 
-        singlefuncs = ['divide','mod','subtract','round','floor','ceil','trunc',
+        singlefuncs = ['divide','multiply','mod','add','round','floor','ceil','trunc',
                         'power','log','exp','log10','log2',
                         'negative','sign','diff',
                         'sin','cos','tan','degrees','radians']
@@ -666,10 +666,12 @@ class DataFrameWidget(QWidget):
 
         if funcname == 'divide':
             result = df[cols] / float(arg)
+        elif funcname == 'multiply':
+            result = df[cols] * float(arg)
         elif funcname == 'mod':
             result = df[cols] % float(arg)
-        elif funcname == 'subtract':
-            result = df[cols] - float(arg)
+        elif funcname == 'add':
+            result = df[cols] + float(arg)
         elif funcname == 'power':
             result = df[cols]**float(arg)
         elif len(cols) >= 2:
@@ -682,7 +684,7 @@ class DataFrameWidget(QWidget):
             else:
                 result = df[col].apply(func, 1)
 
-        if inplace == True or funcname in ['divide','mod','subtract','power']:
+        if inplace == True or funcname in ['divide','mulitply','mod','add','power']:
             df[cols] = result
         else:
             idx = df.columns.get_loc(col)
