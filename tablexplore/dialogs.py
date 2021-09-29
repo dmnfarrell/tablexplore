@@ -789,12 +789,12 @@ class PivotDialog(BasicDialog):
 
         l = QVBoxLayout(main)
         w = self.columnsw = QListWidget(main)
-        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        #w.setSelectionMode(QAbstractItemView.MultiSelection)
         w.addItems(cols)
         l.addWidget(QLabel('Columns'))
         l.addWidget(w)
         w = self.idxw = QListWidget(main)
-        w.setSelectionMode(QAbstractItemView.MultiSelection)
+        #w.setSelectionMode(QAbstractItemView.MultiSelection)
         w.addItems(cols)
         l.addWidget(QLabel('Index'))
         l.addWidget(w)
@@ -822,10 +822,11 @@ class PivotDialog(BasicDialog):
         aggfuncs = [i.text() for i in self.aggw.selectedItems()]
         res = pd.pivot_table(self.df, index=idx, columns=cols, values=vals, aggfunc=aggfuncs)
         names = res.index.names
-        res = res.reset_index(col_level=2)
+        #res = res.reset_index(col_level=2)
         #print (res)
         if util.check_multiindex(res.columns) == 1:
-            res.columns = res.columns.get_level_values(2)
+            l = res.columns.nlevels
+            res.columns = res.columns.get_level_values(l-1)
 
         self.table.model.df = res
         self.table.refresh()
@@ -1142,7 +1143,7 @@ class PreferencesDialog(QDialog):
         """create widgets"""
 
         import pylab as plt
-        import platform        
+        import platform
         if 'Windows' in platform.platform():
             defaultfont = 'Arial'
         else:

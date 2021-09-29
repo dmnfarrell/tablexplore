@@ -142,9 +142,22 @@ class PlotViewer(QWidget):
         a = QAction(QIcon(iconfile), "Enlarge",  self)
         QtCore.QObject.connect(a,QtCore.SIGNAL("triggered()"), self.zoom)
         self.toolbar.addAction(a)
+        iconfile = os.path.join(iconpath,'preferences-system.png')
+        a = QAction(QIcon(iconfile), "Show/hide options",  self)
+        QtCore.QObject.connect(a,QtCore.SIGNAL("triggered()"), self.showTools)
+        self.toolbar.addAction(a)
 
         vbox.addWidget(self.toolbar)
         vbox.addWidget(self.canvas)
+        return
+
+    def showTools(self):
+        """Show/hide tools dock"""
+
+        if self.dock.isHidden():
+            self.dock.show()
+        else:
+            self.dock.hide()
         return
 
     def createWidgets(self):
@@ -1312,7 +1325,7 @@ class PlotViewer(QWidget):
 
         from textwrap import fill
         try:
-            cols = [fill(l, 25) for l in cols]
+            cols = [fill(str(l), 25) for l in cols]
         except:
             logging.error("Exception occurred", exc_info=True)
         return cols
@@ -1458,7 +1471,7 @@ class MPLBaseOptions(BaseOptions):
                 #'loc':{'type':'combobox','default':'best','items':self.legendlocs,'label':'legend loc'},
                 'kind':{'type':'combobox','default':'line','items':self.kinds,'label':'plot type'},
                 'stacked':{'type':'checkbox','default':0,'label':'stacked'},
-                'linewidth':{'type':'spinbox','default':2,'range':(1,15),'interval':1,'label':'line width'},
+                'linewidth':{'type':'spinbox','default':2,'range':(0,15),'interval':1,'label':'line width'},
                 'alpha':{'type':'spinbox','default':9,'range':(1,10),'interval':1,'label':'alpha'},
                 #'subplots':{'type':'checkbox','default':0,'label':'multiple subplots'},
                 'axes_layout':{'type':'combobox','default':'single','items':layouts,'label':'axes layout'},
@@ -1482,6 +1495,7 @@ class MPLBaseOptions(BaseOptions):
         else:
             cols = list(df.columns)
         #add empty value
+        cols = [str(c) for c in cols]
         cols = ['']+cols
         for name in ['by','by2','labelcol','clrcol']:
             self.widgets[name].clear()
@@ -1561,11 +1575,9 @@ class AxesOptions(BaseOptions):
         self.styles = sorted(plt.style.available)
         formats = ['auto','date','percent','eng','sci notation']
         datefmts = ['','%d','%b %d,''%Y-%m-%d','%d-%m-%Y',"%d-%m-%Y %H:%M"]
-        self.groups = grps = OrderedDict({'layout':['rows','cols'],
-                              'axis ranges':['xmin','xmax','ymin','ymax'],
-                              'axis tick positions':['major x-ticks','major y-ticks',
-                                                   'minor x-ticks','minor y-ticks'],
-                              'tick label format':['formatter','date format','symbol','precision'],
+        self.groups = grps = OrderedDict({'main':['rows','cols','xmin','xmax','ymin','ymax',
+                              'major x-ticks','major y-ticks','minor x-ticks','minor y-ticks',
+                              'formatter','date format','symbol','precision'],
                              })
         opts = self.opts = {'rows':{'type':'spinbox','default':0},
                             'cols':{'type':'spinbox','default':0},
