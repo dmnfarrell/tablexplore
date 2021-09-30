@@ -39,6 +39,7 @@ FONTSTYLE = ''
 COLUMNWIDTH = 80
 TIMEFORMAT = '%m/%d/%Y'
 PRECISION = 3
+ROWHEIGHT = 20
 SHOWPLOTTER = True
 ICONSIZE = 26
 
@@ -1596,7 +1597,7 @@ class DataFrameTable(QTableView):
     def setIndexType(self):
         """Set the type of the index"""
 
-        types = ['float','int','object']
+        types = ['float','int','object','datetime64[ns]']
         newtype, ok = QInputDialog().getItem(self, "New Type",
                                              "Type:", types, 0, False)
         if not ok:
@@ -1695,7 +1696,7 @@ class DataFrameTable(QTableView):
             cols = self.model.df.columns[idx]
         else:
             cols = [column]
-        types = ['float','int','object','datetime']
+        types = ['float','int','object','datetime64[ns]']
         newtype, ok = QInputDialog().getItem(self, "New Column Type",
                                              "Type:", types, 0, False)
         if not ok:
@@ -1715,6 +1716,7 @@ class DataFrameTable(QTableView):
         vh = self.verticalHeader()
         h = vh.defaultSectionSize()
         vh.setDefaultSectionSize(h+2)
+        self.changeColumnWidths()
         return
 
     def zoomOut(self, fontsize=None):
@@ -1725,6 +1727,7 @@ class DataFrameTable(QTableView):
         vh = self.verticalHeader()
         h = vh.defaultSectionSize()
         vh.setDefaultSectionSize(h-2)
+        self.changeColumnWidths(.9)
         return
 
     def changeColumnWidths(self, factor=1.1):
@@ -1776,8 +1779,10 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         i = index.row()
         j = index.column()
         #print (self.df.dtypes)
-        #coltype = self.df.dtypes[j]
-        coltype = self.df[self.df.columns[j]].dtype
+        try:
+            coltype = self.df.dtypes[j]
+        except:
+            coltype = self.df[self.df.columns[j]].dtype
         isdate = is_datetime(coltype)
         if role == QtCore.Qt.DisplayRole:
             value = self.df.iloc[i, j]
@@ -1824,7 +1829,15 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
             return str(self.df.columns[col])
         if orientation == QtCore.Qt.Vertical and role == QtCore.Qt.DisplayRole:
-            return str(self.df.index[col])
+            value = self.df.index[col]
+            if type( self.df.index) == pd.DatetimeIndex:
+                if not value is pd.NaT:
+                    try:
+                        return value.strftime(TIMEFORMAT)
+                    except:
+                        return ''
+            else:
+                return str(value)
         return None
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
@@ -1833,17 +1846,9 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         i = index.row()
         j = index.column()
         curr = self.df.iloc[i,j]
-        print (curr, value)
+        #print (curr, value)
         self.df.iloc[i,j] = value
         return True
-
-    '''def dragMoveEvent(self, event):
-        print (event)
-        event.setDropAction(QtCore.Qt.MoveAction)
-        event.accept()
-
-    def supportedDropActions(self):
-        return Qt.MoveAction '''
 
     def flags(self, index):
 
