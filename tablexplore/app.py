@@ -226,7 +226,12 @@ class Application(QMainWindow):
         self.undo_item = self.edit_menu.addAction('Undo', self.undo,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_Z)
         #self.undo_item.setDisabled(True)
-        #self.edit_menu.addAction('&Run Last Action', self.runLastAction)
+        icon = QIcon(os.path.join(iconpath,'copy.png'))
+        self.edit_menu.addAction(icon, 'Copy', self.copy)
+        icon = QIcon(os.path.join(iconpath,'paste.png'))
+        self.edit_menu.addAction(icon, 'Paste', self.paste)
+        icon = QIcon(os.path.join(iconpath,'paste.png'))
+        self.edit_menu.addAction(icon, 'Paste as New Sheet', self.pasteNewSheet)
         icon = QIcon(os.path.join(iconpath,'findreplace.png'))
         self.edit_menu.addAction(icon, 'Find/Replace', self.findReplace,
                 QtCore.Qt.CTRL + QtCore.Qt.Key_F)
@@ -270,7 +275,7 @@ class Application(QMainWindow):
         icon = QIcon(os.path.join(iconpath,'tableinfo.png'))
         self.tools_menu.addAction(icon, '&Table Info', lambda: self._call('info'),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_I)
-        self.tools_menu.addAction('Organise', lambda: self._call('organise'))
+        self.tools_menu.addAction('Organise Columns', lambda: self._call('organise'))
         icon = QIcon(os.path.join(iconpath,'clean.png'))
         self.tools_menu.addAction(icon, 'Clean Data', lambda: self._call('cleanData'))
         icon = QIcon(os.path.join(iconpath,'table-duplicates.png'))
@@ -375,11 +380,13 @@ class Application(QMainWindow):
                 return
         if not type(data) is dict:
             data = None
+        #clear tabs
         self.main.clear()
         self.sheets = OrderedDict()
         self.filename = None
         self.projopen = True
         self.plots = {}
+        #load data if provided
         if data != None:
             for s in data.keys():
                 if s in ['meta','plots']:
@@ -392,13 +399,11 @@ class Application(QMainWindow):
                 self.addSheet(s, df, meta)
             if 'plots' in data:
                 self.plots = data['plots']
+            #set current sheet
+            if 'meta' in data:
+                self.main.setCurrentIndex(data['meta']['currentsheet'])
         else:
             self.addSheet('dataset1')
-        return
-
-    def closeProject(self):
-        """Close"""
-
         return
 
     def openProject(self, filename=None, asksave=False):
@@ -525,8 +530,7 @@ class Application(QMainWindow):
             #save dataframe with current column order
             if table.filtered == True:
                 table.showAll()
-                #df = table.dataframe
-            #else:
+
             df = table.model.df
             cols = table.getColumnOrder()
             df = df[cols]
@@ -534,6 +538,8 @@ class Application(QMainWindow):
             data[i]['meta'] = self.saveMeta(tablewidget)
 
         data['plots'] = self.plots
+        data['meta'] = {}
+        data['meta']['currentsheet'] = self.main.currentIndex()
         file = gzip.GzipFile(filename, 'w')
         pickle.dump(data, file)
         return
@@ -560,8 +566,7 @@ class Application(QMainWindow):
         #print (meta['plotviewer'])
         #save child table if present
         if tablewidget.subtable != None:
-            meta['subtable'] = tablewidget.subtable.table.model.df
-        #    meta['childselected'] = util.getAttributes(table.child)
+            meta['subtable'] = tablewidget.subtable.table.model.df        
 
         return meta
 
@@ -912,6 +917,22 @@ class Application(QMainWindow):
         name = self.main.tabText(idx)
         table = self.sheets[name]
         return table
+
+    def copy(self):
+        w = self.getCurrentTable()
+        w.copy()
+        return
+
+    def paste(self):
+        w = self.getCurrentTable()
+        w.paste()
+        return
+
+    def pasteNewSheet(self):
+
+        self.addSheet()
+        self.paste()
+        return
 
     def replot(self):
         """Plot current"""

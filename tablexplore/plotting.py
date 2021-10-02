@@ -249,6 +249,15 @@ class PlotViewer(QWidget):
         dialog.resize(200,200)
         l=QVBoxLayout(w)
         l.addWidget(dialog)
+
+        '''w = QWidget(tab)
+        idx = tab.addTab(w, 'series')
+        self.seriesopts = SeriesOptions(parent=self)
+        self.seriesopts.createWidgets(self.table.model.df)
+        dialog = self.seriesopts.showDialog(w, wrap=2, section_wrap=1, style=style)
+        dialog.resize(200,200)
+        l=QVBoxLayout(w)
+        l.addWidget(dialog)'''
         return tab
 
     def createButtons(self, parent):
@@ -337,8 +346,8 @@ class PlotViewer(QWidget):
         else:
             self.data = data
 
-        self.setStyle()
         self.applyPlotoptions()
+        self.setStyle()
         self.plotCurrent()
         return
 
@@ -376,6 +385,7 @@ class PlotViewer(QWidget):
             return
         df = self.table.model.df
         self.generalopts.update(df)
+        #self.seriesopts.update(df)
         return
 
     def clear(self):
@@ -641,6 +651,13 @@ class PlotViewer(QWidget):
             self.canvas.draw()
         return
 
+    def plotBySeries(self):
+        """Plot different types depending on series"""
+
+        #for s in series:
+
+        return
+
     def setFigureOptions(self, axs, kwds):
         """Set axis wide options such as ylabels, title"""
 
@@ -793,6 +810,7 @@ class PlotViewer(QWidget):
         elif kind == 'bootstrap':
             axs = plotting.bootstrap_plot(data)
         elif kind == 'scatter_matrix':
+            kwargs['marker'] = 'o'
             axs = plotting.scatter_matrix(data, ax=ax, **kwargs)
         elif kind == 'hexbin':
             x = cols[0]
@@ -1422,7 +1440,7 @@ class MPLBaseOptions(BaseOptions):
         the selected prefs"""
 
     kinds = ['line', 'scatter', 'bar', 'barh', 'pie', 'histogram', 'boxplot', 'violinplot', 'dotplot',
-             'heatmap', 'area', 'hexbin', 'contour', 'imshow', 'scatter_matrix', 'density', 'radviz', 'venn']
+             'heatmap', 'area', 'hexbin', 'scatter_matrix', 'density', 'radviz']
     legendlocs = ['best','upper right','upper left','lower left','lower right','right','center left',
                 'center right','lower center','upper center','center']
 
@@ -1439,8 +1457,9 @@ class MPLBaseOptions(BaseOptions):
 
         layouts = ['single','multiple','twin axes']
         scales = ['linear','log']
-        style_list = ['default', 'classic'] + sorted(
-                    style for style in plt.style.available if style != 'classic')
+        style_list = ['default', 'classic', 'fivethirtyeight',
+                     'seaborn-pastel','seaborn-whitegrid', 'ggplot','bmh',
+                     'grayscale','dark_background']
         grps = {'data':['by','by2','labelcol','pointsizes'],
                 'formats':['marker','ms','linestyle','linewidth','alpha'],
                 'global':['dpi','3D plot'],
@@ -1595,6 +1614,43 @@ class AxesOptions(BaseOptions):
                             'date format':{'type':'combobox','items':datefmts,'default':''}
                             }
         self.kwds = {}
+        return
+
+class SeriesOptions(BaseOptions):
+    """Class for selecting custom plot types for each series"""
+    def __init__(self, parent=None):
+        """Setup variables"""
+
+        self.parent = parent
+        self.groups = grps = OrderedDict({'main':[]})
+        return
+
+    def createWidgets(self, df):
+
+        opts = self.opts = {}
+        self.kwds = {}
+        ptypes = ['line','bar']
+        cols = list(df.columns)
+        cols = [str(c) for c in cols]
+        for name in cols:
+            self.opts[name] = {'type':'combobox','items':ptypes,'default':''}
+
+        self.groups['main'] = self.opts.keys()
+        return
+
+    def update(self, df):
+        """Update data widget(s) when dataframe changes"""
+
+        if util.check_multiindex(df.columns) == 1:
+            cols = list(df.columns.get_level_values(0))
+        else:
+            cols = list(df.columns)
+        #add empty value
+        cols = [str(c) for c in cols]
+        cols = ['']+cols
+        for name in cols:
+            self.widgets[name].clear()
+            self.widgets[name].addItems(cols)
         return
 
 class PlotGallery(QWidget):

@@ -1053,7 +1053,7 @@ class ConvertTypesDialog(BasicDialog):
         return
 
 class OrganiseDialog(BasicDialog):
-    """Qdialog for table query/filtering"""
+    """Qdialog for column re-arranging"""
     def __init__(self, parent, df, title='Organise', app=None):
 
         BasicDialog.__init__(self, parent, df, title)
@@ -1070,7 +1070,9 @@ class OrganiseDialog(BasicDialog):
         main.setMaximumWidth(250)
         vbox.addWidget(main)
         w = self.cols_w = QListWidget()
+        w.setDragDropMode(QAbstractItemView.InternalMove)
         w.setSelectionMode(QAbstractItemView.MultiSelection)
+        #w.currentItemChanged.connect(self.update)
         w.addItems(cols)
         vbox.addWidget(w)
         bf = self.createButtons(self)
@@ -1085,6 +1087,9 @@ class OrganiseDialog(BasicDialog):
         button = QPushButton("Delete Selected")
         button.clicked.connect(self.delete)
         vbox.addWidget(button)
+        button = QPushButton("Update")
+        button.clicked.connect(self.update)
+        vbox.addWidget(button)
         button = QPushButton("Sort Columns")
         button.clicked.connect(self.sort)
         vbox.addWidget(button)
@@ -1095,6 +1100,16 @@ class OrganiseDialog(BasicDialog):
         button.clicked.connect(self.close)
         vbox.addWidget(button)
         return bw
+
+    def update(self):
+        """Update table"""
+
+        print ('update')
+        self.table.storeCurrent()
+        names = [self.cols_w.item(i).text() for i in range(self.cols_w.count())]
+        self.table.model.df.columns = names
+        self.table.refresh()
+        return
 
     def delete(self):
 
