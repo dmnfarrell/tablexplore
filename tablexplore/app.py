@@ -105,6 +105,7 @@ class Application(QMainWindow):
             core.COLUMNWIDTH = int(s.value("columnwidth"))
             core.TIMEFORMAT = s.value("timeformat")
             core.SHOWPLOTTER = util.valueToBool(s.value("showplotter"))
+            core.PLOTSTYLE = s.value("plotstyle")
             core.ICONSIZE = int(s.value("iconsize"))
             r = s.value("recent_files")
             if r != '':
@@ -129,6 +130,7 @@ class Application(QMainWindow):
         self.settings.setValue('fontsize', core.FONTSIZE)
         self.settings.setValue('timeformat', core.TIMEFORMAT)
         self.settings.setValue('showplotter', core.SHOWPLOTTER)
+        self.settings.setValue('plotstyle', core.PLOTSTYLE)
         self.settings.setValue('recent_files',','.join(self.recent_files))
         self.settings.setValue('recent_urls','^^'.join(self.recent_urls))
         if hasattr(self, 'plotgallery'):
@@ -566,7 +568,7 @@ class Application(QMainWindow):
         #print (meta['plotviewer'])
         #save child table if present
         if tablewidget.subtable != None:
-            meta['subtable'] = tablewidget.subtable.table.model.df        
+            meta['subtable'] = tablewidget.subtable.table.model.df
 
         return meta
 
@@ -710,13 +712,14 @@ class Application(QMainWindow):
         dfw = DataFrameWidget(sheet, dataframe=df, app=self,
                                 font=core.FONT, fontsize=core.FONTSIZE,
                                 columnwidth=core.COLUMNWIDTH, timeformat=core.TIMEFORMAT)
-        sheet.addWidget(dfw)
-
+        sheet.addWidget(dfw)        
         self.sheets[name] = dfw
         self.currenttable = dfw
         pf = dfw.createPlotViewer(sheet)
         sheet.addWidget(pf)
         sheet.setSizes((500,1000))
+        pf.generalopts.setWidgetValue('style', core.PLOTSTYLE)
+        #pf.applyPlotoptions()
         #reload attributes of table and plotter if present
         if meta != None:
             self.loadMeta(dfw, meta)
@@ -1088,7 +1091,7 @@ class Application(QMainWindow):
 
         from . import dialogs
         opts = {'font':core.FONT, 'fontsize':core.FONTSIZE, 'showplotter': core.SHOWPLOTTER,
-                'iconsize':core.ICONSIZE,
+                'iconsize':core.ICONSIZE, 'plotstyle':core.PLOTSTYLE,
                 'columnwidth':core.COLUMNWIDTH, 'timeformat':core.TIMEFORMAT}
         dlg = dialogs.PreferencesDialog(self, opts)
         dlg.exec_()

@@ -4,6 +4,10 @@
 
 * fix to saving when filtered
 * align header labels left
+* remember current sheet when saving
+* added enlarge/reduce buttons to plotter
+* icon size preference
+* fix to plot style
 
 -----
 0.4.0

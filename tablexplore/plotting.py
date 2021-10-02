@@ -873,7 +873,7 @@ class PlotViewer(QWidget):
     def setStyle(self):
         """Apply style"""
 
-        if self.style == None:
+        if self.style == None or self.style == '':
             mpl.rcParams.update(mpl.rcParamsDefault)
         else:
             plt.style.use(self.style)

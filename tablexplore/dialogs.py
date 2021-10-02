@@ -1146,7 +1146,7 @@ class PreferencesDialog(QDialog):
         super(PreferencesDialog, self).__init__(parent)
         self.parent = parent
         self.setWindowTitle('Preferences')
-        self.resize(700, 200)
+        self.resize(450, 200)
         self.setGeometry(QtCore.QRect(300,300, 600, 200))
         self.setMaximumWidth(600)
         self.setMaximumHeight(300)
@@ -1169,22 +1169,28 @@ class PreferencesDialog(QDialog):
                 '%d-%b-%Y','%b-%d-%Y',
                 '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
                 '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
-        self.opts = {'rowheight':{'type':'spinbox','default':18,'range':(5,50),'label':'row height'},
-                'columnwidth':{'type':'spinbox','range':(10,300),
-                'default': options['columnwidth'], 'label':'column width'},
-                'alignment':{'type':'combobox','default':'w','items':['left','right','center'],'label':'text align'},
+        plotstyles = ['','default', 'classic', 'fivethirtyeight',
+                     'seaborn-pastel','seaborn-whitegrid', 'ggplot','bmh',
+                     'grayscale','dark_background']
+        self.opts = {'rowheight':{'type':'spinbox','default':18,'range':(5,50),'label':'Row height'},
+                #'columnwidth':{'type':'spinbox','range':(10,300),
+                #'default': options['columnwidth'], 'label':'column width'},
+                'alignment':{'type':'combobox','default':'w','items':['left','right','center'],'label':'Text Align'},
                 'font':{'type':'font','default':defaultfont,'default':options['font']},
                 'fontsize':{'type':'spinbox','default':options['fontsize'],'range':(5,40),
                             'interval':1,'label':'font size'},
                 'timeformat':{'type':'combobox','default':options['timeformat'],
                             'items':timeformats,'label':'Date/Time format'},
-                'showplotter': {'type':'checkbox','default':bool(options['showplotter']), 'label':'show plotter'},
-                'iconsize':{'type':'spinbox','default':options['iconsize'],'range':(16,64), 'label':'icon size'},
+                'showplotter': {'type':'checkbox','default':bool(options['showplotter']), 'label':'Show Plotter'},
+                'plotstyle':{'type':'combobox','default':options['plotstyle'],
+                            'items':plotstyles,'label':'Plot Style'},
+                'iconsize':{'type':'spinbox','default':options['iconsize'],'range':(16,64), 'label':'Icon Size'},
                 #'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
                 }
-        sections = {'table':['alignment','rowheight','columnwidth'],
-                    'view':['iconsize','showplotter'],
-                    'formats':['font','fontsize','timeformat']}
+        sections = {'table':['alignment','rowheight',#'columnwidth',
+                    'font','fontsize','timeformat'],
+                    'view':['iconsize','plotstyle','showplotter']
+                    }
 
         dialog, self.widgets = dialogFromOptions(self, self.opts, sections)
 
@@ -1214,9 +1220,10 @@ class PreferencesDialog(QDialog):
         from . import core
         core.FONT = kwds['font']
         core.FONTSIZE = kwds['fontsize']
-        core.COLUMNWIDTH = kwds['columnwidth']
+        #core.COLUMNWIDTH = kwds['columnwidth']
         core.TIMEFORMAT = kwds['timeformat']
         core.SHOWPLOTTER = kwds['showplotter']
+        core.PLOTSTYLE = kwds['plotstyle']
         core.ICONSIZE = kwds['iconsize']
         self.parent.refresh()
         self.parent.applySettings()

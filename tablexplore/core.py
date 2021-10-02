@@ -42,6 +42,7 @@ PRECISION = 3
 ROWHEIGHT = 20
 SHOWPLOTTER = True
 ICONSIZE = 26
+PLOTSTYLE = 'default'
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -1383,6 +1384,16 @@ class DataFrameTable(QTableView):
         rows = list(dict.fromkeys(rows).keys())
         cols = list(dict.fromkeys(cols).keys())
         return df.iloc[rows,cols]
+
+    def setSelected(self, row, col):
+        """Set selection programmatically"""
+
+
+        top = self.model.index(row, 0)
+        lower = self.model.index(row, col)
+        selection = QItemSelection(top, lower)
+        self.selectionModel().select(selection, SelectionFlag.ClearAndSelect)
+        return
 
     def handleDoubleClick(self, item):
 
