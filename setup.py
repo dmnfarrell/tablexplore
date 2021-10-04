@@ -15,7 +15,7 @@ setup(
     author = 'Damien Farrell',
     author_email = 'farrell.damien@gmail.com',
     packages = ['tablexplore'],
-    package_data={'tablexplore': ['logo.png', '../description.txt',
+    package_data={'tablexplore': ['logo.png', 'logo.svg', '../description.txt',
                                   'styles/*.qss','icons/*.png',
                                   'plugins/*.py','plugins/icons/*.png',
                                   'datasets/*.csv']},
