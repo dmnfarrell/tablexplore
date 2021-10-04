@@ -5,9 +5,12 @@
 * fix to saving when filtered
 * align header labels left
 * remember current sheet when saving
-* added enlarge/reduce buttons to plotter
+* added enlarge/reduce buttons to plot toolbar
 * icon size preference
 * fix to plot style
+* format date index
+* sort by index
+* moved dpi to preferences
 
 -----
 0.4.0

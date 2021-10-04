@@ -106,6 +106,9 @@ class Application(QMainWindow):
             core.TIMEFORMAT = s.value("timeformat")
             core.SHOWPLOTTER = util.valueToBool(s.value("showplotter"))
             core.PLOTSTYLE = s.value("plotstyle")
+            core.DPI = int(s.value("dpi"))
+            import matplotlib as mpl
+            mpl.rcParams['savefig.dpi'] = core.DPI
             core.ICONSIZE = int(s.value("iconsize"))
             r = s.value("recent_files")
             if r != '':
@@ -131,6 +134,7 @@ class Application(QMainWindow):
         self.settings.setValue('timeformat', core.TIMEFORMAT)
         self.settings.setValue('showplotter', core.SHOWPLOTTER)
         self.settings.setValue('plotstyle', core.PLOTSTYLE)
+        self.settings.setValue('dpi', core.DPI)
         self.settings.setValue('recent_files',','.join(self.recent_files))
         self.settings.setValue('recent_urls','^^'.join(self.recent_urls))
         if hasattr(self, 'plotgallery'):
@@ -145,6 +149,8 @@ class Application(QMainWindow):
         for s in self.sheets:
             table = self.sheets[s]
             table.toolbar.setIconSize(QtCore.QSize(core.ICONSIZE, core.ICONSIZE))
+        import matplotlib as mpl
+        mpl.rcParams['savefig.dpi'] = core.DPI
         return
 
     def setStyle(self, style='default'):
@@ -161,6 +167,7 @@ class Application(QMainWindow):
         return
 
     def createToolBar(self):
+        """Create main toolbar"""
 
         items = {'new project': {'action': lambda: self.newProject(ask=True),'file':'document-new'},
                  'open': {'action':self.openProject,'file':'document-open'},
@@ -172,7 +179,6 @@ class Application(QMainWindow):
                  'add sheet': {'action': lambda: self.addSheet(name=None),'file':'add'},
                  'add column': {'action': lambda: self._call('addColumn'),'file':'add-column'},
                  'add row': {'action': lambda: self._call('addRows'),'file':'add-row'},
-                 #'lock': {'action':self.lockTable,'file':'lock'},
                  'clean data': {'action':lambda: self._call('cleanData'),'file':'clean'},
                  'table to text': {'action':lambda: self._call('showAsText'),'file':'tabletotext'},
                  'table info': {'action':lambda: self._call('info'),'file':'tableinfo'},
@@ -712,7 +718,7 @@ class Application(QMainWindow):
         dfw = DataFrameWidget(sheet, dataframe=df, app=self,
                                 font=core.FONT, fontsize=core.FONTSIZE,
                                 columnwidth=core.COLUMNWIDTH, timeformat=core.TIMEFORMAT)
-        sheet.addWidget(dfw)        
+        sheet.addWidget(dfw)
         self.sheets[name] = dfw
         self.currenttable = dfw
         pf = dfw.createPlotViewer(sheet)
@@ -1091,7 +1097,7 @@ class Application(QMainWindow):
 
         from . import dialogs
         opts = {'font':core.FONT, 'fontsize':core.FONTSIZE, 'showplotter': core.SHOWPLOTTER,
-                'iconsize':core.ICONSIZE, 'plotstyle':core.PLOTSTYLE,
+                'iconsize':core.ICONSIZE, 'plotstyle':core.PLOTSTYLE, 'dpi':core.DPI,
                 'columnwidth':core.COLUMNWIDTH, 'timeformat':core.TIMEFORMAT}
         dlg = dialogs.PreferencesDialog(self, opts)
         dlg.exec_()

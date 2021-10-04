@@ -43,6 +43,7 @@ ROWHEIGHT = 20
 SHOWPLOTTER = True
 ICONSIZE = 26
 PLOTSTYLE = 'default'
+DPI = 100
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8

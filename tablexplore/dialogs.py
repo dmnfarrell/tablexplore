@@ -1146,7 +1146,7 @@ class PreferencesDialog(QDialog):
         super(PreferencesDialog, self).__init__(parent)
         self.parent = parent
         self.setWindowTitle('Preferences')
-        self.resize(450, 200)
+        self.resize(400, 200)
         self.setGeometry(QtCore.QRect(300,300, 600, 200))
         self.setMaximumWidth(600)
         self.setMaximumHeight(300)
@@ -1184,12 +1184,13 @@ class PreferencesDialog(QDialog):
                 'showplotter': {'type':'checkbox','default':bool(options['showplotter']), 'label':'Show Plotter'},
                 'plotstyle':{'type':'combobox','default':options['plotstyle'],
                             'items':plotstyles,'label':'Plot Style'},
+                'dpi':{'type':'entry','default':100,'default':options['dpi'], 'label':'Plot DPI'},
                 'iconsize':{'type':'spinbox','default':options['iconsize'],'range':(16,64), 'label':'Icon Size'},
                 #'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
                 }
         sections = {'table':['alignment','rowheight',#'columnwidth',
                     'font','fontsize','timeformat'],
-                    'view':['iconsize','plotstyle','showplotter']
+                    'view':['iconsize','plotstyle','dpi','showplotter']
                     }
 
         dialog, self.widgets = dialogFromOptions(self, self.opts, sections)
@@ -1224,6 +1225,7 @@ class PreferencesDialog(QDialog):
         core.TIMEFORMAT = kwds['timeformat']
         core.SHOWPLOTTER = kwds['showplotter']
         core.PLOTSTYLE = kwds['plotstyle']
+        core.DPI = kwds['dpi']
         core.ICONSIZE = kwds['iconsize']
         self.parent.refresh()
         self.parent.applySettings()

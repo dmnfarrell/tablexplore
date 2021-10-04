@@ -260,7 +260,7 @@ class PlotViewer(QWidget):
         l.addWidget(dialog)'''
         return tab
 
-    def createButtons(self, parent):
+    '''def createButtons(self, parent):
         """Create button widgets"""
 
         buttons = {'Plot': {'action':self.plot,'icon':'plot'},
@@ -297,7 +297,7 @@ class PlotViewer(QWidget):
         dialog.resize(200,200)
         box.addWidget(dialog)
         bw.setMaximumHeight(60)
-        return bw
+        return bw'''
 
     def simple_plot(self, df):
         """test plot"""
@@ -322,6 +322,7 @@ class PlotViewer(QWidget):
 
         if len(self.generalopts.kwds) == 0:
             return
+
         self.generalopts.increment('linewidth',val)
         self.generalopts.increment('ms',val)
         self.labelopts.increment('fontsize',val)
@@ -375,7 +376,7 @@ class PlotViewer(QWidget):
         self.labelopts.applyOptions()
         self.axesopts.applyOptions()
         self.style = self.generalopts.kwds['style']
-        mpl.rcParams['savefig.dpi'] = self.generalopts.kwds['dpi']
+        #mpl.rcParams['savefig.dpi'] = self.generalopts.kwds['dpi']
         return
 
     def updateData(self):
@@ -408,8 +409,8 @@ class PlotViewer(QWidget):
                                               "","png files (*.png);;jpg files (*.jpg)")
         if filename:
             self.currentdir = os.path.dirname(os.path.abspath(filename))
-            dpi = self.globalopts['dpi']
-            self.fig.savefig(filename, dpi=dpi)
+            #dpi = self.globalopts['dpi']
+            self.fig.savefig(filename, dpi=core.DPI)
         return
 
     def showWarning(self, text='plot error', ax=None):
@@ -811,6 +812,7 @@ class PlotViewer(QWidget):
             axs = plotting.bootstrap_plot(data)
         elif kind == 'scatter_matrix':
             kwargs['marker'] = 'o'
+            kwargs['s'] = 2
             axs = plotting.scatter_matrix(data, ax=ax, **kwargs)
         elif kind == 'hexbin':
             x = cols[0]
@@ -1421,20 +1423,6 @@ class BaseOptions(object):
         self.setWidgetValue(key, new)
         return
 
-class GlobalOptions(BaseOptions):
-    """Class to provide a dialog for global plot options"""
-
-    def __init__(self, parent=None):
-        """Setup variables"""
-
-        self.parent = parent
-        self.groups = {'global': ['dpi','3D plot']}
-        self.opts = OrderedDict({ 'dpi': {'type':'spinbox','default':100,'width':4},
-                                 #'grid layout': {'type':'checkbox','default':0,'label':'grid layout'},
-                                 '3D plot': {'type':'checkbox','default':0,'label':'3D plot'}  })
-        self.kwds = {}
-        return
-
 class MPLBaseOptions(BaseOptions):
     """Class to provide a dialog for matplotlib options and returning
         the selected prefs"""
@@ -1462,17 +1450,17 @@ class MPLBaseOptions(BaseOptions):
                      'grayscale','dark_background']
         grps = {'data':['by','by2','labelcol','pointsizes'],
                 'formats':['marker','ms','linestyle','linewidth','alpha'],
-                'global':['dpi','3D plot'],
                 'general':['kind','axes_layout','bins','stacked','use_index','errorbars'],
                 'axes':['grid','legend','showxlabels','showylabels','sharex','sharey','logx','logy'],
-                'colors':['style','colormap','bw','clrcol','cscale','colorbar']}
-        order = ['general','data','axes','formats','colors','global']
+                'colors':['style','colormap','bw','clrcol','cscale','colorbar'],
+                'other':['3D plot']}
+        order = ['general','data','axes','formats','colors','other']
         self.groups = OrderedDict((key, grps[key]) for key in order)
         opts = self.opts = {
                 'style':{'type':'combobox','default':'default','items': style_list},
                 'marker':{'type':'combobox','default':'','items': markers},
                 'linestyle':{'type':'combobox','default':'-','items': linestyles},
-                'ms':{'type':'slider','default':5,'range':(1,80),'interval':1,'label':'marker size'},
+                'ms':{'type':'spinbox','default':5,'range':(1,80),'interval':1,'label':'marker size'},
                 'grid':{'type':'checkbox','default':0,'label':'show grid'},
                 'logx':{'type':'checkbox','default':0,'label':'log x'},
                 'logy':{'type':'checkbox','default':0,'label':'log y'},
@@ -1500,7 +1488,7 @@ class MPLBaseOptions(BaseOptions):
                 'by2':{'type':'combobox','items':datacols,'label':'group by 2','default':''},
                 'labelcol':{'type':'combobox','items':datacols,'label':'point labels','default':''},
                 'pointsizes':{'type':'combobox','items':datacols,'label':'point sizes','default':''},
-                 'dpi': {'type':'spinbox','default':100,'width':4,'range':(10,300)},
+                # 'dpi': {'type':'spinbox','default':100,'width':4,'range':(10,300)},
                  '3D plot': {'type':'checkbox','default':0,'label':'3D plot'}
                 }
         self.kwds = {}
@@ -1520,6 +1508,7 @@ class MPLBaseOptions(BaseOptions):
             self.widgets[name].clear()
             self.widgets[name].addItems(cols)
         return
+
 
 class AnnotationOptions(BaseOptions):
     """This class also provides custom tools for adding items to the plot"""
@@ -1727,7 +1716,7 @@ class PlotGallery(QWidget):
             return
 
         fig = self.plots[name]
-        fig.savefig(filename+'.png', dpi=100)
+        fig.savefig(filename+'.png', dpi=core.DPI)
         return
 
     def saveAll(self):
@@ -1739,7 +1728,7 @@ class PlotGallery(QWidget):
             return
         for name in self.plots:
             fig = self.plots[name]
-            fig.savefig(os.path.join(dir,name+'.png'), dpi=100)
+            fig.savefig(os.path.join(dir,name+'.png'), dpi=core.DPI)
         return
 
     def clear(self):
