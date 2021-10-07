@@ -1,5 +1,5 @@
 name: tablexplore
-version: '0.4.0'
+version: '0.4.1'
 #version-script: git describe --abbrev=1 --tags
 summary: data plotting and analysis package
 description: |
@@ -10,7 +10,7 @@ description: |
 base: core18
 grade: stable
 confinement: strict
-icon: img/logo.svg
+icon: tablexplore/logo.svg
 
 apps:
   tablexplore:

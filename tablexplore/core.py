@@ -1225,7 +1225,7 @@ class DataFrameTable(QTableView):
         hh.setSectionsMovable(True)
         hh.setSelectionBehavior(QTableView.SelectColumns)
         hh.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        hh.setDefaultAlignment(Qt.AlignLeft | Qt.Alignment(QtCore.Qt.TextWordWrap))
+        hh.setDefaultAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.Alignment(QtCore.Qt.TextWordWrap))
         #hh.setMaximumHeight(30)
         hh.setFixedHeight(26)
         #formats

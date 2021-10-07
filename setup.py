@@ -21,8 +21,9 @@ setup(
                                   'datasets/*.csv']},
     install_requires=['matplotlib>=3.0',
                       'pandas>=1.1',
-                      'PySide2',
+                      'PySide2', #comment out for snap building
                       'xlrd>=1.0',
+                      'openpyxl',
                       #uncomment below only for snap building
                       #'geopandas',
                       #'pygeos'

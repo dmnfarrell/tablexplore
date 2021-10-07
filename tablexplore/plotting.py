@@ -136,15 +136,15 @@ class PlotViewer(QWidget):
         #add custom buttons
         iconfile = os.path.join(iconpath,'zoom-out.png')
         a = QAction(QIcon(iconfile), "Reduce",  self)
-        QtCore.QObject.connect(a,QtCore.SIGNAL("triggered()"), lambda: self.zoom(zoomin=False))
+        a.triggered.connect(lambda: self.zoom(zoomin=False))
         self.toolbar.addAction(a)
         iconfile = os.path.join(iconpath,'zoom-in.png')
         a = QAction(QIcon(iconfile), "Enlarge",  self)
-        QtCore.QObject.connect(a,QtCore.SIGNAL("triggered()"), self.zoom)
+        a.triggered.connect(lambda: self.zoom(zoomin=True))
         self.toolbar.addAction(a)
         iconfile = os.path.join(iconpath,'preferences-system.png')
         a = QAction(QIcon(iconfile), "Show/hide options",  self)
-        QtCore.QObject.connect(a,QtCore.SIGNAL("triggered()"), self.showTools)
+        a.triggered.connect(self.showTools)
         self.toolbar.addAction(a)
 
         vbox.addWidget(self.toolbar)
