@@ -1695,7 +1695,6 @@ class ScratchPad(QWidget):
                 tw.setPlainText(obj)
                 self.main.addTab(tw, name)
             else:
-                #fig.savefig(name+'.png')
                 pw = PlotWidget(self.main)
                 self.main.addTab(pw, name)
                 pw.figure = obj
@@ -1755,4 +1754,17 @@ class ScratchPad(QWidget):
             tw = PlainTextEditor()
             self.main.addTab(tw, name)
             self.items[name] = tw.toPlainText()
+        return
+
+    def closeEvent(self, event):
+        """Close"""
+
+        for idx in range(self.main.count()):
+            name = self.main.tabText(idx)
+            #print (name)
+            w = self.main.widget(idx)
+            #print (w)
+            if type(w) == PlainTextEditor:
+                self.items[name] = w.toPlainText()
+
         return

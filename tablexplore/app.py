@@ -883,7 +883,7 @@ class Application(QMainWindow):
         for s in self.sheets:
             self.sheets[s].close()
         self.saveSettings()
-        if hasattr(self,'plotgallery'):
+        if hasattr(self,'scratchpad'):
             self.scratchpad.close()
         self.threadpool.waitForDone()
         self.fileQuit()
@@ -1009,7 +1009,7 @@ class Application(QMainWindow):
         t = time.strftime("%H:%M:%S")
         label = name+'-'+t
         self.plots[label] = fig
-        if hasattr(self, 'plotgallery'):
+        if hasattr(self, 'scratchpad'):
             self.scratchpad.update(self.plots)
         return
 
