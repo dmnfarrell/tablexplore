@@ -138,7 +138,7 @@ class Application(QMainWindow):
         self.settings.setValue('recent_files',','.join(self.recent_files))
         self.settings.setValue('recent_urls','^^'.join(self.recent_urls))
         if hasattr(self, 'plotgallery'):
-            self.settings.setValue('plotgallery_size',self.plotgallery.size())
+            self.settings.setValue('plotgallery_size',self.scratchpad.size())
         self.settings.sync()
         return
 
@@ -182,7 +182,8 @@ class Application(QMainWindow):
                  'clean data': {'action':lambda: self._call('cleanData'),'file':'clean'},
                  'table to text': {'action':lambda: self._call('showAsText'),'file':'tabletotext'},
                  'table info': {'action':lambda: self._call('info'),'file':'tableinfo'},
-                 'plot gallery': {'action': self.showPlotGallery,'file':'plot-gallery'},
+                 'send plot to scratchpad': {'action': self.storePlot,'file':'plot-scratchpad'},
+                 'scratchpad': {'action': self.showScratchPad,'file':'plot-gallery'},
                  'preferences': {'action':self.preferences,'file':'preferences-system'},
                  'quit': {'action':self.fileQuit,'file':'application-exit'}
                 }
@@ -307,8 +308,8 @@ class Application(QMainWindow):
 
         self.plots_menu = QMenu('Plots', self)
         self.menuBar().addMenu(self.plots_menu)
-        self.plots_menu.addAction('Store Plot', lambda: self.storePlot())
-        self.plots_menu.addAction('Show Plots', lambda: self.showPlotGallery())
+        self.plots_menu.addAction('Send Plot to Scratchpad', lambda: self.storePlot())
+        self.plots_menu.addAction('Show Scratchpad', lambda: self.showScratchPad())
 
         self.plugin_menu = QMenu('Plugins', self)
         self.menuBar().addMenu(self.plugin_menu)
@@ -883,7 +884,7 @@ class Application(QMainWindow):
             self.sheets[s].close()
         self.saveSettings()
         if hasattr(self,'plotgallery'):
-            self.plotgallery.close()
+            self.scratchpad.close()
         self.threadpool.waitForDone()
         self.fileQuit()
         return
@@ -1009,22 +1010,22 @@ class Application(QMainWindow):
         label = name+'-'+t
         self.plots[label] = fig
         if hasattr(self, 'plotgallery'):
-            self.plotgallery.update(self.plots)
+            self.scratchpad.update(self.plots)
         return
 
-    def showPlotGallery(self):
+    def showScratchPad(self):
         """Show stored plot figures"""
 
         from . import plotting
         if not hasattr(self, 'plotgallery'):
-            self.plotgallery = plotting.PlotGallery()
+            self.scratchpad = plotting.ScratchPad()
             try:
-                self.plotgallery.resize(self.settings.value('plotgallery_size'))
+                self.scratchpad.resize(self.settings.value('plotgallery_size'))
             except:
                 pass
-        self.plotgallery.update(self.plots)
-        self.plotgallery.show()
-        self.plotgallery.activateWindow()
+        self.scratchpad.update(self.plots)
+        self.scratchpad.show()
+        self.scratchpad.activateWindow()
         return
 
     def interpreter(self):

@@ -318,6 +318,13 @@ class DataFrameWidget(QWidget):
     def copy(self):
         """Copy to clipboard"""
 
+        #check size of dataframe
+        m = self.table.model.df.memory_usage(deep=True).sum()
+        if m>1e8:
+            answer = QMessageBox.question(self, 'Copy?',
+                             'This data may be too large to copy. Are you sure?', QMessageBox.Yes, QMessageBox.No)
+            if not answer:
+                return
         df = self.table.getSelectedDataFrame()
         df.to_clipboard()
         return

@@ -175,8 +175,8 @@ class PlotViewer(QWidget):
         self.addPlotWidget()
 
         self.dock = dock = QDockWidget('options',self)
-        dock.setMaximumWidth(300)
-        dock.setMinimumWidth(280)
+        dock.setMaximumWidth(250)
+        dock.setMinimumWidth(240)
         dock.setFeatures(QDockWidget.DockWidgetClosable)
         scrollarea = QScrollArea(dock)
         scrollarea.setWidgetResizable(True)
@@ -600,7 +600,7 @@ class PlotViewer(QWidget):
                     cax = twinaxes[i]
                     clr = cmap(float(i+1)/(len(cols)))
                     d.plot(ax=cax, kind='line', c=clr, style=styles, linewidth=lw,
-                            linestyle=ls, marker=marker, ms=ms, legend=False)
+                            linestyle=ls, marker=marker, ms=ms, legend=False, grid=False)
                     if i>1:
                         cax.spines["right"].set_position(("axes", 1+i/20))
                     cax.set_ylabel(col)
@@ -1642,18 +1642,19 @@ class SeriesOptions(BaseOptions):
             self.widgets[name].addItems(cols)
         return
 
-class PlotGallery(QWidget):
-    """Plot gallery class"""
+class ScratchPad(QWidget):
+    """Temp storage for plots and other items"""
     def __init__(self, parent=None):
-        super(PlotGallery, self).__init__(parent)
+        super(ScratchPad, self).__init__(parent)
         self.parent = parent
         self.setMinimumSize(400,300)
         self.setGeometry(QtCore.QRect(300, 200, 800, 600))
-        self.setWindowTitle("Saved Figures")
+        self.setWindowTitle("Scratch Pad")
         self.createWidgets()
         sizepolicy = QSizePolicy()
         self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
-        self.plots = {}
+        self.items = {}
+
         return
 
     def createWidgets(self):
@@ -1665,7 +1666,8 @@ class PlotGallery(QWidget):
         layout = QVBoxLayout(self)
         toolbar = QToolBar("toolbar")
         layout.addWidget(toolbar)
-        items = { 'save': {'action':self.save,'file':'save'},
+        items = { 'new':{'action':self.newText,'file':'document-new'},
+                  'save': {'action':self.save,'file':'save'},
                   'save all': {'action':self.saveAll,'file':'save-all'},
                   'clear': {'action':self.clear,'file':'clear'}
                     }
@@ -1681,32 +1683,38 @@ class PlotGallery(QWidget):
         layout.addWidget(self.main)
         return
 
-    def update(self, plots):
+    def update(self, items):
         """Display a dict of stored mpl figures"""
 
         self.main.clear()
-        for name in plots:
-            fig = plots[name]
-            #fig.savefig(name+'.png')
-            pw = PlotWidget(self.main)
-            self.main.addTab(pw, name)
-            pw.figure = fig
-            pw.draw()
-            plt.tight_layout()
-        self.plots = plots
+        for name in items:
+            obj = items[name]
+            #print (type(obj))
+            if type(obj) is str:
+                tw = PlainTextEditor()
+                tw.setPlainText(obj)
+                self.main.addTab(tw, name)
+            else:
+                #fig.savefig(name+'.png')
+                pw = PlotWidget(self.main)
+                self.main.addTab(pw, name)
+                pw.figure = obj
+                pw.draw()
+                plt.tight_layout()
+        self.items = items
         return
 
     def remove(self, idx):
-        """Remove selected tab and figure"""
+        """Remove selected tab and item widget"""
 
         index = self.main.currentIndex()
         name = self.main.tabText(index)
-        del self.plots[name]
+        del self.items[name]
         self.main.removeTab(index)
         return
 
     def save(self):
-        """Save selected figure"""
+        """Save selected item"""
 
         index = self.main.currentIndex()
         name = self.main.tabText(index)
@@ -1715,7 +1723,7 @@ class PlotGallery(QWidget):
         if not filename:
             return
 
-        fig = self.plots[name]
+        fig = self.items[name]
         fig.savefig(filename+'.png', dpi=core.DPI)
         return
 
@@ -1726,14 +1734,25 @@ class PlotGallery(QWidget):
                                              homepath, QFileDialog.ShowDirsOnly)
         if not dir:
             return
-        for name in self.plots:
-            fig = self.plots[name]
+        for name in self.items:
+            fig = self.items[name]
             fig.savefig(os.path.join(dir,name+'.png'), dpi=core.DPI)
         return
 
     def clear(self):
         """Clear plots"""
 
-        self.plots.clear()
+        self.items.clear()
         self.main.clear()
+        return
+
+    def newText(self):
+        """Add text item"""
+
+        name, ok = QInputDialog.getText(self, 'Name', 'Name:',
+                    QLineEdit.Normal, '')
+        if ok:
+            tw = PlainTextEditor()
+            self.main.addTab(tw, name)
+            self.items[name] = tw.toPlainText()
         return

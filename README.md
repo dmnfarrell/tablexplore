@@ -53,7 +53,11 @@ A Windows standalone binary can be downloaded [here](https://dmnfarrell.github.i
 
 ## Videos
 
-https://www.youtube.com/watch?v=nscmtsG5SKQ
+* [Introduction](youtu.be/0_KGjrNWpb4 )
+* [Summarizing Data](youtu.be/acOzks3AKUQ)
+* [Plotting](https://www.youtube.com/watch?v=ESCyyAERJ80)
+* [Table Filtering](https://www.youtube.com/watch?v=aZjELBprGkA)
+* [Joining tables](https://youtu.be/TDw4iS2u9Kg)
 
 ## Use the widget in Python
 

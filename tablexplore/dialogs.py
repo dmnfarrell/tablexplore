@@ -566,11 +566,14 @@ class ImportDialog(QDialog):
         #get types if changed?
         tf = self.typestable.model.df
         dtypes = dict(zip(tf.name, tf.dtype))
-        print (dtypes)
+        #print (dtypes)
         #dtmap = {'int32':int32,'float32':float64}
         #for i in dtypes:
         #    dtypes[i] = dtmap[i]
-        self.df = pd.read_csv(self.filename, dtype=dtypes, **self.values)
+        try:
+            self.df = pd.read_csv(self.filename, dtype=dtypes, **self.values)
+        except:
+            self.df = pd.read_csv(self.filename)
         self.close()
         return
 
