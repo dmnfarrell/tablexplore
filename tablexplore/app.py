@@ -29,7 +29,7 @@ from .qt import *
 import pandas as pd
 from .core import DataFrameModel, DataFrameTable, DataFrameWidget
 from .plotting import PlotViewer
-from . import util, data, core, dialogs
+from . import util, data, core, dialogs, widgets
 
 homepath = os.path.expanduser("~")
 module_path = os.path.dirname(os.path.abspath(__file__))
@@ -76,7 +76,7 @@ class Application(QMainWindow):
         self.font = 'monospace'
         self.recent_files = ['']
         self.recent_urls = []
-        self.plots = {}
+        self.scratch_items = {}
 
         self.loadSettings()
         self.setIconSize(QtCore.QSize(core.ICONSIZE, core.ICONSIZE))
@@ -137,8 +137,8 @@ class Application(QMainWindow):
         self.settings.setValue('dpi', core.DPI)
         self.settings.setValue('recent_files',','.join(self.recent_files))
         self.settings.setValue('recent_urls','^^'.join(self.recent_urls))
-        if hasattr(self, 'plotgallery'):
-            self.settings.setValue('plotgallery_size',self.scratchpad.size())
+        if hasattr(self, 'scratchpad'):
+            self.settings.setValue('scratchpad_size',self.scratchpad.size())
         self.settings.sync()
         return
 
@@ -169,7 +169,7 @@ class Application(QMainWindow):
     def createToolBar(self):
         """Create main toolbar"""
 
-        items = {'new project': {'action': lambda: self.newProject(ask=True),'file':'document-new'},
+        items = {'new project': {'action': lambda: self.newProject(ask=True),'file':'project-new'},
                  'open': {'action':self.openProject,'file':'document-open'},
                  'save': {'action': lambda: self.saveProject(None),'file':'save'},
                  'zoom out': {'action':self.zoomOut,'file':'zoom-out'},
@@ -182,8 +182,8 @@ class Application(QMainWindow):
                  'clean data': {'action':lambda: self._call('cleanData'),'file':'clean'},
                  'table to text': {'action':lambda: self._call('showAsText'),'file':'tabletotext'},
                  'table info': {'action':lambda: self._call('info'),'file':'tableinfo'},
-                 'send plot to scratchpad': {'action': self.storePlot,'file':'plot-scratchpad'},
-                 'scratchpad': {'action': self.showScratchPad,'file':'plot-gallery'},
+                 'send plot to scratchpad': {'action': self.plotToScratchpad,'file':'scratchpad-plot'},
+                 'scratchpad': {'action': self.showScratchpad,'file':'scratchpad'},
                  'preferences': {'action':self.preferences,'file':'preferences-system'},
                  'quit': {'action':self.fileQuit,'file':'application-exit'}
                 }
@@ -306,14 +306,17 @@ class Application(QMainWindow):
         self.dataset_menu.addAction('Titanic', lambda: self.getSampleData('titanic'))
         self.dataset_menu.addAction('Pima Diabetes', lambda: self.getSampleData('pima'))
 
-        self.plots_menu = QMenu('Plots', self)
-        self.menuBar().addMenu(self.plots_menu)
-        self.plots_menu.addAction('Send Plot to Scratchpad', lambda: self.storePlot())
-        self.plots_menu.addAction('Show Scratchpad', lambda: self.showScratchPad())
+        self.scratch_menu = QMenu('Scratchpad', self)
+        self.menuBar().addMenu(self.scratch_menu)
+        icon = QIcon(os.path.join(iconpath,'scratchpad.png'))
+        self.scratch_menu.addAction(icon,'Show Scratchpad', lambda: self.showScratchpad())
+        icon = QIcon(os.path.join(iconpath,'scratchpad-plot.png'))
+        self.scratch_menu.addAction(icon,'Plot to Scratchpad', lambda: self.plotToScratchpad())
+        icon = QIcon(os.path.join(iconpath,'scratchpad-table.png'))
+        self.scratch_menu.addAction(icon,'Table to Scratchpad', lambda: self.tableToScratchpad())
 
         self.plugin_menu = QMenu('Plugins', self)
         self.menuBar().addMenu(self.plugin_menu)
-        #self.plugin_menu.addAction('&Store Plot', lambda: self.storePlot())
 
         self.help_menu = QMenu('&Help', self)
         self.menuBar().addSeparator()
@@ -394,11 +397,11 @@ class Application(QMainWindow):
         self.sheets = OrderedDict()
         self.filename = None
         self.projopen = True
-        self.plots = {}
+        self.scratch_items = {}
         #load data if provided
         if data != None:
             for s in data.keys():
-                if s in ['meta','plots']:
+                if s in ['meta','scratch_items']:
                     continue
                 df = data[s]['table']
                 if 'meta' in data[s]:
@@ -406,8 +409,8 @@ class Application(QMainWindow):
                 else:
                     meta=None
                 self.addSheet(s, df, meta)
-            if 'plots' in data:
-                self.plots = data['plots']
+            if 'scratch_items' in data:
+                self.scratch_items = data['scratch_items']
             #set current sheet
             if 'meta' in data:
                 self.main.setCurrentIndex(data['meta']['currentsheet'])
@@ -546,7 +549,7 @@ class Application(QMainWindow):
             data[i]['table'] = df
             data[i]['meta'] = self.saveMeta(tablewidget)
 
-        data['plots'] = self.plots
+        data['scratch_items'] = self.scratch_items
         data['meta'] = {}
         data['meta']['currentsheet'] = self.main.currentIndex()
         file = gzip.GzipFile(filename, 'w')
@@ -996,7 +999,21 @@ class Application(QMainWindow):
             w.refresh()
         return
 
-    def storePlot(self):
+    def tableToScratchpad(self):
+        """Send table selection to scratchpad"""
+
+        w = self.getCurrentTable()
+        index = self.main.currentIndex()
+        name = self.main.tabText(index)
+        df = w.getSelectedDataFrame()
+        t = time.strftime("%H:%M:%S")
+        label = name+'-'+t
+        self.scratch_items[label] = df
+        if hasattr(self, 'scratchpad'):
+            self.scratchpad.update(self.scratch_items)
+        return
+
+    def plotToScratchpad(self):
         """Cache the current plot so it can be viewed later"""
 
         w = self.getCurrentTable()
@@ -1008,22 +1025,22 @@ class Application(QMainWindow):
         fig = pickle.loads(p)
         t = time.strftime("%H:%M:%S")
         label = name+'-'+t
-        self.plots[label] = fig
+        self.scratch_items[label] = fig
         if hasattr(self, 'scratchpad'):
-            self.scratchpad.update(self.plots)
+            self.scratchpad.update(self.scratch_items)
         return
 
-    def showScratchPad(self):
+    def showScratchpad(self):
         """Show stored plot figures"""
 
         from . import plotting
-        if not hasattr(self, 'plotgallery'):
-            self.scratchpad = plotting.ScratchPad()
+        if not hasattr(self, 'scratchpad'):
+            self.scratchpad = widgets.ScratchPad()
             try:
-                self.scratchpad.resize(self.settings.value('plotgallery_size'))
+                self.scratchpad.resize(self.settings.value('scratchpad_size'))
             except:
                 pass
-        self.scratchpad.update(self.plots)
+        self.scratchpad.update(self.scratch_items)
         self.scratchpad.show()
         self.scratchpad.activateWindow()
         return
