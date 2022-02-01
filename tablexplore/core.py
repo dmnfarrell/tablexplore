@@ -1420,7 +1420,6 @@ class DataFrameTable(QTableView):
         print (self.model.df)
         #hheader = self.horizontalHeader()
 
-
     def sort(self, idx, ascending=True):
         """Sort by selected columns"""
 
@@ -1558,6 +1557,8 @@ class DataFrameTable(QTableView):
         importAction = menu.addAction("Import File")
         exportAction = menu.addAction("Export Table")
         plotAction = menu.addAction("Plot Selected")
+        viewAction = menu.addAction("View Row Data")
+
         rowsmenu = QMenu("Rows",menu)
         menu.addAction(rowsmenu.menuAction())
         deleteRowsAction = rowsmenu.addAction("Delete Rows")
@@ -1586,6 +1587,8 @@ class DataFrameTable(QTableView):
             self.parent.exportTable()
         elif action == plotAction:
             self.parent.plot()
+        elif action == viewAction:
+            self.viewRow()
         elif action == deleteRowsAction:
             self.deleteRows()
         elif action == addRowsAction:
@@ -1695,6 +1698,19 @@ class DataFrameTable(QTableView):
         idx = self.model.df.index[rows]
         self.model.df = self.model.df.drop(idx)
         self.refresh()
+        return
+
+    def viewRow(self):
+        """View row data"""
+
+        pd.options.display.max_colwidth = 1000
+        df = self.model.df
+        rows = self.getSelectedRows()[0]
+        idx = df.index[rows]
+        row = df.loc[idx]
+        text = 'row at index %s' %idx
+        dlg = dialogs.TextDialog(self, row.to_string(), title=text, width=800, height=400)
+        dlg.exec_()
         return
 
     def renameColumn(self, column=None):
