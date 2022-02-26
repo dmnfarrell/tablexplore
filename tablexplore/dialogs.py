@@ -424,7 +424,8 @@ class ImportDialog(QDialog):
         """Create widgets"""
 
         delimiters = [',',r'\t',' ','\s+',';','/','&','|','^','+','-']
-        encodings = ['utf-8','ascii','latin-1','iso8859_15','cp037','cp1252','big5','euc_jp']
+        encodings = ['utf-8','ascii','latin-1','iso8859_15','cp037','cp1252','big5','euc_jp',
+                     'koi8_r','mac_latin2','utf_32']
         timeformats = ['infer','%d/%m/%Y','%Y/%m/%d','%Y/%d/%m',
                         '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
                         '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
@@ -500,22 +501,28 @@ class ImportDialog(QDialog):
         vbox.addWidget(button)
         return bw
 
-    def showText(self):
+    def showText(self, encoding='utf-8'):
         """Show text contents"""
 
         self.textarea.clear()
-        file = open(self.filename, 'r')
-        for i in range(100):
-             line = file.readline()
-             self.textarea.insertPlainText(line)
-        self.textarea.verticalScrollBar().setValue(1)
+        try:
+            file = open(self.filename, 'r', encoding=encoding)
+            for i in range(100):
+                 line = file.readline()
+                 self.textarea.insertPlainText(line)
+            self.textarea.verticalScrollBar().setValue(1)
+        except Exception as e:
+            print(e)
+            self.textarea.insertPlainText(str(e)+'\n')
+            self.textarea.insertPlainText('try another encoding?')
         return
 
     def update(self):
         """Reload previews"""
 
-        self.showText()
         self.values = getWidgetValues(self.widgets)
+        enc = self.values['encoding']
+        self.showText(enc)
         timeformat = self.values['time format']
         if timeformat == 'infer':
             dateparse=None
@@ -1176,8 +1183,6 @@ class PreferencesDialog(QDialog):
                      'seaborn-pastel','seaborn-whitegrid', 'ggplot','bmh',
                      'grayscale','dark_background']
         self.opts = {'rowheight':{'type':'spinbox','default':18,'range':(5,50),'label':'Row height'},
-                #'columnwidth':{'type':'spinbox','range':(10,300),
-                #'default': options['columnwidth'], 'label':'column width'},
                 'alignment':{'type':'combobox','default':'w','items':['left','right','center'],'label':'Text Align'},
                 'font':{'type':'font','default':defaultfont,'default':options['font']},
                 'fontsize':{'type':'spinbox','default':options['fontsize'],'range':(5,40),

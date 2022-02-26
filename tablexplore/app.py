@@ -576,6 +576,11 @@ class Application(QMainWindow):
         meta['table']['column_widths'] = table.getColumnWidths()
         meta['plotviewer'] = util.getAttributes(pf)
         #print (meta['plotviewer'])
+        #is plotter shown
+        if pf.isHidden():
+            meta['showplotter'] = False
+        else:
+            meta['showplotter'] = True
         #save child table if present
         if tablewidget.subtable != None:
             meta['subtable'] = tablewidget.subtable.table.model.df
@@ -638,7 +643,7 @@ class Application(QMainWindow):
 
         self.addSheet()
         w = self.getCurrentTable()
-        w.importFile(filename)
+        w.importFile(filename, dialog=True)
         return
 
     def importMultiple(self):
@@ -733,9 +738,11 @@ class Application(QMainWindow):
         #reload attributes of table and plotter if present
         if meta != None:
             self.loadMeta(dfw, meta)
+            if core.SHOWPLOTTER == False:
+                pf.hide()
+            if 'showplotter' in meta and meta['showplotter'] == False:
+                pf.hide()
         self.main.setCurrentIndex(idx)
-        if core.SHOWPLOTTER == False:
-            pf.hide()
         return
 
     def removeSheet(self, index, ask=True):

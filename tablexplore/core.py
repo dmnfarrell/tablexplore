@@ -229,20 +229,22 @@ class DataFrameWidget(QWidget):
     def importFile(self, filename=None, dialog=True, **kwargs):
         """Import csv file"""
 
-        if dialog is True and filename == None:
+        if filename == None:
             options = QFileDialog.Options()
             filename, _ = QFileDialog.getOpenFileName(self,"Import File",
                                  "","CSV files (*.csv);;Text Files (*.txt);;All Files (*)",
                                  options=options)
             if not filename:
                 return
+
+        if dialog is True:
             dlg = dialogs.ImportDialog(self, filename)
             dlg.exec_()
             if not dlg.accepted:
                 return
             self.table.model.df = dlg.df
             self.refresh()
-        elif filename != None:
+        else:
             self.table.model.df = pd.read_csv(filename)
             self.refresh()
         return
@@ -527,9 +529,9 @@ class DataFrameWidget(QWidget):
         types = ['float','int']
         opts = {'convert to':  {'type':'combobox','default':'int','items':types,'label':'Convert To',
                                         'tooltip':' '},
-                'removetext':  {'type':'checkbox','default':0,'label':'Try to remove text',
+                'removetext':  {'type':'checkbox','default':1,'label':'Try to remove text',
                                                         'tooltip':' '},
-                'convert currency':  {'type':'checkbox','default':0,'label':'Convert currency',
+                'convert currency':  {'type':'checkbox','default':1,'label':'Convert currency',
                                                         'tooltip':' '},
                 'selected columns only':  {'type':'checkbox','default':0,'label':'Selected columns only',
                                                         'tooltip':' '},
@@ -1234,7 +1236,7 @@ class DataFrameTable(QTableView):
         hh.setSelectionMode(QAbstractItemView.ExtendedSelection)
         hh.setDefaultAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.Alignment(QtCore.Qt.TextWordWrap))
         #hh.setMaximumHeight(30)
-        hh.setFixedHeight(26)
+        hh.setFixedHeight(28)
         #formats
         self.setDragEnabled(True)
         self.viewport().setAcceptDrops(True)
@@ -1494,6 +1496,8 @@ class DataFrameTable(QTableView):
         renameColumnAction = colmenu.addAction("Rename Column")
         addColumnAction = colmenu.addAction("Add Column")
         setTypeAction = colmenu.addAction("Set Data Type")
+        convertNumericAction = colmenu.addAction("Convert to Numeric")
+
         menu.addAction(colmenu.menuAction())
         fillAction = menu.addAction("Fill Data")
         applyFunctionAction = menu.addAction("Apply Function")
@@ -1515,6 +1519,8 @@ class DataFrameTable(QTableView):
             self.addColumn()
         elif action == setTypeAction:
             self.setColumnType(column)
+        elif action == convertNumericAction:
+            self.parent.convertNumeric()
         elif action == setIndexAction:
             self.setIndex(column)
         elif action == datetimeAction:
