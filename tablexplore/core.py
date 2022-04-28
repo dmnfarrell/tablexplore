@@ -1403,14 +1403,16 @@ class DataFrameTable(QTableView):
             data[c] = x
         return data
 
-    def setSelected(self, row, col):
+    def setSelected(self, rows, cols):
         """Set selection programmatically"""
 
-
-        top = self.model.index(row, 0)
-        lower = self.model.index(row, col)
-        selection = QItemSelection(top, lower)
-        self.selectionModel().select(selection, SelectionFlag.ClearAndSelect)
+        selection = QtCore.QItemSelection()
+        for i in rows:
+            for j in cols:
+                model_index = self.model.index(i, j)
+                selection.select(model_index, model_index)
+        mode = QtCore.QItemSelectionModel.Select
+        self.selectionModel().select(selection, mode)
         return
 
     def handleDoubleClick(self, item):
@@ -1427,8 +1429,7 @@ class DataFrameTable(QTableView):
         return
 
     def selectColumn(self, event):
-        print (self.model.df)
-        #hheader = self.horizontalHeader()
+        print (self.model.df)        
 
     def sort(self, idx, ascending=True):
         """Sort by selected columns"""

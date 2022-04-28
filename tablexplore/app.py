@@ -577,6 +577,8 @@ class Application(QMainWindow):
 
         #save table selections
         meta['table'] = util.getAttributes(table)
+        meta['table']['selectedcols'] = table.getSelectedColumns()
+        meta['table']['selectedrows'] = table.getSelectedRows()
         meta['table']['filtered'] = False
         meta['table']['column_widths'] = table.getColumnWidths()
         meta['plotviewer'] = util.getAttributes(pf)
@@ -622,6 +624,7 @@ class Application(QMainWindow):
 
         #load table settings
         util.setAttributes(table.table, tablesettings)
+        #print (tablesettings)
         if 'column_widths' in tablesettings:
             table.table.setColumnWidths(tablesettings['column_widths'])
         table.refresh()
@@ -638,10 +641,12 @@ class Application(QMainWindow):
             table.showSubTable(df=subtable)
             #util.setAttributes(table.child, childsettings)
 
-        #redraw col selections
-        #if type(table.multiplecollist) is tuple:
-        #    table.multiplecollist = list(table.multiplecollist)
-        #table.drawMultipleCols()
+        #redraw selections
+        if 'selectedrows' in tablesettings:
+            rows = tablesettings['selectedrows']
+            cols = tablesettings['selectedcols']            
+            table.table.setSelected(rows, cols)
+
         return
 
     def importFile(self, filename=None):

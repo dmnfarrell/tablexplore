@@ -321,7 +321,7 @@ class PlotViewer(QWidget):
 
         if len(self.generalopts.kwds) == 0:
             return
-
+    
         self.generalopts.increment('linewidth',val/5)
         self.generalopts.increment('ms',val)
         self.labelopts.increment('fontsize',val)
@@ -1419,6 +1419,8 @@ class BaseOptions(object):
     def increment(self, key, inc):
         """Increase the value of a widget"""
 
+        if not key in self.kwds:
+            return
         new = self.kwds[key]+inc
         if new == 0:
             return
