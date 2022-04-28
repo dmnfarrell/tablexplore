@@ -1393,7 +1393,15 @@ class DataFrameTable(QTableView):
         #get unique rows/cols keeping order
         rows = list(dict.fromkeys(rows).keys())
         cols = list(dict.fromkeys(cols).keys())
-        return df.iloc[rows,cols]
+        data = df.iloc[rows,cols]
+        #try to get numeric data for plotting
+        colnames = data.columns
+        for c in colnames:
+            x = pd.to_numeric(data[c], errors='coerce').astype(float)
+            if x.isnull().all():
+                continue
+            data[c] = x
+        return data
 
     def setSelected(self, row, col):
         """Set selection programmatically"""

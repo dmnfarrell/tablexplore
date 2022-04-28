@@ -1,3 +1,10 @@
+------
+0.6.0
+------
+
+* Improvements to pie plot
+* Try to always get numeric values for plotting
+
 -----
 0.5.0
 -----

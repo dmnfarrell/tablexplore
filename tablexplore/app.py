@@ -58,7 +58,7 @@ class Application(QMainWindow):
         self.main.setTabsClosable(True)
         self.main.tabCloseRequested.connect(lambda index: self.removeSheet(index))
         screen_resolution = QGuiApplication.primaryScreen().availableGeometry()
-        width, height = screen_resolution.width()*0.7, screen_resolution.height()*.7
+        width, height = int(screen_resolution.width()*0.7), int(screen_resolution.height()*.7)
         if screen_resolution.width()>1024:
             self.setGeometry(QtCore.QRect(200, 200, width, height))
         self.setMinimumSize(400,300)
@@ -444,7 +444,12 @@ class Application(QMainWindow):
             print ('does not appear to be a project file')
             return
         if os.path.isfile(filename):
-            data = pickle.load(gzip.GzipFile(filename, 'r'))
+            try:
+                data = pickle.load(gzip.GzipFile(filename, 'r'))
+            except Exception as e:
+                print ('Could not load pickle file')
+                msg = 'Could not load pickle file. Possibly this was saved with an older version of Python.'
+                dialogs.showMessage(self, msg)
         else:
             print ('no such file')
             self.quit()

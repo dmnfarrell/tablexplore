@@ -322,7 +322,7 @@ class PlotViewer(QWidget):
         if len(self.generalopts.kwds) == 0:
             return
 
-        self.generalopts.increment('linewidth',val)
+        self.generalopts.increment('linewidth',val/5)
         self.generalopts.increment('ms',val)
         self.labelopts.increment('fontsize',val)
         self.replot()
@@ -838,11 +838,12 @@ class PlotViewer(QWidget):
                 lbls=None
             else:
                 lbls = list(data.index)
-
-            axs = data.plot(ax=ax,kind='pie', labels=lbls, layout=layout,
-                            autopct='%1.1f%%', subplots=True, **kwargs)
+            kwargs['subplots'] = True
+            kwargs['legend'] = False
+            axs = data.plot(ax=ax, kind='pie', labels=lbls, layout=layout,
+                            autopct='%1.1f%%', **kwargs)
             if lbls == None:
-                axs[0].legend(labels=data.index, loc='best')
+                self.fig.legend(labels=data.index)
         elif kind == 'venn':
             axs = self.venn(data, ax, **kwargs)
         elif kind == 'radviz':
@@ -1361,7 +1362,7 @@ def addFigure(parent, figure=None, resize_callback=None):
     """Create a tk figure and canvas in the parent frame"""
 
     if figure == None:
-        figure = Figure(figsize=(8,4), dpi=100, facecolor='white')
+        figure = Figure(figsize=(8,4), dpi=120, facecolor='white')
 
     canvas = FigureCanvas(figure=figure)
     canvas.setSizePolicy( QSizePolicy.Expanding,
@@ -1419,6 +1420,8 @@ class BaseOptions(object):
         """Increase the value of a widget"""
 
         new = self.kwds[key]+inc
+        if new == 0:
+            return
         self.setWidgetValue(key, new)
         return
 
@@ -1477,7 +1480,7 @@ class MPLBaseOptions(BaseOptions):
                 #'loc':{'type':'combobox','default':'best','items':self.legendlocs,'label':'legend loc'},
                 'kind':{'type':'combobox','default':'line','items':self.kinds,'label':'plot type'},
                 'stacked':{'type':'checkbox','default':0,'label':'stacked'},
-                'linewidth':{'type':'spinbox','default':2,'range':(0,15),'interval':1,'label':'line width'},
+                'linewidth':{'type':'doublespinbox','default':2.0,'range':(0,15),'interval':.5,'label':'line width'},
                 'alpha':{'type':'spinbox','default':9,'range':(1,10),'interval':1,'label':'alpha'},
                 #'subplots':{'type':'checkbox','default':0,'label':'multiple subplots'},
                 'axes_layout':{'type':'combobox','default':'single','items':layouts,'label':'axes layout'},

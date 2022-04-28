@@ -46,6 +46,8 @@ def getName(parent, current='', txt='Enter value'):
         return name
 
 def showMessage(parent, msg, type='error'):
+    """Show an error message"""
+    
     QMessageBox.information(parent, type, msg)
     return
 
@@ -145,13 +147,21 @@ def dialogFromOptions(parent, opts, sections=None,
                 w.setTickPosition(QSlider.TicksBelow)
                 w.setValue(val)
             elif t == 'spinbox':
-                if type(val) is float:
-                    w = QDoubleSpinBox()
-                else:
-                    w = QSpinBox()
+                w = QSpinBox()
                 w.setValue(val)
                 if 'range' in opt:
-                    min,max=opt['range']
+                    min, max = opt['range']
+                    min = int(min)
+                    max = int(max)
+                    w.setRange(min,max)
+                    w.setMinimum(min)
+                if 'interval' in opt:
+                    w.setSingleStep(opt['interval'])
+            elif t == 'doublespinbox':
+                w = QDoubleSpinBox()
+                w.setValue(val)
+                if 'range' in opt:
+                    min, max = opt['range']
                     w.setRange(min,max)
                     w.setMinimum(min)
                 if 'interval' in opt:
@@ -229,7 +239,9 @@ def setWidgetValues(widgets, values):
                 w.setChecked(val)
             elif type(w) is QSlider:
                 w.setValue(val)
-            elif type(w) in [QSpinBox,QDoubleSpinBox]:
+            elif type(w) == QSpinBox:
+                w.setValue(int(val))
+            elif type(w) == QDoubleSpinBox:
                 w.setValue(val)
     return
 
