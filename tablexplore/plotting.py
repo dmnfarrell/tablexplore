@@ -321,7 +321,7 @@ class PlotViewer(QWidget):
 
         if len(self.generalopts.kwds) == 0:
             return
-    
+
         self.generalopts.increment('linewidth',val/5)
         self.generalopts.increment('ms',val)
         self.labelopts.increment('fontsize',val)
@@ -499,8 +499,8 @@ class PlotViewer(QWidget):
                     return
                 size = len(g)
                 if nrows == 0:
-                    nrows = round(np.sqrt(size),0)
-                    ncols = np.ceil(size/nrows)
+                    nrows = int(np.sqrt(size),0)
+                    ncols = int(np.ceil(size/nrows))
 
                 self.ax.set_visible(False)
                 kwargs['subplots'] = None

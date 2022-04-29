@@ -579,6 +579,7 @@ class Application(QMainWindow):
         meta['table'] = util.getAttributes(table)
         meta['table']['selectedcols'] = table.getSelectedColumns()
         meta['table']['selectedrows'] = table.getSelectedRows()
+        meta['table']['scrollposition'] = table.getScrollPosition()
         meta['table']['filtered'] = False
         meta['table']['column_widths'] = table.getColumnWidths()
         meta['plotviewer'] = util.getAttributes(pf)
@@ -626,6 +627,7 @@ class Application(QMainWindow):
         util.setAttributes(table.table, tablesettings)
         #print (tablesettings)
         if 'column_widths' in tablesettings:
+            #print (len(tablesettings['column_widths']))
             table.table.setColumnWidths(tablesettings['column_widths'])
         table.refresh()
         #load plotviewer
@@ -644,9 +646,12 @@ class Application(QMainWindow):
         #redraw selections
         if 'selectedrows' in tablesettings:
             rows = tablesettings['selectedrows']
-            cols = tablesettings['selectedcols']            
+            cols = tablesettings['selectedcols']
             table.table.setSelected(rows, cols)
-
+        #move to scroll position
+        if 'scrollposition' in tablesettings:
+            row,col = tablesettings['scrollposition']
+            table.table.setScrollPosition(row, col)
         return
 
     def importFile(self, filename=None):

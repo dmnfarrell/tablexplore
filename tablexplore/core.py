@@ -346,7 +346,7 @@ class DataFrameWidget(QWidget):
         self.table.storeCurrent()
         df = self.table.model.df
         new = pd.read_clipboard(sep='\t')
-        self.table.model.df = df.append(new)
+        self.table.model.df = pd.concat([df,new])
         self.refresh()
         return
 
@@ -1404,15 +1404,33 @@ class DataFrameTable(QTableView):
         return data
 
     def setSelected(self, rows, cols):
-        """Set selection programmatically"""
+        """
+        Set selection programmatically from a list of rows and cols.
+        https://doc.qt.io/archives/qtjambi-4.5.2_01/com/trolltech/qt/model-view-selection.html
+        """
 
-        selection = QtCore.QItemSelection()
-        for i in rows:
-            for j in cols:
-                model_index = self.model.index(i, j)
-                selection.select(model_index, model_index)
+        #print (rows,cols)
+        if len(rows)==0 or len(cols)==0:
+            return
+        topleft = self.model.index(rows[0], cols[0])
+        bottomright = self.model.index(rows[-1], cols[-1])
+        selection = QtCore.QItemSelection(topleft, bottomright)
         mode = QtCore.QItemSelectionModel.Select
         self.selectionModel().select(selection, mode)
+        return
+
+    def getScrollPosition(self):
+        """Get current row/col position"""
+
+        hb = self.horizontalScrollBar()
+        vb = self.verticalScrollBar()
+        return vb.value(),hb.value()
+
+    def setScrollPosition(self, row, col):
+        """Move to row/col position"""
+
+        idx = self.model.index(row, col)
+        self.scrollTo(idx)
         return
 
     def handleDoubleClick(self, item):
@@ -1429,7 +1447,7 @@ class DataFrameTable(QTableView):
         return
 
     def selectColumn(self, event):
-        print (self.model.df)        
+        print (self.model.df)
 
     def sort(self, idx, ascending=True):
         """Sort by selected columns"""
@@ -1789,7 +1807,10 @@ class DataFrameTable(QTableView):
     def setColumnWidths(self, widths):
 
         for col in range(len(self.model.df.columns)):
-            self.setColumnWidth(col,widths[col])
+            try:
+                self.setColumnWidth(col,widths[col])
+            except:
+                pass
 
     def getColumnWidths(self):
 
@@ -1799,6 +1820,9 @@ class DataFrameTable(QTableView):
         return widths
 
 class DataFrameModel(QtCore.QAbstractTableModel):
+    """
+    DataFrame Model class.
+    """
     def __init__(self, dataframe=None, *args):
         super(DataFrameModel, self).__init__()
         if dataframe is None:
@@ -1853,10 +1877,10 @@ class DataFrameModel(QtCore.QAbstractTableModel):
             value = self.df.iloc[i, j]
             #print (coltype)
             #print (value,type(value))
-            if np.isnan(value):
-                return ''
             if type(value) is str:
                 return value
+            if np.isnan(value):
+                return ''
             if type(value) in [float,np.float64]:
                 try:
                     return float(value)
