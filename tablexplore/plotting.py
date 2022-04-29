@@ -57,7 +57,7 @@ valid_kwds = {'line': ['alpha', 'colormap', 'grid', 'legend', 'linestyle','ms',
                     'legend', 'colormap','sharex','sharey', 'logx', 'logy', 'use_index',
                     'clrcol', 'cscale','colorbar','bw','labelcol','pointsizes'],
             'pie': ['colormap','legend'],
-            'hexbin': ['alpha', 'colormap', 'grid', 'linewidth','subplots'],
+            'hexbin': ['alpha', 'colormap', 'grid', 'linewidth','subplots','bins'],
             'bootstrap': ['grid'],
             'bar': ['alpha', 'colormap', 'grid', 'legend', 'linewidth', 'subplots',
                     'sharex','sharey', 'logy', 'stacked', 'rot', 'kind', 'edgecolor'],
@@ -499,7 +499,7 @@ class PlotViewer(QWidget):
                     return
                 size = len(g)
                 if nrows == 0:
-                    nrows = int(np.sqrt(size),0)
+                    nrows = int(np.sqrt(size))
                     ncols = int(np.ceil(size/nrows))
 
                 self.ax.set_visible(False)
@@ -575,6 +575,8 @@ class PlotViewer(QWidget):
             #special case of twin axes
             if axes_layout == 'twin axes':
                 ax = self.fig.add_subplot(111)
+                ax.get_xaxis().set_ticks([])
+                ax.get_yaxis().set_ticks([])
                 if kind != 'line':
                     self.showWarning('twin axes only supported for line plots')
                 lw = kwds['linewidth']
@@ -582,12 +584,14 @@ class PlotViewer(QWidget):
                 marker = kwds['marker']
                 ms = kwds['ms']
                 ls = kwds['linestyle']
+
                 if useindex == False:
                     data = data.set_index(data.columns[0])
                 cols = list(data.columns)
                 twinaxes = [ax]
-                for i in range(len(cols)-1):
-                    twinaxes.append(ax.twinx())
+                if len(cols)>1:
+                    for i in range(len(cols)-1):
+                        twinaxes.append(ax.twinx())
 
                 styles = []
                 cmap = plt.cm.get_cmap(kwds['colormap'])
@@ -604,6 +608,8 @@ class PlotViewer(QWidget):
                         cax.spines["right"].set_position(("axes", 1+i/20))
                     cax.set_ylabel(col)
                     handles.append(cax.get_lines()[0])
+                    if i>1:
+                        cax.get_xaxis().set_ticks([])
                     i+=1
 
                 ax.legend(handles, cols, loc='best')
@@ -816,7 +822,8 @@ class PlotViewer(QWidget):
         elif kind == 'hexbin':
             x = cols[0]
             y = cols[1]
-            axs = data.plot(x,y,ax=ax,kind='hexbin',gridsize=20,**kwargs)
+            bins = int(kwargs['bins'])
+            axs = data.plot(x,y,ax=ax,kind='hexbin',gridsize=bins,**kwargs)
         elif kind == 'contour':
             xi,yi,zi = self.contourData(data)
             cs = ax.contour(xi,yi,zi,15,linewidths=.5,colors='k')

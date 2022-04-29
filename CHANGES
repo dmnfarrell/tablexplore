@@ -2,7 +2,7 @@
 0.5.0
 -----
 
-* Now saves table selections
+* Now saves table selections, scroll position
 * Improvements to pie plot
 * Try to always get numeric values for plotting
 * scratchpad stores plots, tables, text

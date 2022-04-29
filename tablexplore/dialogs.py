@@ -47,7 +47,7 @@ def getName(parent, current='', txt='Enter value'):
 
 def showMessage(parent, msg, type='error'):
     """Show an error message"""
-    
+
     QMessageBox.information(parent, type, msg)
     return
 
@@ -547,10 +547,9 @@ class ImportDialog(QDialog):
         for k in self.values:
             if self.values[k] == '':
                 self.values[k] = None
-
         try:
-            f = pd.read_csv(self.filename, chunksize=400, error_bad_lines=False,
-                        warn_bad_lines=False, date_parser=dateparse, **self.values)
+            f = pd.read_csv(self.filename, chunksize=400, on_bad_lines='skip',
+                            date_parser=dateparse, **self.values)
         except Exception as e:
             print ('read csv error')
             print (e)
