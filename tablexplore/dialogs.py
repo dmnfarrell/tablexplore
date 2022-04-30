@@ -75,6 +75,10 @@ def dialogFromOptions(parent, opts, sections=None,
         QPlainTextEdit {
             max-height: 80px;
         }
+        QComboBox {
+            combobox-popup: 0;
+            max-height: 30px;
+        }
         '''
 
     if sections == None:
@@ -122,6 +126,8 @@ def dialogFromOptions(parent, opts, sections=None,
                 if 'width' in opt:
                     w.setMinimumWidth(opt['width'])
                     w.resize(opt['width'], 20)
+                #w.view().setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+                w.setMaxVisibleItems(12)
             elif t == 'list':
                 w = QListWidget()
                 w.setSelectionMode(QAbstractItemView.MultiSelection)

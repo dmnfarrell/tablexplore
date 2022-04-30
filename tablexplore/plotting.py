@@ -213,6 +213,8 @@ class PlotViewer(QWidget):
             QComboBox {
                 max-width: 90px;
                 font-size: 12px;
+                combobox-popup: 0;
+                max-height: 30px;
             }
             QSlider {
                 max-width: 90px;
@@ -223,6 +225,7 @@ class PlotViewer(QWidget):
             '''
 
         tab = QTabWidget(parent)
+        tab.setStyleSheet('QTabBar {font-size: 10pt;}')
         w = QWidget(tab)
         idx = tab.addTab(w, 'general')
         self.generalopts = MPLBaseOptions(parent=self)
@@ -258,45 +261,6 @@ class PlotViewer(QWidget):
         l=QVBoxLayout(w)
         l.addWidget(dialog)'''
         return tab
-
-    '''def createButtons(self, parent):
-        """Create button widgets"""
-
-        buttons = {'Plot': {'action':self.plot,'icon':'plot'},
-                   'Clear': {'action':self.clear,'icon':'view-restore'},
-                   'Zoom Out': {'action': lambda: self.zoom(zoomin=False),
-                                'icon':'zoom-out','label':''},
-                   'Zoom In': {'action':lambda: self.zoom(zoomin=True),
-                                'icon':'zoom-in','label':''},
-                   'Save': {'action':self.savePlot,'icon':'document-save'}
-            }
-        w=80; h=35
-        bw = self.button_widget = QWidget(parent)
-        bw.setMaximumHeight(100)
-        box = QHBoxLayout(bw)
-        box.setContentsMargins(0,0,0,0)
-        for b in buttons:
-            btn = QPushButton(b)
-            btn.clicked.connect(buttons[b]['action'])
-            btn.setMinimumSize(w,h)
-            if 'icon' in buttons[b]:
-                icon = buttons[b]['icon']
-                iconfile = os.path.join(iconpath,icon+'.png')
-                if os.path.exists(iconfile):
-                    btn.setIcon(QIcon(iconfile))
-                else:
-                    iconw = QIcon.fromTheme(icon)
-                    btn.setIcon(QIcon(iconw))
-            if 'label' in buttons[b]:
-                btn.setText(buttons[b]['label'])
-            box.addWidget(btn)
-
-        self.globalopts = GlobalOptions(parent=self)
-        dialog = self.globalopts.showDialog(bw, wrap=3)
-        dialog.resize(200,200)
-        box.addWidget(dialog)
-        bw.setMaximumHeight(60)
-        return bw'''
 
     def simple_plot(self, df):
         """test plot"""
