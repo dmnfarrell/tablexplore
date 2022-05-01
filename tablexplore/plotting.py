@@ -84,19 +84,6 @@ valid_kwds = {'line': ['alpha', 'colormap', 'grid', 'legend', 'linestyle','ms',
             'radviz': ['linewidth','marker','edgecolor','s','colormap','alpha']
             }
 
-style = '''
-    QLabel {
-        font-size: 10px;
-    }
-    QWidget {
-        max-width: 250px;
-        min-width: 60px;
-        font-size: 14px;
-    }
-    QPlainTextEdit {
-        max-height: 80px;
-    }
-'''
 
 class PlotWidget(FigureCanvas):
     def __init__(self, parent=None, figure=None, dpi=100, hold=False):
@@ -168,24 +155,12 @@ class PlotViewer(QWidget):
         self.left = left = QWidget(self.main)
         hbox.addWidget(left)
 
-        #bw = self.createButtons(left)
-        #vbox.addWidget(bw)
         self.vbox = vbox = QVBoxLayout(left)
         self.addPlotWidget()
 
-        self.dock = dock = QDockWidget('options',self)
-        dock.setMaximumWidth(250)
-        dock.setMinimumWidth(240)
-        dock.setFeatures(QDockWidget.DockWidgetClosable)
-        scrollarea = QScrollArea(dock)
-        scrollarea.setWidgetResizable(True)
-        dock.setWidget(scrollarea)
-        toolsarea = QWidget()
-        toolsarea.setMinimumSize(200,900)
-        scrollarea.setWidget(toolsarea)
+        self.dock = dock = QWidget(self)
         hbox.addWidget(dock)
-        ow = self.createDialogs(toolsarea)
-        #dock.setWidget(ow)
+        #ow = self.createDialogs(dock)
         return
 
     def setFigure(self, figure):
@@ -200,67 +175,30 @@ class PlotViewer(QWidget):
     def createDialogs(self, parent):
         """Create widgets"""
 
-        style = '''
-            QLabel {
-                font-size: 12px;
-                max-width: 90px;
-            }
-            QWidget {
-                max-width: 250px;
-                min-width: 35px;
-                font-size: 12px;
-            }
-            QComboBox {
-                max-width: 90px;
-                font-size: 12px;
-                combobox-popup: 0;
-                max-height: 30px;
-            }
-            QSlider {
-                max-width: 90px;
-            }
-            QSpinBox {
-                max-width: 90px;
-            }
-            '''
-
-        tab = QTabWidget(parent)
-        tab.setStyleSheet('QTabBar {font-size: 10pt;}')
-        w = QWidget(tab)
-        idx = tab.addTab(w, 'general')
+        #tab = QTabWidget(parent)
+        #tab.setStyleSheet('QTabBar {font-size: 10pt;}')
+        vbox = QVBoxLayout(parent)
+        w = QDockWidget('general',parent)
+        vbox.addWidget(w)
         self.generalopts = MPLBaseOptions(parent=self)
         dialog = self.generalopts.showDialog(w, wrap=2, section_wrap=1, style=style)
         dialog.resize(200,200)
-        #self.generaldialog = dialog
-        l=QVBoxLayout(w)
-        l.addWidget(dialog)
+        w.setWidget(dialog)
 
-        w = QWidget(tab)
+        w = QDockWidget('labels',parent)
         w.setStyleSheet(style)
-        idx = tab.addTab(w, 'labels')
         self.labelopts = AnnotationOptions(parent=self)
         dialog = self.labelopts.showDialog(w, wrap=2, section_wrap=1, style=style)
         dialog.resize(200,200)
-        l=QVBoxLayout(w)
-        l.addWidget(dialog)
+        w.setWidget(dialog)
 
-        w = QWidget(tab)
-        idx = tab.addTab(w, 'axes')
+        w = QDockWidget('axes',parent)
         self.axesopts = AxesOptions(parent=self)
         dialog = self.axesopts.showDialog(w, wrap=2, section_wrap=1, style=style)
         dialog.resize(200,200)
-        l=QVBoxLayout(w)
-        l.addWidget(dialog)
+        w.setWidget(dialog)
 
-        '''w = QWidget(tab)
-        idx = tab.addTab(w, 'series')
-        self.seriesopts = SeriesOptions(parent=self)
-        self.seriesopts.createWidgets(self.table.model.df)
-        dialog = self.seriesopts.showDialog(w, wrap=2, section_wrap=1, style=style)
-        dialog.resize(200,200)
-        l=QVBoxLayout(w)
-        l.addWidget(dialog)'''
-        return tab
+        return
 
     def simple_plot(self, df):
         """test plot"""
@@ -334,12 +272,10 @@ class PlotViewer(QWidget):
         """Apply the current plotter/options"""
 
         self.generalopts.applyOptions()
-        #self.globalopts.applyOptions()
         #self.mplopts3d.applyOptions()
         self.labelopts.applyOptions()
         self.axesopts.applyOptions()
         self.style = self.generalopts.kwds['style']
-        #mpl.rcParams['savefig.dpi'] = self.generalopts.kwds['dpi']
         return
 
     def updateData(self):
@@ -1411,13 +1347,13 @@ class MPLBaseOptions(BaseOptions):
         """Setup variables"""
 
         self.parent = parent
-        if self.parent is not None:
+        '''if self.parent is not None:
             df = self.parent.table.model.df
             datacols = list(df.columns)
             datacols.insert(0,'')
         else:
-            datacols=[]
-
+            datacols=[]'''
+        datacols=[]
         layouts = ['single','multiple','twin axes']
         scales = ['linear','log']
         style_list = ['default', 'classic', 'fivethirtyeight',
@@ -1483,7 +1419,6 @@ class MPLBaseOptions(BaseOptions):
             self.widgets[name].clear()
             self.widgets[name].addItems(cols)
         return
-
 
 class AnnotationOptions(BaseOptions):
     """This class also provides custom tools for adding items to the plot"""

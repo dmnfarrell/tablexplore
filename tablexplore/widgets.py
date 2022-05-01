@@ -31,6 +31,51 @@ from . import util, core, plotting, dialogs
 module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
 
+style = '''
+    QLabel {
+        font-size: 10px;
+    }
+    QWidget {
+        max-width: 250px;
+        min-width: 60px;
+        font-size: 14px;
+    }
+    QPlainTextEdit {
+        max-height: 80px;
+    }
+'''
+
+class PlotDocker(QWidget):
+    def __init__(self, parent=None):
+        super(PlotDocker, self).__init__(parent)
+        self.createDialogs()
+
+    def createDialogs(self):
+        """Create widgets"""
+
+        parent = self
+        vbox = QVBoxLayout(parent)
+        w = QDockWidget('general',parent)
+        vbox.addWidget(w)
+        self.generalopts = plotting.MPLBaseOptions(parent=self)
+        dialog = self.generalopts.showDialog(w, wrap=2, section_wrap=1, style=style)
+        dialog.resize(200,200)
+        w.setWidget(dialog)
+
+        '''w = QDockWidget('labels',parent)
+        w.setStyleSheet(style)
+        self.labelopts = plotting.AnnotationOptions(parent=self)
+        dialog = self.labelopts.showDialog(w, wrap=2, section_wrap=1, style=style)
+        dialog.resize(200,200)
+        w.setWidget(dialog)
+
+        w = QDockWidget('axes',parent)
+        self.axesopts = plotting.AxesOptions(parent=self)
+        dialog = self.axesopts.showDialog(w, wrap=2, section_wrap=1, style=style)
+        dialog.resize(200,200)
+        w.setWidget(dialog)'''
+        return
+
 class ScratchPad(QWidget):
     """Temporary storage widget for plots and other items.
     Currently supports storing text, mpl figures and dataframes"""

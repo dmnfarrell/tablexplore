@@ -29,7 +29,7 @@ from .qt import *
 import pandas as pd
 from .core import DataFrameModel, DataFrameTable, DataFrameWidget
 from .plotting import PlotViewer
-from . import util, data, core, dialogs, widgets
+from . import util, data, core, dialogs, widgets, plotting
 
 homepath = os.path.expanduser("~")
 module_path = os.path.dirname(os.path.abspath(__file__))
@@ -54,9 +54,14 @@ class Application(QMainWindow):
         self.setWindowTitle("Tablexplore")
         self.setWindowIcon(QIcon(os.path.join(module_path,'logo.svg')))
         self.createMenu()
-        self.main = QTabWidget(self)
-        self.main.setTabsClosable(True)
-        self.main.tabCloseRequested.connect(lambda index: self.removeSheet(index))
+        #self.main = QMdiArea(self)
+        self.main = QWidget(self)
+        self.tabs = QTabWidget(self.main)
+        layout = QHBoxLayout(self.main)
+        layout.addWidget(self.tabs)
+        self.tabs.setTabsClosable(True)
+        self.tabs.tabCloseRequested.connect(lambda index: self.removeSheet(index))
+        self.tabs.currentChanged.connect(lambda index: self.tabSelected(index))
         screen_resolution = QGuiApplication.primaryScreen().availableGeometry()
         width, height = int(screen_resolution.width()*0.7), int(screen_resolution.height()*.7)
         if screen_resolution.width()>1024:
@@ -65,6 +70,26 @@ class Application(QMainWindow):
 
         self.main.setFocus()
         self.setCentralWidget(self.main)
+
+        #add plot docker
+        #dock = widgets.PlotDocker(self.main)
+        #layout.addWidget(dock)
+
+        style = '''
+            QLabel {
+                font-size: 12px;
+            }
+            QWidget {
+                max-width: 240px;
+                min-width: 60px;
+                font-size: 12px;
+            }
+            QPlainTextEdit {
+                max-height: 80px;
+            }
+        '''
+
+        self.addDockWidgets()
         self.statusbar = QStatusBar()
         self.setStatusBar(self.statusbar)
         self.createToolBar()
@@ -90,6 +115,78 @@ class Application(QMainWindow):
             self.newProject()
         self.threadpool = QtCore.QThreadPool()
         self.discoverPlugins()
+        return
+
+    def addDockWidgets(self):
+        """Add plot dialogs to dock"""
+
+        dockstyle = '''
+            QDockWidget {
+                max-width:240px;
+            }
+            QDockWidget::title {
+                background-color: lightblue;
+            }
+            QScrollBar:vertical {
+                 width: 15px;
+                 margin: 1px 0 1px 0;
+             }
+            QScrollBar::handle:vertical {
+                 min-height: 20px;
+             }
+        '''
+        style = '''
+            QWidget {
+                font-size: 12px;
+                min-width: 60px;
+                max-width: 240px;
+            }
+            QPlainTextEdit {
+                max-height: 80px;
+                min-width: 100px;
+            }
+
+        '''
+
+        w = QDockWidget('general')
+        w.setStyleSheet(dockstyle)
+        area = QScrollArea()
+        area.setWidgetResizable(True)
+        w.setWidget(area)
+        self.generalopts = plotting.MPLBaseOptions(parent=area)
+        dialog = self.generalopts.showDialog(area, wrap=2, section_wrap=1, style=style)
+        area.setWidget(dialog)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, w)
+
+        w = QDockWidget('labels')
+        w.setStyleSheet(dockstyle)
+        area = QScrollArea()
+        area.setWidgetResizable(True)
+        w.setWidget(area)
+        self.labelopts = plotting.AnnotationOptions(parent=area)
+        dialog = self.labelopts.showDialog(area, wrap=2, section_wrap=1, style=style)
+        area.setWidget(dialog)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, w)
+
+        w = QDockWidget('axes')
+        w.setStyleSheet(dockstyle)
+        area = QScrollArea()
+        area.setWidgetResizable(True)
+        w.setWidget(area)
+        self.axesopts = plotting.AxesOptions(parent=area)
+        dialog = self.axesopts.showDialog(area, wrap=2, section_wrap=1, style=style)
+        area.setWidget(dialog)
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, w)
+        return
+
+    def tabSelected(self, index):
+        """Re-load plot widgets for current tab"""
+
+        name = self.tabs.tabText(index)
+        table = self.sheets[name]
+        print (table.pf)
+        #get plot options and update widgets
+        
         return
 
     def loadSettings(self):
@@ -393,7 +490,7 @@ class Application(QMainWindow):
         if not type(data) is dict:
             data = None
         #clear tabs
-        self.main.clear()
+        self.tabs.clear()
         self.sheets = OrderedDict()
         self.filename = None
         self.projopen = True
@@ -413,7 +510,7 @@ class Application(QMainWindow):
                 self.scratch_items = data['scratch_items']
             #set current sheet
             if 'meta' in data:
-                self.main.setCurrentIndex(data['meta']['currentsheet'])
+                self.tabs.setCurrentIndex(data['meta']['currentsheet'])
         else:
             self.addSheet('dataset1')
         return
@@ -556,7 +653,7 @@ class Application(QMainWindow):
 
         data['scratch_items'] = self.scratch_items
         data['meta'] = {}
-        data['meta']['currentsheet'] = self.main.currentIndex()
+        data['meta']['currentsheet'] = self.tabs.currentIndex()
         file = gzip.GzipFile(filename, 'w')
         pickle.dump(data, file)
         return
@@ -735,9 +832,9 @@ class Application(QMainWindow):
             import random
             name = 'dataset'+str(random.randint(i,100))
 
-        sheet = QSplitter(self.main)
+        sheet = QSplitter(self.tabs)
         sheet.setStyleSheet(splittercss)
-        idx = self.main.addTab(sheet, name)
+        idx = self.tabs.addTab(sheet, name)
         #provide reference to self to dataframewidget
         dfw = DataFrameWidget(sheet, dataframe=df, app=self,
                                 font=core.FONT, fontsize=core.FONTSIZE,
@@ -748,7 +845,8 @@ class Application(QMainWindow):
         pf = dfw.createPlotViewer(sheet)
         sheet.addWidget(pf)
         sheet.setSizes((500,1000))
-        pf.generalopts.setWidgetValue('style', core.PLOTSTYLE)
+
+        #pf.generalopts.setWidgetValue('style', core.PLOTSTYLE)
         #pf.applyPlotoptions()
         #reload attributes of table and plotter if present
         if meta != None:
@@ -757,7 +855,7 @@ class Application(QMainWindow):
                 pf.hide()
             if 'showplotter' in meta and meta['showplotter'] == False:
                 pf.hide()
-        self.main.setCurrentIndex(idx)
+        self.tabs.setCurrentIndex(idx)
         return
 
     def removeSheet(self, index, ask=True):
@@ -768,16 +866,16 @@ class Application(QMainWindow):
                                  'Are you sure?', QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.No:
                 return False
-        name = self.main.tabText(index)
+        name = self.tabs.tabText(index)
         del self.sheets[name]
-        self.main.removeTab(index)
+        self.tabs.removeTab(index)
         return
 
     def renameSheet(self):
         """Rename the current sheet"""
 
-        index = self.main.currentIndex()
-        name = self.main.tabText(index)
+        index = self.tabs.currentIndex()
+        name = self.tabs.tabText(index)
         new, ok = QInputDialog.getText(self, 'New name', 'Name:',
                     QLineEdit.Normal, name)
         if ok:
@@ -787,14 +885,14 @@ class Application(QMainWindow):
                 return
             self.sheets[new] = self.sheets[name]
             del self.sheets[name]
-            self.main.setTabText(index, new)
+            self.tabs.setTabText(index, new)
         return
 
     def copySheet(self):
         """Copy sheet"""
 
-        index = self.main.currentIndex()
-        name = self.main.tabText(index)
+        index = self.tabs.currentIndex()
+        name = self.tabs.tabText(index)
         df = self.sheets[name].table.model.df
         new, ok = QInputDialog.getText(self, 'New name', 'Name:',
                     QLineEdit.Normal, name+'_copy')
@@ -857,8 +955,8 @@ class Application(QMainWindow):
     def showPlotFrame(self):
         """Show/hide the plot frame"""
 
-        index = self.main.currentIndex()
-        name = self.main.tabText(index)
+        index = self.tabs.currentIndex()
+        name = self.tabs.tabText(index)
         pf = self.sheets[name].pf
         if pf.isHidden():
             pf.show()
@@ -948,8 +1046,8 @@ class Application(QMainWindow):
     def getCurrentTable(self):
         """Return the currently used table"""
 
-        idx = self.main.currentIndex()
-        name = self.main.tabText(idx)
+        idx = self.tabs.currentIndex()
+        name = self.tabs.tabText(idx)
         table = self.sheets[name]
         return table
 
@@ -1025,8 +1123,8 @@ class Application(QMainWindow):
         """Send table selection to scratchpad"""
 
         w = self.getCurrentTable()
-        index = self.main.currentIndex()
-        name = self.main.tabText(index)
+        index = self.tabs.currentIndex()
+        name = self.tabs.tabText(index)
         df = w.getSelectedDataFrame()
         t = time.strftime("%H:%M:%S")
         label = name+'-'+t
@@ -1039,8 +1137,8 @@ class Application(QMainWindow):
         """Cache the current plot so it can be viewed later"""
 
         w = self.getCurrentTable()
-        index = self.main.currentIndex()
-        name = self.main.tabText(index)
+        index = self.tabs.currentIndex()
+        name = self.tabs.tabText(index)
         #get the current figure and make a copy of it by using pickle
         fig = w.pf.fig
         p = pickle.dumps(fig)
@@ -1087,8 +1185,8 @@ class Application(QMainWindow):
     def loadPlugin(self, plugin):
         """Instantiate the plugin and call it's main method"""
 
-        index = self.main.currentIndex()
-        name = self.main.tabText(index)
+        index = self.tabs.currentIndex()
+        name = self.tabs.tabText(index)
         tablew = self.sheets[name]
         if not hasattr(tablew, 'openplugins'):
             tablew.openplugins = {}
