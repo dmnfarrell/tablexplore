@@ -53,27 +53,6 @@ class PlotDocker(QWidget):
     def createDialogs(self):
         """Create widgets"""
 
-        parent = self
-        vbox = QVBoxLayout(parent)
-        w = QDockWidget('general',parent)
-        vbox.addWidget(w)
-        self.generalopts = plotting.MPLBaseOptions(parent=self)
-        dialog = self.generalopts.showDialog(w, wrap=2, section_wrap=1, style=style)
-        dialog.resize(200,200)
-        w.setWidget(dialog)
-
-        '''w = QDockWidget('labels',parent)
-        w.setStyleSheet(style)
-        self.labelopts = plotting.AnnotationOptions(parent=self)
-        dialog = self.labelopts.showDialog(w, wrap=2, section_wrap=1, style=style)
-        dialog.resize(200,200)
-        w.setWidget(dialog)
-
-        w = QDockWidget('axes',parent)
-        self.axesopts = plotting.AxesOptions(parent=self)
-        dialog = self.axesopts.showDialog(w, wrap=2, section_wrap=1, style=style)
-        dialog.resize(200,200)
-        w.setWidget(dialog)'''
         return
 
 class ScratchPad(QWidget):

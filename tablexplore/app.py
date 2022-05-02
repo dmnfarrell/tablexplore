@@ -148,35 +148,30 @@ class Application(QMainWindow):
 
         '''
 
-        w = QDockWidget('general')
-        w.setStyleSheet(dockstyle)
-        area = QScrollArea()
-        area.setWidgetResizable(True)
-        w.setWidget(area)
-        self.generalopts = plotting.MPLBaseOptions(parent=area)
-        dialog = self.generalopts.showDialog(area, wrap=2, section_wrap=1, style=style)
-        area.setWidget(dialog)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, w)
+        opts = plotting.defaultOptions()
 
-        w = QDockWidget('labels')
-        w.setStyleSheet(dockstyle)
-        area = QScrollArea()
-        area.setWidgetResizable(True)
-        w.setWidget(area)
-        self.labelopts = plotting.AnnotationOptions(parent=area)
-        dialog = self.labelopts.showDialog(area, wrap=2, section_wrap=1, style=style)
-        area.setWidget(dialog)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, w)
+        self.plotwidgets = {}
+        docks = []
+        for name in opts:
+            dock = QDockWidget(name)
+            dock.setStyleSheet(dockstyle)
+            area = QScrollArea()
+            area.setWidgetResizable(True)
+            dock.setWidget(area)
+            dialog, widgets = opts[name].showDialog(area, wrap=2, section_wrap=1,
+                                style=style)
+            area.setWidget(dialog)
+            self.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
+            #dock.setAllowedAreas(Qt.AllDockWidgetAreas)
+            self.plotwidgets[name] = widgets
+            docks.append(dock)
 
-        w = QDockWidget('axes')
-        w.setStyleSheet(dockstyle)
-        area = QScrollArea()
-        area.setWidgetResizable(True)
-        w.setWidget(area)
-        self.axesopts = plotting.AxesOptions(parent=area)
-        dialog = self.axesopts.showDialog(area, wrap=2, section_wrap=1, style=style)
-        area.setWidget(dialog)
-        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, w)
+        self.tabifyDockWidget(docks[2], docks[3])
+        docks[2].raise_()
+        return
+
+    def toggleDock(self, name):
+
         return
 
     def tabSelected(self, index):
@@ -184,9 +179,26 @@ class Application(QMainWindow):
 
         name = self.tabs.tabText(index)
         table = self.sheets[name]
-        print (table.pf)
+        #print (table.pf)
         #get plot options and update widgets
-        
+        self.updatePlotWidgets(table)
+        return
+
+    def updatePlotWidgets(self, table):
+
+        for key in self.plotwidgets:
+            opts = table.pf.opts[key]
+            opts.widgets = self.plotwidgets[key]
+            opts.updateWidgets()
+        return
+
+    def resetPlotWidgets(self):
+
+        defaults = plotting.defaultOptions()
+        for key in self.plotwidgets:
+            opts = defaults[key]
+            opts.widgets = self.plotwidgets[key]
+            opts.updateWidgets()
         return
 
     def loadSettings(self):
@@ -414,6 +426,13 @@ class Application(QMainWindow):
 
         self.plugin_menu = QMenu('Plugins', self)
         self.menuBar().addMenu(self.plugin_menu)
+
+        self.dock_menu = QMenu('Docks', self)
+        self.menuBar().addMenu(self.dock_menu)
+        #self.dock_menu.addAction(icon,'Show Scratchpad', lambda: self.showScratchpad())
+        for name in ['general','format','labels','axes']:
+            action = self.dock_menu.addAction(name, lambda: self.toggleDock(name))
+            action.setCheckable(True)
 
         self.help_menu = QMenu('&Help', self)
         self.menuBar().addSeparator()
@@ -664,13 +683,13 @@ class Application(QMainWindow):
 
         meta = {}
         pf = tablewidget.pf
-        pf.applyPlotoptions()
+        #pf.applyPlotoptions()
         table = tablewidget.table
         #save plot options
-        meta['generalopts'] = pf.generalopts.kwds
-        #meta['mplopts3d'] = pf.mplopts3d.kwds
-        meta['labelopts'] = pf.labelopts.kwds
-        meta['axesopts'] = pf.axesopts.kwds
+        meta['opts'] = {}
+        for name in pf.opts:
+            meta['opts'][name] = pf.opts[name].kwds
+            print (pf.opts[name].kwds)
 
         #save table selections
         meta['table'] = util.getAttributes(table)
@@ -703,22 +722,12 @@ class Application(QMainWindow):
         else:
             subtable = None
         #load plot options
-        opts = {'generalopts': table.pf.generalopts,
-                #'mplopts3d': table.pf.mplopts3d,
-                'labelopts': table.pf.labelopts,
-                'axesopts': table.pf.axesopts,
-                }
-        for m in opts:
-            if m in meta and meta[m] is not None:
-                #util.setAttributes(opts[m], meta[m])
-                #print (m,meta[m])
-                opts[m].updateWidgets(meta[m])
-                #check options loaded for missing values
-                #avoids breaking file saves when options changed
-                #defaults = plotting.get_defaults(m)
-                #for key in defaults:
-                #    if key not in opts[m].opts:
-                #        opts[m].opts[key] = defaults[key]
+        opts = table.pf.opts
+        for name in opts:
+            #if m in meta and meta[m] is not None:
+            #opts[name].updateWidgets(meta['opts'][name])
+            opts[name].kwds = meta['opts'][name]
+            self.updatePlotWidgets(table)
 
         #load table settings
         util.setAttributes(table.table, tablesettings)
