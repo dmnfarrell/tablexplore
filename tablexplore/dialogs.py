@@ -237,6 +237,7 @@ def setWidgetValues(widgets, values):
             if type(w) is QLineEdit:
                 w.setText(str(val))
             elif type(w) is QPlainTextEdit:
+                w.clear()
                 w.insertPlainText(str(val))
             elif type(w) is QComboBox or type(w) is QFontComboBox:
                 index = w.findText(val)

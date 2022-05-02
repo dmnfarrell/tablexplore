@@ -178,6 +178,8 @@ class Application(QMainWindow):
         """Re-load plot widgets for current tab"""
 
         name = self.tabs.tabText(index)
+        if not name in self.sheets:
+            return
         table = self.sheets[name]
         #print (table.pf)
         #get plot options and update widgets
@@ -185,14 +187,17 @@ class Application(QMainWindow):
         return
 
     def updatePlotWidgets(self, table):
+        """Update plot widgets from values in table"""
 
         for key in self.plotwidgets:
             opts = table.pf.opts[key]
+            #print (opts.kwds)
             opts.widgets = self.plotwidgets[key]
             opts.updateWidgets()
         return
 
     def resetPlotWidgets(self):
+        """Reset plot widgets from defaults in plot options objects"""
 
         defaults = plotting.defaultOptions()
         for key in self.plotwidgets:
@@ -689,7 +694,7 @@ class Application(QMainWindow):
         meta['opts'] = {}
         for name in pf.opts:
             meta['opts'][name] = pf.opts[name].kwds
-            print (pf.opts[name].kwds)
+            #print (pf.opts[name].kwds)
 
         #save table selections
         meta['table'] = util.getAttributes(table)
@@ -855,7 +860,6 @@ class Application(QMainWindow):
         sheet.addWidget(pf)
         sheet.setSizes((500,1000))
 
-        #pf.generalopts.setWidgetValue('style', core.PLOTSTYLE)
         #pf.applyPlotoptions()
         #reload attributes of table and plotter if present
         if meta != None:
@@ -864,6 +868,10 @@ class Application(QMainWindow):
                 pf.hide()
             if 'showplotter' in meta and meta['showplotter'] == False:
                 pf.hide()
+
+        self.updatePlotWidgets(dfw)
+        #set default style
+        pf.opts['format'].setWidgetValue('style', core.PLOTSTYLE)
         self.tabs.setCurrentIndex(idx)
         return
 

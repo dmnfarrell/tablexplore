@@ -138,10 +138,10 @@ class PlotViewer(QWidget):
         a = QAction(QIcon(iconfile), "Enlarge",  self)
         a.triggered.connect(lambda: self.zoom(zoomin=True))
         self.toolbar.addAction(a)
-        iconfile = os.path.join(iconpath,'preferences-system.png')
-        a = QAction(QIcon(iconfile), "Show/hide options",  self)
-        a.triggered.connect(self.showTools)
-        self.toolbar.addAction(a)
+        #iconfile = os.path.join(iconpath,'preferences-system.png')
+        #a = QAction(QIcon(iconfile), "Show/hide options",  self)
+        #a.triggered.connect(self.showTools)
+        #self.toolbar.addAction(a)
         vbox.addWidget(self.toolbar)
         vbox.addWidget(self.canvas)
         return
@@ -1272,7 +1272,17 @@ class BaseOptions(object):
         """Setup variables"""
 
         self.parent = parent
-        #df = self.parent.table.model.df
+        #opts is used to create the widgets
+        #kwds is the dictionary where we store all the key:value pairs
+        self.opts = {}
+        return
+
+    def setDefaults(self):
+        """Populate default kwds dict"""
+
+        self.kwds = {}
+        for o in self.opts:
+            self.kwds[o] = self.opts[o]['default']
         return
 
     def applyOptions(self):
@@ -1306,6 +1316,8 @@ class BaseOptions(object):
         return
 
     def updateWidgets(self, kwds=None):
+        """Update widgets from stored or supplied kwds"""
+
         if kwds==None:
             kwds = self.kwds
         for k in kwds:
@@ -1366,7 +1378,8 @@ class MPLBaseOptions(BaseOptions):
                 'pointsizes':{'type':'combobox','items':datacols,'label':'point sizes','default':''},
                  #'3D plot': {'type':'checkbox','default':0,'label':'3D plot'}
                 }
-        self.kwds = {}
+        #self.kwds = {}
+        self.setDefaults()
         return
 
     def update(self, df):
@@ -1420,7 +1433,7 @@ class FormatOptions(BaseOptions):
                 'alpha':{'type':'spinbox','default':9,'range':(1,10),'interval':1,'label':'alpha'},
                 'colormap':{'type':'combobox','default':'Spectral','items':colormaps},
                 }
-        self.kwds = {}
+        self.setDefaults()
         return
 
 class AnnotationOptions(BaseOptions):
@@ -1471,6 +1484,7 @@ class AnnotationOptions(BaseOptions):
         self.kwds = {}
         #used to store annotations
         self.textboxes = {}
+        self.setDefaults()
         return
 
     def applyOptions(self):
@@ -1515,7 +1529,7 @@ class AxesOptions(BaseOptions):
                             'precision':{'type':'entry','default':0},
                             'date format':{'type':'combobox','items':datefmts,'default':''}
                             }
-        self.kwds = {}
+        self.setDefaults()
         return
 
 class SeriesOptions(BaseOptions):
