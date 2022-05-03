@@ -51,7 +51,7 @@ colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
 markers = ['','o','.','^','v','>','<','s','+','x','p','d','h','*']
 linestyles = ['-','--','-.',':','steps']
 valid_kwds = {'line': ['alpha', 'colormap', 'grid', 'legend', 'linestyle','ms',
-                  'linewidth', 'marker', 'subplots', 'rot', 'logx', 'logy',
+                  'linewidth', 'marker', 'subplots', 'rotx', 'logx', 'logy',
                   'sharex','sharey', 'kind'],
             'scatter': ['alpha', 'grid', 'linewidth', 'marker', 'subplots', 'ms',
                     'legend', 'colormap','sharex','sharey', 'logx', 'logy', 'use_index',
@@ -60,20 +60,20 @@ valid_kwds = {'line': ['alpha', 'colormap', 'grid', 'legend', 'linestyle','ms',
             'hexbin': ['alpha', 'colormap', 'grid', 'linewidth','subplots','bins'],
             'bootstrap': ['grid'],
             'bar': ['alpha', 'colormap', 'grid', 'legend', 'linewidth', 'subplots',
-                    'sharex','sharey', 'logy', 'stacked', 'rot', 'kind', 'edgecolor'],
+                    'sharex','sharey', 'logy', 'stacked', 'rotx', 'kind', 'edgecolor'],
             'barh': ['alpha', 'colormap', 'grid', 'legend', 'linewidth', 'subplots',
-                    'sharex','sharey','stacked', 'rot', 'kind', 'logx', 'edgecolor'],
+                    'sharex','sharey','stacked', 'rotx', 'kind', 'logx', 'edgecolor'],
             'histogram': ['alpha', 'linewidth','grid','stacked','subplots','colormap',
-                     'sharex','sharey','rot','bins', 'logx', 'logy', 'legend', 'edgecolor'],
-            'heatmap': ['colormap','colorbar','rot', 'linewidth','linestyle',
-                        'subplots','rot','cscale','bw','alpha','sharex','sharey'],
+                     'sharex','sharey','rotx','bins', 'logx', 'logy', 'legend', 'edgecolor'],
+            'heatmap': ['colormap','colorbar','rotx', 'linewidth','linestyle',
+                        'subplots','rotx','cscale','bw','alpha','sharex','sharey'],
             'area': ['alpha','colormap','grid','linewidth','legend','stacked',
-                     'kind','rot','logx','sharex','sharey','subplots'],
+                     'kind','rotx','logx','sharex','sharey','subplots'],
             'density': ['alpha', 'colormap', 'grid', 'legend', 'linestyle',
-                         'linewidth', 'marker', 'subplots', 'rot', 'kind'],
-            'boxplot': ['rot','grid','logy','colormap','alpha','linewidth','legend',
+                         'linewidth', 'marker', 'subplots', 'rotx', 'kind'],
+            'boxplot': ['rotx','grid','logy','colormap','alpha','linewidth','legend',
                         'subplots','edgecolor','sharex','sharey'],
-            'violinplot': ['rot','grid','logy','colormap','alpha','linewidth','legend',
+            'violinplot': ['rotx','grid','logy','colormap','alpha','linewidth','legend',
                         'subplots','edgecolor','sharex','sharey'],
             'dotplot': ['marker','edgecolor','linewidth','colormap','alpha','legend',
                         'subplots','ms','bw','logy','sharex','sharey'],
@@ -578,10 +578,9 @@ class PlotViewer(QWidget):
             ax.set_ylabel(kwds['ylabel'])
         ax.xaxis.set_visible(kwds['showxlabels'])
         ax.yaxis.set_visible(kwds['showylabels'])
-        #try:
-        #    ax.tick_params(labelrotation=kwds['rot'])
-        #except:
-        #    logging.error("Exception occurred", exc_info=True)
+        if kwds['rotx'] != 0:
+            for tick in ax.get_xticklabels():
+                tick.set_rotation(kwds['rotx'])
         return
 
     def autoscale(self, axis='y'):
@@ -836,6 +835,7 @@ class PlotViewer(QWidget):
             ax.xaxis.set_major_formatter(formatter)
         if dateformat != '':
             ax.xaxis.set_major_formatter(mdates.DateFormatter(dateformat))
+
         return
 
     def scatter(self, df, ax, axes_layout='single', alpha=0.8, marker='o', color=None, **kwds):
@@ -1024,9 +1024,7 @@ class PlotViewer(QWidget):
         ax.set_xticklabels(X.columns, minor=False)
         ax.set_yticklabels(X.index, minor=False)
         ax.set_ylim(0, len(X.index))
-        ##if kwds['rot'] != 0:
-        #    for tick in ax.get_xticklabels():
-        #        tick.set_rotation(kwds['rot'])
+
         #from mpl_toolkits.axes_grid1 import make_axes_locatable
         #divider = make_axes_locatable(ax)
         return
@@ -1457,10 +1455,8 @@ class AnnotationOptions(BaseOptions):
         colors = ['black','gray','red','blue','green','orange','purple','cyan','pink']
 
         self.parent = parent
-        self.groups = grps = {'global labels':['title','xlabel','ylabel','rot'],
-                             'format': ['font','fontsize','fontweight','color'],
-                             # 'textbox': ['boxstyle','facecolor','linecolor','rotate'],
-                             # 'text to add': ['text']
+        self.groups = grps = {'global labels':['title','xlabel','ylabel','rotx'],
+                             'format': ['font','fontsize','fontweight','color']
                              }
         self.groups = OrderedDict(sorted(grps.items()))
         opts = self.opts = {
@@ -1474,12 +1470,11 @@ class AnnotationOptions(BaseOptions):
                 'boxstyle':{'type':'combobox','default':'square','items': bstyles},
                 'text':{'type':'scrolledtext','default':'','width':20},
                 #'align':{'type':'combobox','default':'center','items': alignments},
-                #'titley':{'type':'spinbox','default':0,'range':(-2,2),'label':'title y'},
                 'font':{'type':'combobox','default':defaultfont,'items':fonts},
                 'fontsize':{'type':'spinbox','default':12,'range':(4,50),'label':'font size'},
                 'fontweight':{'type':'combobox','default':'normal','items': fontweights},
                 'color':{'type':'combobox','default':'black','items': colors},
-                'rot':{'type':'entry','default':0, 'label':'ticklabel angle'}
+                'rotx':{'type':'spinbox','default':0, 'range':(-180,180),'label':'xlabel angle'}
                 }
         self.kwds = {}
         #used to store annotations

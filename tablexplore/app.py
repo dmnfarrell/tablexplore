@@ -97,7 +97,7 @@ class Application(QMainWindow):
         self.proj_label = QLabel("")
         self.statusbar.addWidget(self.proj_label, 1)
         self.proj_label.setStyleSheet('color: blue')
-        self.style = 'default'
+        self.theme = 'default'
         self.font = 'monospace'
         self.recent_files = ['']
         self.recent_urls = []
@@ -213,7 +213,7 @@ class Application(QMainWindow):
         try:
             self.resize(s.value('window_size'))
             self.move(s.value('window_position'))
-            self.setStyle(s.value('style'))
+            self.setTheme(s.value('style'))
             core.FONT = s.value("font")
             core.FONTSIZE = int(s.value("fontsize"))
             core.COLUMNWIDTH = int(s.value("columnwidth"))
@@ -240,7 +240,7 @@ class Application(QMainWindow):
 
         self.settings.setValue('window_size', self.size())
         self.settings.setValue('window_position', self.pos())
-        self.settings.setValue('style', self.style)
+        self.settings.setValue('theme', self.theme)
         self.settings.setValue('columnwidth', core.COLUMNWIDTH)
         self.settings.setValue('iconsize', core.ICONSIZE)
         self.settings.setValue('font', core.FONT)
@@ -267,17 +267,19 @@ class Application(QMainWindow):
         mpl.rcParams['savefig.dpi'] = core.DPI
         return
 
-    def setStyle(self, style='default'):
-        """Change interface style."""
+    def setTheme(self, theme='Fusion'):
+        """Change interface theme."""
 
-        if style == 'default':
-            	self.setStyleSheet("")
-        else:
-            f = open(os.path.join(stylepath,'%s.qss' %style), 'r')
+        app = QApplication.instance()
+        self.theme = theme
+        app.setStyle(QStyleFactory.create(theme))
+        self.setStyleSheet('')
+        if theme == 'Dark':
+            f = open(os.path.join(stylepath,'dark.qss'), 'r')
             self.style_data = f.read()
             f.close()
             self.setStyleSheet(self.style_data)
-        self.style = style
+
         return
 
     def createToolBar(self):
@@ -377,11 +379,13 @@ class Application(QMainWindow):
         action=self.view_menu.addAction(icon, 'Show Plotter', self.showPlotFrame)
         action.setCheckable(True)
 
-        self.style_menu = QMenu("Styles",  self.view_menu)
-        self.style_menu.addAction('Default', self.setStyle)
-        self.style_menu.addAction('Light', lambda: self.setStyle('light'))
-        self.style_menu.addAction('Dark', lambda: self.setStyle('dark'))
-        self.view_menu.addAction(self.style_menu.menuAction())
+        self.theme_menu = QMenu("Themes",  self.view_menu)
+        themes = QStyleFactory.keys()
+        #for t in themes:
+        self.theme_menu.addAction('Default', lambda: self.setTheme('Fusion'))
+        self.theme_menu.addAction('Windows', lambda: self.setTheme('Windows'))
+        self.theme_menu.addAction('Dark', lambda: self.setTheme('Dark'))
+        self.view_menu.addAction(self.theme_menu.menuAction())
 
         self.sheet_menu = QMenu('Sheet', self)
         self.menuBar().addMenu(self.sheet_menu)
