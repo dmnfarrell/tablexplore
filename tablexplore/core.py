@@ -1802,7 +1802,7 @@ class DataFrameTable(QTableView):
 
         for col in range(len(self.model.df.columns)):
             wi = self.columnWidth(col)
-            self.setColumnWidth(col,wi*factor)
+            self.setColumnWidth(col,int(wi*factor))
 
     def setColumnWidths(self, widths):
 

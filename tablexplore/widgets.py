@@ -31,6 +31,30 @@ from . import util, core, plotting, dialogs
 module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
 
+style = '''
+    QLabel {
+        font-size: 10px;
+    }
+    QWidget {
+        max-width: 250px;
+        min-width: 60px;
+        font-size: 14px;
+    }
+    QPlainTextEdit {
+        max-height: 80px;
+    }
+'''
+
+class PlotDocker(QWidget):
+    def __init__(self, parent=None):
+        super(PlotDocker, self).__init__(parent)
+        self.createDialogs()
+
+    def createDialogs(self):
+        """Create widgets"""
+
+        return
+
 class ScratchPad(QWidget):
     """Temporary storage widget for plots and other items.
     Currently supports storing text, mpl figures and dataframes"""

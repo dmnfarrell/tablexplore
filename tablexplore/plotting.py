@@ -51,7 +51,7 @@ colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
 markers = ['','o','.','^','v','>','<','s','+','x','p','d','h','*']
 linestyles = ['-','--','-.',':','steps']
 valid_kwds = {'line': ['alpha', 'colormap', 'grid', 'legend', 'linestyle','ms',
-                  'linewidth', 'marker', 'subplots', 'rot', 'logx', 'logy',
+                  'linewidth', 'marker', 'subplots', 'rotx', 'logx', 'logy',
                   'sharex','sharey', 'kind'],
             'scatter': ['alpha', 'grid', 'linewidth', 'marker', 'subplots', 'ms',
                     'legend', 'colormap','sharex','sharey', 'logx', 'logy', 'use_index',
@@ -60,20 +60,20 @@ valid_kwds = {'line': ['alpha', 'colormap', 'grid', 'legend', 'linestyle','ms',
             'hexbin': ['alpha', 'colormap', 'grid', 'linewidth','subplots','bins'],
             'bootstrap': ['grid'],
             'bar': ['alpha', 'colormap', 'grid', 'legend', 'linewidth', 'subplots',
-                    'sharex','sharey', 'logy', 'stacked', 'rot', 'kind', 'edgecolor'],
+                    'sharex','sharey', 'logy', 'stacked', 'rotx', 'kind', 'edgecolor'],
             'barh': ['alpha', 'colormap', 'grid', 'legend', 'linewidth', 'subplots',
-                    'sharex','sharey','stacked', 'rot', 'kind', 'logx', 'edgecolor'],
+                    'sharex','sharey','stacked', 'rotx', 'kind', 'logx', 'edgecolor'],
             'histogram': ['alpha', 'linewidth','grid','stacked','subplots','colormap',
-                     'sharex','sharey','rot','bins', 'logx', 'logy', 'legend', 'edgecolor'],
-            'heatmap': ['colormap','colorbar','rot', 'linewidth','linestyle',
-                        'subplots','rot','cscale','bw','alpha','sharex','sharey'],
+                     'sharex','sharey','rotx','bins', 'logx', 'logy', 'legend', 'edgecolor'],
+            'heatmap': ['colormap','colorbar','rotx', 'linewidth','linestyle',
+                        'subplots','rotx','cscale','bw','alpha','sharex','sharey'],
             'area': ['alpha','colormap','grid','linewidth','legend','stacked',
-                     'kind','rot','logx','sharex','sharey','subplots'],
+                     'kind','rotx','logx','sharex','sharey','subplots'],
             'density': ['alpha', 'colormap', 'grid', 'legend', 'linestyle',
-                         'linewidth', 'marker', 'subplots', 'rot', 'kind'],
-            'boxplot': ['rot','grid','logy','colormap','alpha','linewidth','legend',
+                         'linewidth', 'marker', 'subplots', 'rotx', 'kind'],
+            'boxplot': ['rotx','grid','logy','colormap','alpha','linewidth','legend',
                         'subplots','edgecolor','sharex','sharey'],
-            'violinplot': ['rot','grid','logy','colormap','alpha','linewidth','legend',
+            'violinplot': ['rotx','grid','logy','colormap','alpha','linewidth','legend',
                         'subplots','edgecolor','sharex','sharey'],
             'dotplot': ['marker','edgecolor','linewidth','colormap','alpha','legend',
                         'subplots','ms','bw','logy','sharex','sharey'],
@@ -84,19 +84,15 @@ valid_kwds = {'line': ['alpha', 'colormap', 'grid', 'legend', 'linestyle','ms',
             'radviz': ['linewidth','marker','edgecolor','s','colormap','alpha']
             }
 
-style = '''
-    QLabel {
-        font-size: 10px;
-    }
-    QWidget {
-        max-width: 250px;
-        min-width: 60px;
-        font-size: 14px;
-    }
-    QPlainTextEdit {
-        max-height: 80px;
-    }
-'''
+def defaultOptions():
+    """Get default plotting options"""
+
+    opts = {'general': MPLBaseOptions(),
+            'format': FormatOptions(),
+            'labels': AnnotationOptions(),
+            'axes': AxesOptions()
+            }
+    return opts
 
 class PlotWidget(FigureCanvas):
     def __init__(self, parent=None, figure=None, dpi=100, hold=False):
@@ -116,6 +112,7 @@ class PlotViewer(QWidget):
         self.parent = parent
         self.table = table
         self.createWidgets()
+        self.createOptions()
         self.currentdir = os.path.expanduser('~')
         sizepolicy = QSizePolicy()
         self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
@@ -141,11 +138,6 @@ class PlotViewer(QWidget):
         a = QAction(QIcon(iconfile), "Enlarge",  self)
         a.triggered.connect(lambda: self.zoom(zoomin=True))
         self.toolbar.addAction(a)
-        iconfile = os.path.join(iconpath,'preferences-system.png')
-        a = QAction(QIcon(iconfile), "Show/hide options",  self)
-        a.triggered.connect(self.showTools)
-        self.toolbar.addAction(a)
-
         vbox.addWidget(self.toolbar)
         vbox.addWidget(self.canvas)
         return
@@ -167,25 +159,8 @@ class PlotViewer(QWidget):
         hbox = QHBoxLayout(self)
         self.left = left = QWidget(self.main)
         hbox.addWidget(left)
-
-        #bw = self.createButtons(left)
-        #vbox.addWidget(bw)
         self.vbox = vbox = QVBoxLayout(left)
         self.addPlotWidget()
-
-        self.dock = dock = QDockWidget('options',self)
-        dock.setMaximumWidth(250)
-        dock.setMinimumWidth(240)
-        dock.setFeatures(QDockWidget.DockWidgetClosable)
-        scrollarea = QScrollArea(dock)
-        scrollarea.setWidgetResizable(True)
-        dock.setWidget(scrollarea)
-        toolsarea = QWidget()
-        toolsarea.setMinimumSize(200,900)
-        scrollarea.setWidget(toolsarea)
-        hbox.addWidget(dock)
-        ow = self.createDialogs(toolsarea)
-        #dock.setWidget(ow)
         return
 
     def setFigure(self, figure):
@@ -197,75 +172,20 @@ class PlotViewer(QWidget):
         self.canvas.draw()
         return
 
-    def createDialogs(self, parent):
-        """Create widgets"""
+    def createOptions(self):
+        """Create option attributes for plotter"""
 
-        style = '''
-            QLabel {
-                font-size: 12px;
-                max-width: 90px;
-            }
-            QWidget {
-                max-width: 250px;
-                min-width: 35px;
-                font-size: 12px;
-            }
-            QComboBox {
-                max-width: 90px;
-                font-size: 12px;
-                combobox-popup: 0;
-                max-height: 30px;
-            }
-            QSlider {
-                max-width: 90px;
-            }
-            QSpinBox {
-                max-width: 90px;
-            }
-            '''
-
-        tab = QTabWidget(parent)
-        tab.setStyleSheet('QTabBar {font-size: 10pt;}')
-        w = QWidget(tab)
-        idx = tab.addTab(w, 'general')
-        self.generalopts = MPLBaseOptions(parent=self)
-        dialog = self.generalopts.showDialog(w, wrap=2, section_wrap=1, style=style)
-        dialog.resize(200,200)
-        #self.generaldialog = dialog
-        l=QVBoxLayout(w)
-        l.addWidget(dialog)
-
-        w = QWidget(tab)
-        w.setStyleSheet(style)
-        idx = tab.addTab(w, 'labels')
-        self.labelopts = AnnotationOptions(parent=self)
-        dialog = self.labelopts.showDialog(w, wrap=2, section_wrap=1, style=style)
-        dialog.resize(200,200)
-        l=QVBoxLayout(w)
-        l.addWidget(dialog)
-
-        w = QWidget(tab)
-        idx = tab.addTab(w, 'axes')
-        self.axesopts = AxesOptions(parent=self)
-        dialog = self.axesopts.showDialog(w, wrap=2, section_wrap=1, style=style)
-        dialog.resize(200,200)
-        l=QVBoxLayout(w)
-        l.addWidget(dialog)
-
-        '''w = QWidget(tab)
-        idx = tab.addTab(w, 'series')
-        self.seriesopts = SeriesOptions(parent=self)
-        self.seriesopts.createWidgets(self.table.model.df)
-        dialog = self.seriesopts.showDialog(w, wrap=2, section_wrap=1, style=style)
-        dialog.resize(200,200)
-        l=QVBoxLayout(w)
-        l.addWidget(dialog)'''
-        return tab
+        self.opts = {'general':MPLBaseOptions(),
+                    'format':FormatOptions(),
+                    'labels':AnnotationOptions(),
+                    'axes':AxesOptions()
+                    }
+        return
 
     def simple_plot(self, df):
         """test plot"""
 
-        kwds = self.generalopts.kwds
+        kwds = self.opts['general'].kwds
         self.ax = self.fig.add_subplot(111)
         cols = df.columns
         x=df[cols[0]]
@@ -283,12 +203,12 @@ class PlotViewer(QWidget):
         else:
             val=1.0
 
-        if len(self.generalopts.kwds) == 0:
+        if len(self.opts['general'].kwds) == 0:
             return
 
-        self.generalopts.increment('linewidth',val/5)
-        self.generalopts.increment('ms',val)
-        self.labelopts.increment('fontsize',val)
+        self.opts['format'].increment('linewidth',val/5)
+        self.opts['format'].increment('ms',val)
+        self.opts['labels'].increment('fontsize',val)
         self.replot()
         return
 
@@ -322,24 +242,21 @@ class PlotViewer(QWidget):
         mpl.rcParams['grid.linestyle'] = '--'
         mpl.rcParams['grid.linewidth'] = 1
 
-        plot3d = self.generalopts.kwds['3D plot']
+        #plot3d = self.opts['general'].kwds['3D plot']
         self._initFigure()
-        if plot3d == 1:
-            self.plot3D(redraw=redraw)
-        else:
-            self.plot2D(redraw=redraw)
+        #if plot3d == 1:
+        #    self.plot3D(redraw=redraw)
+        #else:
+        self.plot2D(redraw=redraw)
         return
 
     def applyPlotoptions(self):
         """Apply the current plotter/options"""
 
-        self.generalopts.applyOptions()
-        #self.globalopts.applyOptions()
-        #self.mplopts3d.applyOptions()
-        self.labelopts.applyOptions()
-        self.axesopts.applyOptions()
-        self.style = self.generalopts.kwds['style']
-        #mpl.rcParams['savefig.dpi'] = self.generalopts.kwds['dpi']
+        for name in self.opts:
+            self.opts[name].applyOptions()
+
+        self.style = self.opts['format'].kwds['style']
         return
 
     def updateData(self):
@@ -348,8 +265,7 @@ class PlotViewer(QWidget):
         if self.table is None:
             return
         df = self.table.model.df
-        self.generalopts.update(df)
-        #self.seriesopts.update(df)
+        self.opts['general'].update(df)
         return
 
     def clear(self):
@@ -391,7 +307,8 @@ class PlotViewer(QWidget):
         """Clear figure or add a new axis to existing layout"""
 
         from matplotlib.gridspec import GridSpec
-        plot3d = self.generalopts.kwds['3D plot']
+        #plot3d = self.opts['general'].kwds['3D plot']
+        plot3d = 0
         if plot3d == 1:
             #self.canvas.close()
             #self.toolbar.close()
@@ -420,10 +337,12 @@ class PlotViewer(QWidget):
         data.columns = self.checkColumnNames(data.columns)
 
         #get all options from the mpl options object
-        kwds = self.generalopts.kwds
+        kwds = self.opts['general'].kwds
+        formatkwds = self.opts['format'].kwds
+        kwds.update(formatkwds)
         axes_layout = kwds['axes_layout']
-        lkwds = self.labelopts.kwds.copy()
-        axkwds = self.axesopts.kwds
+        lkwds = self.opts['labels'].kwds.copy()
+        axkwds = self.opts['axes'].kwds
 
         kind = kwds['kind']
         by = kwds['by']
@@ -654,10 +573,9 @@ class PlotViewer(QWidget):
             ax.set_ylabel(kwds['ylabel'])
         ax.xaxis.set_visible(kwds['showxlabels'])
         ax.yaxis.set_visible(kwds['showylabels'])
-        #try:
-        #    ax.tick_params(labelrotation=kwds['rot'])
-        #except:
-        #    logging.error("Exception occurred", exc_info=True)
+        if kwds['rotx'] != 0:
+            for tick in ax.get_xticklabels():
+                tick.set_rotation(kwds['rotx'])
         return
 
     def autoscale(self, axis='y'):
@@ -699,7 +617,7 @@ class PlotViewer(QWidget):
         kwargs = kwargs.copy()
 
         if 'alpha' in kwargs:
-            kwargs['alpha'] = kwargs['alpha']/10
+            kwargs['alpha'] = kwargs['alpha']
 
         cols = data.columns
         if kind == 'line':
@@ -854,7 +772,7 @@ class PlotViewer(QWidget):
 
     def _setAxisRanges(self):
 
-        kwds = self.axesopts.kwds
+        kwds = self.opts['axes'].kwds
         ax = self.ax
         try:
             xmin=float(kwds['xmin'])
@@ -875,7 +793,7 @@ class PlotViewer(QWidget):
 
         import matplotlib.ticker as mticker
         import matplotlib.dates as mdates
-        kwds = self.axesopts.kwds
+        kwds = self.opts['axes'].kwds
         #ax = self.ax
         data = self.data
         cols = list(data.columns)
@@ -912,6 +830,7 @@ class PlotViewer(QWidget):
             ax.xaxis.set_major_formatter(formatter)
         if dateformat != '':
             ax.xaxis.set_major_formatter(mdates.DateFormatter(dateformat))
+
         return
 
     def scatter(self, df, ax, axes_layout='single', alpha=0.8, marker='o', color=None, **kwds):
@@ -1100,9 +1019,7 @@ class PlotViewer(QWidget):
         ax.set_xticklabels(X.columns, minor=False)
         ax.set_yticklabels(X.index, minor=False)
         ax.set_ylim(0, len(X.index))
-        ##if kwds['rot'] != 0:
-        #    for tick in ax.get_xticklabels():
-        #        tick.set_rotation(kwds['rot'])
+
         #from mpl_toolkits.axes_grid1 import make_axes_locatable
         #divider = make_axes_locatable(ax)
         return
@@ -1171,10 +1088,10 @@ class PlotViewer(QWidget):
 
         if not hasattr(self, 'data') or len(self.data.columns)<3:
             return
-        kwds = self.generalopts.kwds.copy()
+        kwds = self.opts['general'].kwds.copy()
         #use base options by joining the dicts
         #kwds.update(self.mplopts3d.kwds)
-        kwds.update(self.labelopts.kwds)
+        kwds.update(self.opts['labels'].kwds)
         #print (kwds)
         data = self.data
         x = data.values[:,0]
@@ -1348,7 +1265,17 @@ class BaseOptions(object):
         """Setup variables"""
 
         self.parent = parent
-        #df = self.parent.table.model.df
+        #opts is used to create the widgets
+        #kwds is the dictionary where we store all the key:value pairs
+        self.opts = {}
+        return
+
+    def setDefaults(self):
+        """Populate default kwds dict"""
+
+        self.kwds = {}
+        for o in self.opts:
+            self.kwds[o] = self.opts[o]['default']
         return
 
     def applyOptions(self):
@@ -1371,9 +1298,9 @@ class BaseOptions(object):
             wrap: wrap for internal widgets
         """
 
-        dialog, self.widgets = dialogFromOptions(parent, self.opts, self.groups,
+        dialog, widgets = dialogFromOptions(parent, self.opts, self.groups,
                                 wrap=wrap, section_wrap=section_wrap, style=style)
-        return dialog
+        return dialog, widgets
 
     def setWidgetValue(self, key, value):
 
@@ -1381,8 +1308,11 @@ class BaseOptions(object):
         self.applyOptions()
         return
 
-    def updateWidgets(self, kwds):
+    def updateWidgets(self, kwds=None):
+        """Update widgets from stored or supplied kwds"""
 
+        if kwds==None:
+            kwds = self.kwds
         for k in kwds:
             setWidgetValues(self.widgets, {k: kwds[k]})
         return
@@ -1411,62 +1341,38 @@ class MPLBaseOptions(BaseOptions):
         """Setup variables"""
 
         self.parent = parent
-        if self.parent is not None:
-            df = self.parent.table.model.df
-            datacols = list(df.columns)
-            datacols.insert(0,'')
-        else:
-            datacols=[]
-
+        datacols=[]
         layouts = ['single','multiple','twin axes']
         scales = ['linear','log']
-        style_list = ['default', 'classic', 'fivethirtyeight',
-                     'seaborn-pastel','seaborn-whitegrid', 'ggplot','bmh',
-                     'grayscale','dark_background']
-        grps = {'data':['by','by2','labelcol','pointsizes'],
-                'formats':['marker','ms','linestyle','linewidth','alpha'],
-                'general':['kind','axes_layout','bins','stacked','use_index','errorbars'],
-                'axes':['grid','legend','showxlabels','showylabels','sharex','sharey','logx','logy'],
-                'colors':['style','colormap','bw','clrcol','cscale','colorbar'],
-                'other':['3D plot']}
-        order = ['general','data','axes','formats','colors','other']
+        grps = {'data':['by','by2','labelcol','pointsizes','clrcol'],
+                'general':['kind','axes_layout','bins','stacked','use_index','errorbars',
+                            'legend','sharex','sharey','logx','logy']
+                }
+                #'other':['3D plot']}
+        order = ['general','data']
         self.groups = OrderedDict((key, grps[key]) for key in order)
         opts = self.opts = {
-                'style':{'type':'combobox','default':'default','items': style_list},
-                'marker':{'type':'combobox','default':'','items': markers},
-                'linestyle':{'type':'combobox','default':'-','items': linestyles},
-                'ms':{'type':'spinbox','default':5,'range':(1,80),'interval':1,'label':'marker size'},
-                'grid':{'type':'checkbox','default':0,'label':'show grid'},
                 'logx':{'type':'checkbox','default':0,'label':'log x'},
                 'logy':{'type':'checkbox','default':0,'label':'log y'},
                 'use_index':{'type':'checkbox','default':1,'label':'use index'},
                 'errorbars':{'type':'checkbox','default':0,'label':'errorbar column'},
                 'clrcol':{'type':'combobox','items':datacols,'label':'color by value','default':''},
-                'cscale':{'type':'combobox','items':scales,'label':'color scale','default':'linear'},
-                'colorbar':{'type':'checkbox','default':0,'label':'show colorbar'},
                 'bw':{'type':'checkbox','default':0,'label':'black & white'},
-                'showxlabels':{'type':'checkbox','default':1,'label':'x tick labels'},
-                'showylabels':{'type':'checkbox','default':1,'label':'y tick labels'},
                 'sharex':{'type':'checkbox','default':0,'label':'share x'},
                 'sharey':{'type':'checkbox','default':0,'label':'share y'},
                 'legend':{'type':'checkbox','default':1,'label':'legend'},
-                #'loc':{'type':'combobox','default':'best','items':self.legendlocs,'label':'legend loc'},
                 'kind':{'type':'combobox','default':'line','items':self.kinds,'label':'plot type'},
                 'stacked':{'type':'checkbox','default':0,'label':'stacked'},
-                'linewidth':{'type':'doublespinbox','default':2.0,'range':(0,15),'interval':.5,'label':'line width'},
-                'alpha':{'type':'spinbox','default':9,'range':(1,10),'interval':1,'label':'alpha'},
-                #'subplots':{'type':'checkbox','default':0,'label':'multiple subplots'},
                 'axes_layout':{'type':'combobox','default':'single','items':layouts,'label':'axes layout'},
-                'colormap':{'type':'combobox','default':'Spectral','items':colormaps},
                 'bins':{'type':'spinbox','default':20,'width':5},
                 'by':{'type':'combobox','items':datacols,'label':'group by','default':''},
                 'by2':{'type':'combobox','items':datacols,'label':'group by 2','default':''},
                 'labelcol':{'type':'combobox','items':datacols,'label':'point labels','default':''},
                 'pointsizes':{'type':'combobox','items':datacols,'label':'point sizes','default':''},
-                # 'dpi': {'type':'spinbox','default':100,'width':4,'range':(10,300)},
-                 '3D plot': {'type':'checkbox','default':0,'label':'3D plot'}
+                 #'3D plot': {'type':'checkbox','default':0,'label':'3D plot'}
                 }
-        self.kwds = {}
+        #self.kwds = {}
+        self.setDefaults()
         return
 
     def update(self, df):
@@ -1484,6 +1390,41 @@ class MPLBaseOptions(BaseOptions):
             self.widgets[name].addItems(cols)
         return
 
+class FormatOptions(BaseOptions):
+    """This class also provides custom tools for adding items to the plot"""
+    def __init__(self, parent=None):
+        """Setup variables"""
+
+        self.parent = parent
+        scales = ['linear','log']
+        style_list = ['default', 'classic', 'fivethirtyeight',
+                     'seaborn-pastel','seaborn-whitegrid', 'ggplot','bmh',
+                     'grayscale','dark_background']
+        grps = {'styles':['style','colormap'],
+                'formats':['marker','ms','linestyle','linewidth','alpha'],
+                'axes':['grid','showxlabels','showylabels'],
+                'colors':['bw','cscale','colorbar']
+                }
+        order = ['styles','formats','axes','colors']
+        self.groups = OrderedDict((key, grps[key]) for key in order)
+        opts = self.opts = {
+                'style':{'type':'combobox','default':'default','items': style_list},
+                'marker':{'type':'combobox','default':'','items': markers},
+                'linestyle':{'type':'combobox','default':'-','items': linestyles},
+                'ms':{'type':'spinbox','default':5,'range':(1,80),'interval':1,'label':'marker size'},
+                'grid':{'type':'checkbox','default':0,'label':'show grid'},
+                'cscale':{'type':'combobox','items':scales,'label':'color scale','default':'linear'},
+                'colorbar':{'type':'checkbox','default':0,'label':'show colorbar'},
+                'bw':{'type':'checkbox','default':0,'label':'black & white'},
+                'showxlabels':{'type':'checkbox','default':1,'label':'x tick labels'},
+                'showylabels':{'type':'checkbox','default':1,'label':'y tick labels'},
+                #'loc':{'type':'combobox','default':'best','items':self.legendlocs,'label':'legend loc'},
+                'linewidth':{'type':'doublespinbox','default':2.0,'range':(0,15),'interval':.5,'label':'line width'},
+                'alpha':{'type':'doublespinbox','default':0.9,'range':(.1,1),'interval':.1,'label':'alpha'},
+                'colormap':{'type':'combobox','default':'Spectral','items':colormaps},
+                }
+        self.setDefaults()
+        return
 
 class AnnotationOptions(BaseOptions):
     """This class also provides custom tools for adding items to the plot"""
@@ -1506,10 +1447,8 @@ class AnnotationOptions(BaseOptions):
         colors = ['black','gray','red','blue','green','orange','purple','cyan','pink']
 
         self.parent = parent
-        self.groups = grps = {'global labels':['title','xlabel','ylabel','rot'],
-                             'format': ['font','fontsize','fontweight','color'],
-                             # 'textbox': ['boxstyle','facecolor','linecolor','rotate'],
-                             # 'text to add': ['text']
+        self.groups = grps = {'global labels':['title','xlabel','ylabel','rotx'],
+                             'format': ['font','fontsize','fontweight','color']
                              }
         self.groups = OrderedDict(sorted(grps.items()))
         opts = self.opts = {
@@ -1523,16 +1462,16 @@ class AnnotationOptions(BaseOptions):
                 'boxstyle':{'type':'combobox','default':'square','items': bstyles},
                 'text':{'type':'scrolledtext','default':'','width':20},
                 #'align':{'type':'combobox','default':'center','items': alignments},
-                #'titley':{'type':'spinbox','default':0,'range':(-2,2),'label':'title y'},
                 'font':{'type':'combobox','default':defaultfont,'items':fonts},
                 'fontsize':{'type':'spinbox','default':12,'range':(4,50),'label':'font size'},
                 'fontweight':{'type':'combobox','default':'normal','items': fontweights},
                 'color':{'type':'combobox','default':'black','items': colors},
-                'rot':{'type':'entry','default':0, 'label':'ticklabel angle'}
+                'rotx':{'type':'spinbox','default':0, 'range':(-180,180),'label':'xlabel angle'}
                 }
         self.kwds = {}
         #used to store annotations
         self.textboxes = {}
+        self.setDefaults()
         return
 
     def applyOptions(self):
@@ -1577,7 +1516,7 @@ class AxesOptions(BaseOptions):
                             'precision':{'type':'entry','default':0},
                             'date format':{'type':'combobox','items':datefmts,'default':''}
                             }
-        self.kwds = {}
+        self.setDefaults()
         return
 
 class SeriesOptions(BaseOptions):

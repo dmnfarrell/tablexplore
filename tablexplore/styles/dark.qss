@@ -788,14 +788,14 @@ QAbstractSpinBox::up-arrow,
 QAbstractSpinBox::up-arrow:disabled,
 QAbstractSpinBox::up-arrow:off
 {
-    border-image: url(:/dark/up_arrow_disabled.svg);
+    color: white;
     width: 0.9ex;
     height: 0.6ex;
 }
 
 QAbstractSpinBox::up-arrow:hover
 {
-    border-image: url(:/dark/up_arrow.svg);
+    color: white;
     width: 0.9ex;
     height: 0.6ex;
 }
@@ -804,14 +804,14 @@ QAbstractSpinBox::down-arrow,
 QAbstractSpinBox::down-arrow:disabled,
 QAbstractSpinBox::down-arrow:off
 {
-    border-image: url(:/dark/down_arrow_disabled.svg);
+    color: white;
     width: 0.9ex;
     height: 0.6ex;
 }
 
 QAbstractSpinBox::down-arrow:hover
 {
-    border-image: url(:/dark/down_arrow.svg);
+    color: white;
     width: 0.9ex;
     height: 0.6ex;
 }
@@ -1546,7 +1546,8 @@ QDoubleSpinBox::up-button
 QSpinBox::up-arrow,
 QDoubleSpinBox::up-arrow
 {
-    border-image: url(:/dark/up_arrow.svg);
+
+    background-color: #434343;
     width: 0.9ex;
     height: 0.6ex;
 }
@@ -1556,7 +1557,8 @@ QSpinBox::up-arrow:pressed,
 QDoubleSpinBox::up-arrow:hover,
 QDoubleSpinBox::up-arrow:pressed
 {
-    border-image: url(:/dark/up_arrow-hover.svg);
+
+    background-color: #434343;
     width: 0.9ex;
     height: 0.6ex;
 }
@@ -1566,12 +1568,15 @@ QSpinBox::up-arrow:off,
 QDoubleSpinBox::up-arrow:disabled,
 QDoubleSpinBox::up-arrow:off
 {
-   border-image: url(:/dark/up_arrow_disabled.svg);
+    width: 1.6ex;
+    border-width: 0.1ex;
+  background-color: #434343;
 }
 
 QSpinBox::down-button,
 QDoubleSpinBox::down-button
 {
+    background-color: #434343;
     subcontrol-origin: content;
     subcontrol-position: right bottom;
 
@@ -1582,9 +1587,7 @@ QDoubleSpinBox::down-button
 QSpinBox::down-arrow,
 QDoubleSpinBox::down-arrow
 {
-    border-image: url(:/dark/down_arrow.svg);
-    width: 0.9ex;
-    height: 0.6ex;
+    background-color: #434343;
 }
 
 QSpinBox::down-arrow:hover,
@@ -1592,7 +1595,7 @@ QSpinBox::down-arrow:pressed,
 QDoubleSpinBox::down-arrow:hover,
 QDoubleSpinBox::down-arrow:pressed
 {
-    border-image: url(:/dark/down_arrow-hover.svg);
+    background-color: #434343;
     width: 0.9ex;
     height: 0.6ex;
 }
@@ -1602,5 +1605,5 @@ QSpinBox::down-arrow:off,
 QDoubleSpinBox::down-arrow:disabled,
 QDoubleSpinBox::down-arrow:off
 {
-   border-image: url(:/dark/down_arrow_disabled.svg);
+    background-color: #434343;
 }
