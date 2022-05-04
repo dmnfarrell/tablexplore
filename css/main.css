@@ -1,0 +1,765 @@
+/*! normalize.css v3.0.2 | MIT License | git.io/normalize */
+
+/**
+ * 1. Set default font family to sans-serif.
+ * 2. Prevent iOS text size adjust after orientation change, without disabling
+ *    user zoom.
+ */
+
+
+@font-face {
+  font-family: 'sans-serif, lato';
+
+}
+
+html {
+  font-family: sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+/**
+ * Remove default margin.
+ */
+
+body {
+  margin: 0;
+}
+
+/* HTML5 display definitions
+   ========================================================================== */
+
+/**
+ * Correct `block` display not defined for any HTML5 element in IE 8/9.
+ * Correct `block` display not defined for `details` or `summary` in IE 10/11
+ * and Firefox.
+ * Correct `block` display not defined for `main` in IE 11.
+ */
+
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+hgroup,
+main,
+menu,
+nav,
+section,
+summary {
+  display: block;
+}
+
+/**
+ * 1. Correct `inline-block` display not defined in IE 8/9.
+ * 2. Normalize vertical alignment of `progress` in Chrome, Firefox, and Opera.
+ */
+
+audio,
+canvas,
+progress,
+video {
+  display: inline-block; /* 1 */
+  vertical-align: baseline; /* 2 */
+}
+
+/**
+ * Prevent modern browsers from displaying `audio` without controls.
+ * Remove excess height in iOS 5 devices.
+ */
+
+audio:not([controls]) {
+  display: none;
+  height: 0;
+}
+
+/**
+ * Address `[hidden]` styling not present in IE 8/9/10.
+ * Hide the `template` element in IE 8/9/11, Safari, and Firefox < 22.
+ */
+
+[hidden],
+template {
+  display: none;
+}
+
+
+a {
+  background-color: transparent;
+}
+
+/**
+ * Improve readability when focused and also mouse hovered in all browsers.
+ */
+
+a:active,
+a:hover {
+  outline: 0;
+}
+
+abbr[title] {
+  border-bottom: 1px dotted;
+}
+
+b,
+strong {
+  font-weight: bold;
+}
+
+dfn {
+  font-style: italic;
+}
+
+h1 {
+  margin: 0.67em 0;
+  font-size: 2em;
+}
+
+mark {
+  color: #000;
+  background: #ff0;
+}
+
+small {
+  font-size: 80%;
+}
+
+sub,
+sup {
+  position: relative;
+  font-size: 75%;
+  line-height: 0;
+  vertical-align: baseline;
+}
+
+sup {
+  top: -0.5em;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+img {
+  border: 0;
+}
+
+svg:not(:root) {
+  overflow: hidden;
+}
+
+figure {
+  margin: 1em 40px;
+}
+
+hr {
+  height: 0;
+  -moz-box-sizing: content-box;
+  box-sizing: content-box;
+}
+
+pre {
+  overflow: auto;
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: monospace, monospace;
+  font-size: 1em;
+}
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  margin: 0; /* 3 */
+  font: inherit; /* 2 */
+  color: inherit; /* 1 */
+}
+
+/**
+ * Address `overflow` set to `hidden` in IE 8/9/10/11.
+ */
+
+button {
+  overflow: visible;
+}
+
+button,
+select {
+  text-transform: none;
+}
+
+
+button,
+html input[type="button"], /* 1 */
+input[type="reset"],
+input[type="submit"] {
+  -webkit-appearance: button; /* 2 */
+  cursor: pointer; /* 3 */
+}
+
+button[disabled],
+html input[disabled] {
+  cursor: default;
+}
+
+button::-moz-focus-inner,
+input::-moz-focus-inner {
+  padding: 0;
+  border: 0;
+}
+
+input {
+  line-height: normal;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  box-sizing: border-box; /* 1 */
+  padding: 0; /* 2 */
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  height: auto;
+}
+
+input[type="search"] {
+  -webkit-box-sizing: content-box; /* 2 */
+  -moz-box-sizing: content-box;
+  box-sizing: content-box;
+  -webkit-appearance: textfield; /* 1 */
+}
+
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+fieldset {
+  padding: 0.35em 0.625em 0.75em;
+  margin: 0 2px;
+  border: 1px solid #c0c0c0;
+}
+
+legend {
+  padding: 0; /* 2 */
+  border: 0; /* 1 */
+}
+
+
+textarea {
+  overflow: auto;
+}
+
+/**
+ * Don't inherit the `font-weight` (applied by a rule above).
+ * NOTE: the default cannot safely be changed in Chrome and Safari on OS X.
+ */
+
+optgroup {
+  font-weight: bold;
+}
+
+table {
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+
+td,
+th {
+  padding: 0;
+}
+
+/* LAYOUT STYLES */
+body {
+  font-family: 'Lato', Helvetica, Arial, serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #474747;
+
+}
+
+p {
+  margin-top: 0;
+}
+
+a {
+  color: #2879d0;
+}
+a:hover {
+  color: #2268b2;
+}
+
+header {
+  padding-top: 15px;
+  padding-bottom: 15px;
+  font-family: 'Lato','Helvetica Neue', Helvetica, Arial, serif;
+  background: #0077b3;
+  background-image:
+    linear-gradient(
+      #0077b3, #0052cc
+    );
+  border-bottom: solid 1px #275da1;
+}
+
+header h1 {
+  width: 550px;
+  margin-top: 0;
+  margin-bottom: 0.2em;
+
+  font-size: 72px;
+  font-weight: normal;
+  line-height: 1;
+  color: #fff;
+  letter-spacing: -1px;
+}
+
+header h2 {
+  width: 580px;
+  margin-top: 0;
+  margin-bottom: 0;
+  font-size: 30px;
+  font-weight: normal;
+  line-height: 1.3;
+  color: #9ddcff;
+  letter-spacing: 0;
+}
+
+.inner {
+  position: relative;
+  width: 940px;
+  margin: 0 auto;
+}
+
+.logo {
+  float: left;
+}
+
+#content-wrapper {
+  padding-top: 20px;
+  border-top: solid 1px #fff;
+}
+
+#main-content {
+  float: left;
+  width: 690px;
+}
+
+#main-content img {
+  max-width: 100%;
+}
+
+aside#sidebar {
+  float: right;
+  width: 200px;
+  min-height: 504px;
+  padding-left: 20px;
+  font-size: 12px;
+  line-height: 1.3;
+  background: transparent url(../images/sidebar-bg.jpg) 0 0 no-repeat;
+}
+
+aside#sidebar p.repo-owner,
+aside#sidebar p.repo-owner a {
+  font-weight: bold;
+}
+
+#downloads {
+  margin-bottom: 40px;
+}
+a.logo {
+  width: 254px;
+  height: 160px;
+  padding-top: 22px;
+  padding-left: 68px;
+  font-family: 'Lato', 'Helvetica Neue', Helvetica, Arial, serif;
+  font-size: 23px;
+  line-height: 1.2;
+  color: #fff;
+}
+a.button {
+  width: 154px;
+  height: 58px;
+  padding-top: 22px;
+  padding-left: 68px;
+  font-family: 'Lato', 'Helvetica Neue', Helvetica, Arial, serif;
+  font-size: 23px;
+  line-height: 1.2;
+  color: #fff;
+}
+a.button small {
+  display: block;
+  font-size: 14px;
+}
+header a.button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: transparent url(images/github-button.png) 0 0 no-repeat;
+}
+header a.logo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: transparent url(images/logo.png) 0 0 no-repeat;
+}
+aside a.button {
+  display: block;
+  width: 148px;
+  padding-left: 74px;
+  margin-bottom: 20px;
+  font-size: 20px;
+  background: transparent url(images/download-button.png) 0 0 no-repeat;
+}
+
+code, pre {
+  margin-bottom: 30px;
+  font-family: Monaco, "Bitstream Vera Sans Mono", "Lucida Console", Terminal, monospace;
+  font-size: 13px;
+  color: #222;
+}
+
+code {
+  padding: 0 3px;
+  background-color: #f2f8fc;
+  border: solid 1px #dbe7f3;
+}
+
+pre {
+  padding: 20px;
+  overflow: auto;
+  text-shadow: none;
+  background: #fff;
+  border: solid 1px #f2f2f2;
+}
+pre code {
+  padding: 0;
+  color: #2879d0;
+  background-color: #fff;
+  border: none;
+}
+
+ul, ol, dl {
+  margin-bottom: 20px;
+}
+
+
+/* COMMON STYLES */
+
+hr {
+  height: 0;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  border: 0;
+  border-top: solid 1px #ddd;
+}
+
+table {
+  width: 100%;
+  border: 1px solid #ebebeb;
+}
+
+th {
+  font-weight: 500;
+}
+
+td {
+  font-weight: 300;
+  text-align: center;
+  border: 1px solid #ebebeb;
+}
+
+form {
+  padding: 20px;
+  background: #f2f2f2;
+
+}
+
+
+/* GENERAL ELEMENT TYPE STYLES */
+
+#main-content h1 {
+  margin-top: 0;
+  margin-bottom: 0;
+  font-family: 'Lato', Helvetica, Arial, serif;
+  font-size: 3.0em;
+  font-weight: normal;
+  color: #474747;
+  text-indent: 6px;
+  letter-spacing: -1px;
+}
+
+#main-content h1:before {
+  padding-right: 0.3em;
+  margin-left: -0.9em;
+  color: #9ddcff;
+  content: "/";
+}
+
+#main-content h2 {
+  margin-bottom: 4px;
+  font-family: 'Lato', Helvetica, Arial, serif;
+  font-size: 26px;
+  font-weight: bold;
+  color: #474747;
+  text-indent: 4px;
+}
+#main-content h2:before {
+  padding-right: 0.3em;
+  margin-left: -1.5em;
+  content: "//";
+  color: #9ddcff;
+}
+
+#main-content h3 {
+  margin-top: 14px;
+  margin-bottom: 8px;
+  font-family: 'Lato', Helvetica, Arial, serif;
+  font-size: 18px;
+  font-weight: bold;
+  color: #474747;
+  text-indent: 3px;
+}
+
+#main-content h3:before {
+  padding-right: 0.3em;
+  margin-left: -2em;
+  content: "///";
+  color: #9ddcff;
+}
+
+#main-content h4 {
+  margin-bottom: 8px;
+  font-family: 'Lato', Helvetica, Arial, serif;
+  font-size: 15px;
+  font-weight: bold;
+  color: #474747;
+  text-indent: 3px;
+}
+
+h4:before {
+  padding-right: 0.3em;
+  margin-left: -2.8em;
+  content: "////";
+  color: #9ddcff;
+}
+
+#main-content h5 {
+  margin-bottom: 8px;
+  font-family: 'Lato', Helvetica, Arial, serif;
+  font-size: 14px;
+  color: #474747;
+  text-indent: 3px;
+}
+h5:before {
+  padding-right: 0.3em;
+  margin-left: -3.2em;
+  content: "/////";
+  color: #9ddcff;
+}
+
+#main-content h6 {
+  margin-bottom: 8px;
+  font-family: 'Lato', Helvetica, Arial, serif;
+  font-size: .8em;
+  color: #474747;
+  text-indent: 3px;
+}
+h6:before {
+  padding-right: 0.3em;
+  margin-left: -3.7em;
+  content: "//////";
+  color: #9ddcff;
+}
+
+p {
+  margin-bottom: 20px;
+}
+
+a {
+  text-decoration: none;
+}
+
+p a {
+  font-weight: 400;
+}
+
+blockquote {
+  padding: 0 0 0 30px;
+  margin-bottom: 20px;
+  font-size: 1.6em;
+  border-left: 10px solid #e9e9e9;
+}
+
+ul {
+  list-style-position: inside;
+  list-style: disc;
+  padding-left: 20px;
+}
+
+ol {
+  list-style-position: inside;
+  list-style: decimal;
+  padding-left: 3px;
+}
+
+dl dd {
+  font-style: italic;
+  font-weight: 100;
+}
+
+footer {
+  padding-top: 20px;
+  padding-bottom: 30px;
+  margin-top: 40px;
+  font-size: 13px;
+  color: #aaa;
+  background: transparent url('../images/hr.png') 0 0 no-repeat;
+}
+
+footer a {
+  color: #666;
+}
+footer a:hover {
+  color: #444;
+}
+
+#sidebar
+h2 {
+  font-family: 'Lato', helvetica, Arial, serif;
+  font-size: 18px;
+}
+
+/* MISC */
+.clearfix:after {
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+  content: '.';
+}
+
+.clearfix {display: inline-block;}
+* html .clearfix {height: 1%;}
+.clearfix {display: block;}
+
+/* #Media Queries
+================================================== */
+
+/* Smaller than standard 960 (devices and browsers) */
+@media only screen and (max-width: 959px) { }
+
+/* Tablet Portrait size to standard 960 (devices and browsers) */
+@media only screen and (min-width: 768px) and (max-width: 959px) {
+  .inner {
+    width: 740px;
+  }
+  header h1, header h2 {
+    width: 340px;
+  }
+  header h1 {
+    font-size: 60px;
+  }
+  header h2 {
+    font-size: 30px;
+  }
+  #main-content {
+    width: 490px;
+  }
+  #main-content h1:before,
+  #main-content h2:before,
+  #main-content h3:before,
+  #main-content h4:before,
+  #main-content h5:before,
+  #main-content h6:before {
+    padding-right: 0;
+    margin-left: 0;
+    content: none;
+  }
+}
+
+/* All Mobile Sizes (devices and browser) */
+@media only screen and (max-width: 767px) {
+  .inner {
+    width: 93%;
+  }
+  header {
+    padding: 20px 0;
+  }
+  header .inner {
+    position: relative;
+  }
+  header h1, header h2 {
+    width: 100%;
+  }
+  header h1 {
+    font-size: 48px;
+  }
+  header h2 {
+    font-size: 24px;
+  }
+  header a.button {
+    position: relative;
+    display: inline-block;
+    width: auto;
+    height: auto;
+    padding: 5px 10px;
+    margin-top: 15px;
+    font-size: 13px;
+    line-height: 1;
+    color: #2879d0;
+    text-align: center;
+    background-color: #9ddcff;
+    background-image: none;
+    border-radius: 5px;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+  }
+  header a.button small {
+    display: inline;
+    font-size: 13px;
+  }
+  #main-content,
+  aside#sidebar {
+    float: none;
+    width: 100% ! important;
+  }
+  aside#sidebar {
+    min-height: 0;
+    padding: 20px 0;
+    margin-top: 20px;
+    background-image: none;
+    border-top: solid 1px #ddd;
+  }
+  aside#sidebar a.button {
+    display: none;
+  }
+  #main-content h1:before,
+  #main-content h2:before,
+  #main-content h3:before,
+  #main-content h4:before,
+  #main-content h5:before,
+  #main-content h6:before {
+    padding-right: 0;
+    margin-left: 0;
+    content: none;
+  }
+}
+
+.logo{
+    padding: 20px;
+}
+
+/* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
+@media only screen and (min-width: 480px) and (max-width: 767px) { }
+
+/* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
+@media only screen and (max-width: 479px) { }
