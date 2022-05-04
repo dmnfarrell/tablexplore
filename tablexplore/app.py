@@ -71,24 +71,7 @@ class Application(QMainWindow):
         self.main.setFocus()
         self.setCentralWidget(self.main)
 
-        #add plot docker
-        #dock = widgets.PlotDocker(self.main)
-        #layout.addWidget(dock)
-
-        style = '''
-            QLabel {
-                font-size: 12px;
-            }
-            QWidget {
-                max-width: 240px;
-                min-width: 60px;
-                font-size: 12px;
-            }
-            QPlainTextEdit {
-                max-height: 80px;
-            }
-        '''
-
+        #plot docks
         self.addDockWidgets()
         self.statusbar = QStatusBar()
         self.setStatusBar(self.statusbar)
@@ -138,20 +121,28 @@ class Application(QMainWindow):
         style = '''
             QWidget {
                 font-size: 12px;
-                min-width: 60px;
                 max-width: 240px;
             }
+            QLabel, QLineEdit {
+                min-width: 60px;
+            }
             QPlainTextEdit {
-                max-height: 80px;
+                max-height: 100px;
                 min-width: 100px;
             }
-
+            QScrollBar:vertical {
+                 width: 15px;
+             }
+            QComboBox {
+                combobox-popup: 0;
+                max-height: 30px;
+                max-width: 120px;
+            }
         '''
 
         opts = plotting.defaultOptions()
-
         self.plotwidgets = {}
-        docks = []
+        docks = {}
         for name in opts:
             dock = QDockWidget(name)
             dock.setStyleSheet(dockstyle)
@@ -164,14 +155,17 @@ class Application(QMainWindow):
             self.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
             #dock.setAllowedAreas(Qt.AllDockWidgetAreas)
             self.plotwidgets[name] = widgets
-            docks.append(dock)
+            docks[name] = dock
 
-        self.tabifyDockWidget(docks[2], docks[3])
-        docks[2].raise_()
-        return
+        self.tabifyDockWidget(docks['labels'], docks['axes'])
+        docks['labels'].raise_()
+        self.docks = docks
 
-    def toggleDock(self, name):
-
+        #add dock menu items
+        for name in ['general','format','labels','axes']:
+            action = self.docks[name].toggleViewAction()
+            self.dock_menu.addAction(action)
+            action.setCheckable(True)
         return
 
     def tabSelected(self, index):
@@ -194,6 +188,7 @@ class Application(QMainWindow):
             #print (opts.kwds)
             opts.widgets = self.plotwidgets[key]
             opts.updateWidgets()
+            table.pf.updateData()
         return
 
     def resetPlotWidgets(self):
@@ -274,8 +269,8 @@ class Application(QMainWindow):
         self.theme = theme
         app.setStyle(QStyleFactory.create(theme))
         self.setStyleSheet('')
-        if theme == 'Dark':
-            f = open(os.path.join(stylepath,'dark.qss'), 'r')
+        if theme in ['dark','light']:
+            f = open(os.path.join(stylepath,'%s.qss' %theme), 'r')
             self.style_data = f.read()
             f.close()
             self.setStyleSheet(self.style_data)
@@ -380,11 +375,14 @@ class Application(QMainWindow):
         action.setCheckable(True)
 
         self.theme_menu = QMenu("Themes",  self.view_menu)
+        #group = QActionGroup(self.theme_menu)
+        #group.setExclusive(True)
         themes = QStyleFactory.keys()
-        #for t in themes:
-        self.theme_menu.addAction('Default', lambda: self.setTheme('Fusion'))
-        self.theme_menu.addAction('Windows', lambda: self.setTheme('Windows'))
-        self.theme_menu.addAction('Dark', lambda: self.setTheme('Dark'))
+        for t in themes:
+            self.theme_menu.addAction(t, lambda t=t: self.setTheme(t),checkable=True)
+            #group.addAction(action)
+        self.theme_menu.addAction('Dark', lambda: self.setTheme('dark'),checkable=True)
+        self.theme_menu.addAction('Light', lambda: self.setTheme('light'),checkable=True)
         self.view_menu.addAction(self.theme_menu.menuAction())
 
         self.sheet_menu = QMenu('Sheet', self)
@@ -402,7 +400,7 @@ class Application(QMainWindow):
         icon = QIcon(os.path.join(iconpath,'tableinfo.png'))
         self.tools_menu.addAction(icon, '&Table Info', lambda: self._call('info'),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_I)
-        self.tools_menu.addAction('Organise Columns', lambda: self._call('organise'))
+        self.tools_menu.addAction('Manage Columns', lambda: self._call('organise'))
         icon = QIcon(os.path.join(iconpath,'clean.png'))
         self.tools_menu.addAction(icon, 'Clean Data', lambda: self._call('cleanData'))
         icon = QIcon(os.path.join(iconpath,'table-duplicates.png'))
@@ -438,10 +436,6 @@ class Application(QMainWindow):
 
         self.dock_menu = QMenu('Docks', self)
         self.menuBar().addMenu(self.dock_menu)
-        #self.dock_menu.addAction(icon,'Show Scratchpad', lambda: self.showScratchpad())
-        for name in ['general','format','labels','axes']:
-            action = self.dock_menu.addAction(name, lambda: self.toggleDock(name))
-            action.setCheckable(True)
 
         self.help_menu = QMenu('&Help', self)
         self.menuBar().addSeparator()

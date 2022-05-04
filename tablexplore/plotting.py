@@ -138,10 +138,6 @@ class PlotViewer(QWidget):
         a = QAction(QIcon(iconfile), "Enlarge",  self)
         a.triggered.connect(lambda: self.zoom(zoomin=True))
         self.toolbar.addAction(a)
-        #iconfile = os.path.join(iconpath,'preferences-system.png')
-        #a = QAction(QIcon(iconfile), "Show/hide options",  self)
-        #a.triggered.connect(self.showTools)
-        #self.toolbar.addAction(a)
         vbox.addWidget(self.toolbar)
         vbox.addWidget(self.canvas)
         return
@@ -270,7 +266,6 @@ class PlotViewer(QWidget):
             return
         df = self.table.model.df
         self.opts['general'].update(df)
-        #self.seriesopts.update(df)
         return
 
     def clear(self):
@@ -622,7 +617,7 @@ class PlotViewer(QWidget):
         kwargs = kwargs.copy()
 
         if 'alpha' in kwargs:
-            kwargs['alpha'] = kwargs['alpha']/10
+            kwargs['alpha'] = kwargs['alpha']
 
         cols = data.columns
         if kind == 'line':
@@ -1418,17 +1413,14 @@ class FormatOptions(BaseOptions):
                 'linestyle':{'type':'combobox','default':'-','items': linestyles},
                 'ms':{'type':'spinbox','default':5,'range':(1,80),'interval':1,'label':'marker size'},
                 'grid':{'type':'checkbox','default':0,'label':'show grid'},
-                #'logx':{'type':'checkbox','default':0,'label':'log x'},
-                #'logy':{'type':'checkbox','default':0,'label':'log y'},
                 'cscale':{'type':'combobox','items':scales,'label':'color scale','default':'linear'},
                 'colorbar':{'type':'checkbox','default':0,'label':'show colorbar'},
                 'bw':{'type':'checkbox','default':0,'label':'black & white'},
                 'showxlabels':{'type':'checkbox','default':1,'label':'x tick labels'},
                 'showylabels':{'type':'checkbox','default':1,'label':'y tick labels'},
-                #'legend':{'type':'checkbox','default':1,'label':'legend'},
                 #'loc':{'type':'combobox','default':'best','items':self.legendlocs,'label':'legend loc'},
                 'linewidth':{'type':'doublespinbox','default':2.0,'range':(0,15),'interval':.5,'label':'line width'},
-                'alpha':{'type':'spinbox','default':9,'range':(1,10),'interval':1,'label':'alpha'},
+                'alpha':{'type':'doublespinbox','default':0.9,'range':(.1,1),'interval':.1,'label':'alpha'},
                 'colormap':{'type':'combobox','default':'Spectral','items':colormaps},
                 }
         self.setDefaults()

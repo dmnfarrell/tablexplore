@@ -90,7 +90,7 @@ def dialogFromOptions(parent, opts, sections=None,
 
     l = QGridLayout(dialog)
     l.setSpacing(1)
-    l.setAlignment(QtCore.Qt.AlignLeft)
+    l.setAlignment(QtCore.Qt.AlignTop)
     scol=1
     srow=1
     for s in sections:
@@ -180,6 +180,13 @@ def dialogFromOptions(parent, opts, sections=None,
                 index = w.findText(val)
                 #w.resize(w.sizeHint())
                 w.setCurrentIndex(index)
+            elif t == 'dial':
+                w = QDial()
+                if 'range' in opt:
+                    min, max = opt['range']
+                    w.setMinimum(min)
+                    w.setMaximum(max)
+                w.setValue(val)
             col+=1
             gl.addWidget(w,row,col)
             w.setStyleSheet(style)
