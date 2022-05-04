@@ -1332,7 +1332,7 @@ class MPLBaseOptions(BaseOptions):
     """Class to provide a dialog for matplotlib options and returning
         the selected prefs"""
 
-    kinds = ['line', 'scatter', 'bar', 'barh', 'pie', 'histogram', 'boxplot', 'violinplot', 'dotplot',
+    kinds = ['line', 'bar', 'barh', 'scatter', 'pie', 'histogram', 'boxplot', 'violinplot', 'dotplot',
              'heatmap', 'area', 'hexbin', 'scatter_matrix', 'density', 'radviz']
     legendlocs = ['best','upper right','upper left','lower left','lower right','right','center left',
                 'center right','lower center','upper center','center']

@@ -975,7 +975,7 @@ class Application(QMainWindow):
         pf = self.sheets[name].pf
         if pf.isHidden():
             pf.show()
-            pf.dock.show()
+            #pf.dock.show()
         else:
             pf.hide()
         return

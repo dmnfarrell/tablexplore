@@ -1397,10 +1397,13 @@ class DataFrameTable(QTableView):
         #try to get numeric data for plotting
         colnames = data.columns
         for c in colnames:
+        #for c in range(len(data.columns)):
+            #print (data.iloc[:,c])
             x = pd.to_numeric(data[c], errors='coerce').astype(float)
             if x.isnull().all():
                 continue
             data[c] = x
+            #data.iloc[:,c] = x
         return data
 
     def setSelected(self, rows, cols):

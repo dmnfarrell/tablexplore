@@ -49,7 +49,7 @@ A Windows standalone binary can be downloaded [here](https://dmnfarrell.github.i
 
 ## Screenshots
 
-<img src=docs/images/scr1.png width=600px>
+<img src=img/scr1.png width=600px>
 
 ## Videos
 
