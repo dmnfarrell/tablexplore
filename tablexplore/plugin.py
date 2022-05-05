@@ -89,7 +89,7 @@ def load_plugins(plugins):
     failed = []
     for plugin in plugins:
         try:
-            print (plugin)
+            #print (plugin)
             __import__(plugin, None, None, [''])
         except Exception as e:
             print('failed to load %s plugin' %plugin)

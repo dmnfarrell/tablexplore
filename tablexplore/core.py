@@ -788,6 +788,34 @@ class DataFrameWidget(QWidget):
         self.refresh()
         return
 
+    def fillDates(self, column):
+        """Fill with datetime"""
+
+        df = self.table.model.df
+        st='01/01/2022'
+        en='02/01/2022'
+        freqs = ['M','W','D','H','min','S','Q','A','AS','L','U']
+        opts = {
+                'start':  {'type':'entry','default':st,'label':'Start','tooltip':'start value if filling with range'},
+                'end':  {'type':'entry','default':en,'label':'End','tooltip':'end value if filling with range'},
+                'freq': {'type':'combobox','default':'D','items':freqs,'label':'Freq'}
+                }
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Fill Dates', width=300)
+        dlg.exec_()
+        if not dlg.accepted:
+            return
+        kwds = dlg.values
+        start = kwds['start']
+        end = kwds['end']
+        freq = kwds['freq']
+        l=len(df)
+        data = pd.date_range(start=start, end=end, freq=freq)[:l]
+        #print (data)
+        self.table.storeCurrent()
+        self.table.model.df[column] = data
+        self.refresh()
+        return
+
     def fillData(self, column):
         """Fill column with data"""
 
@@ -1285,6 +1313,7 @@ class DataFrameTable(QTableView):
         font = QFont(self.font)
         font.setPointSize(int(self.fontsize))
         self.setFont(font)
+        self.horizontalHeader().setFont(font)
         return
 
     def refresh(self):
@@ -1529,7 +1558,8 @@ class DataFrameTable(QTableView):
         convertNumericAction = colmenu.addAction("Convert to Numeric")
 
         menu.addAction(colmenu.menuAction())
-        fillAction = menu.addAction("Fill Data")
+        filldataAction = menu.addAction("Fill Data")
+        filldatesAction = menu.addAction("Fill Dates")
         applyFunctionAction = menu.addAction("Apply Function")
         transformResampleAction = menu.addAction("Transform/Resample")
         stringOpAction = menu.addAction("String Operation")
@@ -1555,8 +1585,10 @@ class DataFrameTable(QTableView):
             self.setIndex(column)
         elif action == datetimeAction:
             self.parent.convertDates(column)
-        elif action == fillAction:
+        elif action == filldataAction:
             self.parent.fillData(column)
+        elif action == filldatesAction:
+            self.parent.fillDates(column)
         elif action == applyFunctionAction:
             self.parent.applyColumnFunction(column)
         elif action == transformResampleAction:

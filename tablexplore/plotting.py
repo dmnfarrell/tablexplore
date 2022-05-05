@@ -90,7 +90,8 @@ def defaultOptions():
     opts = {'general': MPLBaseOptions(),
             'format': FormatOptions(),
             'labels': AnnotationOptions(),
-            'axes': AxesOptions()
+            'axes': AxesOptions(),
+            #'series':SeriesOptions(),
             }
     return opts
 
@@ -462,6 +463,7 @@ class PlotViewer(QWidget):
                 ax.get_yaxis().set_ticks([])
                 if kind != 'line':
                     self.showWarning('twin axes only supported for line plots')
+                    return
                 lw = kwds['linewidth']
                 bw = kwds['bw']
                 marker = kwds['marker']
@@ -1526,13 +1528,14 @@ class SeriesOptions(BaseOptions):
 
         self.parent = parent
         self.groups = grps = OrderedDict({'main':[]})
+        self.opts = {}
         return
 
     def createWidgets(self, df):
 
         opts = self.opts = {}
         self.kwds = {}
-        ptypes = ['line','bar']
+        ptypes = ['line','bar','scatter']
         cols = list(df.columns)
         cols = [str(c) for c in cols]
         for name in cols:

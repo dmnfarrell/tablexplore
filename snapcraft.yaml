@@ -1,5 +1,5 @@
 name: tablexplore
-version: '0.4.1'
+version: '0.5.0'
 #version-script: git describe --abbrev=1 --tags
 summary: data plotting and analysis package
 description: |

@@ -78,6 +78,7 @@ def dialogFromOptions(parent, opts, sections=None,
         QComboBox {
             combobox-popup: 0;
             max-height: 30px;
+            max-width: 150px;
         }
         '''
 
@@ -1203,10 +1204,13 @@ class PreferencesDialog(QDialog):
                 '%Y/%m/%d','%y/%m/%d','%Y/%d/%m',
                 '%d-%b-%Y','%b-%d-%Y',
                 '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
-                '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
+                '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M',
+                '%Y','%m','%d','%b']
         plotstyles = ['','default', 'classic', 'fivethirtyeight',
                      'seaborn-pastel','seaborn-whitegrid', 'ggplot','bmh',
                      'grayscale','dark_background']
+        themes = QStyleFactory.keys() + ['dark','light']
+
         self.opts = {'rowheight':{'type':'spinbox','default':18,'range':(5,50),'label':'Row height'},
                 'alignment':{'type':'combobox','default':'w','items':['left','right','center'],'label':'Text Align'},
                 'font':{'type':'font','default':defaultfont,'default':options['font']},
@@ -1214,16 +1218,18 @@ class PreferencesDialog(QDialog):
                             'interval':1,'label':'font size'},
                 'timeformat':{'type':'combobox','default':options['timeformat'],
                             'items':timeformats,'label':'Date/Time format'},
+                #'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
                 'showplotter': {'type':'checkbox','default':bool(options['showplotter']), 'label':'Show Plotter'},
                 'plotstyle':{'type':'combobox','default':options['plotstyle'],
                             'items':plotstyles,'label':'Plot Style'},
                 'dpi':{'type':'entry','default':100,'default':options['dpi'], 'label':'Plot DPI'},
                 'iconsize':{'type':'spinbox','default':options['iconsize'],'range':(16,64), 'label':'Icon Size'},
-                #'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
+                'theme':{'type':'combobox','default':options['theme'],'items': themes,
+                        'label': 'Default Theme'}
                 }
         sections = {'table':['alignment','rowheight',#'columnwidth',
                     'font','fontsize','timeformat'],
-                    'view':['iconsize','plotstyle','dpi','showplotter']
+                    'view':['iconsize','plotstyle','dpi','theme','showplotter']
                     }
 
         dialog, self.widgets = dialogFromOptions(self, self.opts, sections)
@@ -1260,6 +1266,7 @@ class PreferencesDialog(QDialog):
         core.PLOTSTYLE = kwds['plotstyle']
         core.DPI = kwds['dpi']
         core.ICONSIZE = kwds['iconsize']
+        self.parent.theme = kwds['theme']
         self.parent.refresh()
         self.parent.applySettings()
         return

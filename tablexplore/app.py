@@ -80,13 +80,14 @@ class Application(QMainWindow):
         self.proj_label = QLabel("")
         self.statusbar.addWidget(self.proj_label, 1)
         self.proj_label.setStyleSheet('color: blue')
-        self.theme = 'default'
+        self.theme = 'Fusion'
         self.font = 'monospace'
         self.recent_files = ['']
         self.recent_urls = []
         self.scratch_items = {}
 
         self.loadSettings()
+        self.setTheme()
         self.setIconSize(QtCore.QSize(core.ICONSIZE, core.ICONSIZE))
         self.showRecentFiles()
         if project_file != None:
@@ -208,7 +209,7 @@ class Application(QMainWindow):
         try:
             self.resize(s.value('window_size'))
             self.move(s.value('window_position'))
-            self.setTheme(s.value('style'))
+            self.theme = s.value('theme')
             core.FONT = s.value("font")
             core.FONTSIZE = int(s.value("fontsize"))
             core.COLUMNWIDTH = int(s.value("columnwidth"))
@@ -260,21 +261,25 @@ class Application(QMainWindow):
             table.toolbar.setIconSize(QtCore.QSize(core.ICONSIZE, core.ICONSIZE))
         import matplotlib as mpl
         mpl.rcParams['savefig.dpi'] = core.DPI
+        self.setTheme(self.theme)
         return
 
-    def setTheme(self, theme='Fusion'):
+    def setTheme(self, theme=None):
         """Change interface theme."""
 
         app = QApplication.instance()
-        self.theme = theme
+        if theme == None:
+            theme = self.theme
+        else:
+            self.theme = theme
         app.setStyle(QStyleFactory.create(theme))
         self.setStyleSheet('')
+
         if theme in ['dark','light']:
             f = open(os.path.join(stylepath,'%s.qss' %theme), 'r')
             self.style_data = f.read()
             f.close()
             self.setStyleSheet(self.style_data)
-
         return
 
     def createToolBar(self):
@@ -379,10 +384,10 @@ class Application(QMainWindow):
         #group.setExclusive(True)
         themes = QStyleFactory.keys()
         for t in themes:
-            self.theme_menu.addAction(t, lambda t=t: self.setTheme(t),checkable=True)
+            self.theme_menu.addAction(t, lambda t=t: self.setTheme(t))
             #group.addAction(action)
-        self.theme_menu.addAction('Dark', lambda: self.setTheme('dark'),checkable=True)
-        self.theme_menu.addAction('Light', lambda: self.setTheme('light'),checkable=True)
+        self.theme_menu.addAction('Dark', lambda: self.setTheme('dark'))
+        self.theme_menu.addAction('Light', lambda: self.setTheme('light'))
         self.view_menu.addAction(self.theme_menu.menuAction())
 
         self.sheet_menu = QMenu('Sheet', self)
@@ -1251,7 +1256,8 @@ class Application(QMainWindow):
         from . import dialogs
         opts = {'font':core.FONT, 'fontsize':core.FONTSIZE, 'showplotter': core.SHOWPLOTTER,
                 'iconsize':core.ICONSIZE, 'plotstyle':core.PLOTSTYLE, 'dpi':core.DPI,
-                'columnwidth':core.COLUMNWIDTH, 'timeformat':core.TIMEFORMAT}
+                'columnwidth':core.COLUMNWIDTH, 'timeformat':core.TIMEFORMAT,
+                'theme':self.theme}
         dlg = dialogs.PreferencesDialog(self, opts)
         dlg.exec_()
         return
