@@ -90,6 +90,8 @@ class Application(QMainWindow):
         self.setTheme()
         self.setIconSize(QtCore.QSize(core.ICONSIZE, core.ICONSIZE))
         self.showRecentFiles()
+        self.startLogging()
+
         if project_file != None:
             self.openProject(project_file)
         elif csv_file != None:
@@ -186,20 +188,26 @@ class Application(QMainWindow):
 
         for key in self.plotwidgets:
             opts = table.pf.opts[key]
-            #print (opts.kwds)
-            opts.widgets = self.plotwidgets[key]
-            opts.updateWidgets()
-            table.pf.updateData()
+            if key == 'series':
+                df = table.table.model.df
+                #opts.widgets = self.plotwidgets[key]
+                area = self.docks[key].widget()
+                opts.updateWidgets(area, df)
+                self.plotwidgets[key] = opts.widgets
+            else:
+                opts.widgets = self.plotwidgets[key]
+                opts.updateWidgets()
+        table.pf.updateData()
+
         return
 
-    def resetPlotWidgets(self):
-        """Reset plot widgets from defaults in plot options objects"""
+    def startLogging(self):
+        """Logging"""
 
-        defaults = plotting.defaultOptions()
-        for key in self.plotwidgets:
-            opts = defaults[key]
-            opts.widgets = self.plotwidgets[key]
-            opts.updateWidgets()
+        import logging
+        path = os.path.dirname(self.settings.fileName())
+        self.logfile = os.path.join(path, 'error.log')
+        logging.basicConfig(filename=self.logfile,format='%(asctime)s %(message)s')
         return
 
     def loadSettings(self):
@@ -445,6 +453,7 @@ class Application(QMainWindow):
         self.help_menu = QMenu('&Help', self)
         self.menuBar().addSeparator()
         self.menuBar().addMenu(self.help_menu)
+        self.help_menu.addAction('View Error Log', self.showErrorLog)
         icon = QIcon(os.path.join(iconpath,'logo.png'))
         self.help_menu.addAction(icon, '&About', self.about)
 
@@ -1259,6 +1268,15 @@ class Application(QMainWindow):
                 'columnwidth':core.COLUMNWIDTH, 'timeformat':core.TIMEFORMAT,
                 'theme':self.theme}
         dlg = dialogs.PreferencesDialog(self, opts)
+        dlg.exec_()
+        return
+
+    def showErrorLog(self):
+        """Show log file contents"""
+
+        f = open(self.logfile,'r')
+        s = ''.join(f.readlines())
+        dlg = dialogs.TextDialog(self, s, title='Log', width=800, height=400)
         dlg.exec_()
         return
 

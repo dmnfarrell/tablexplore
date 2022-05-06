@@ -179,7 +179,8 @@ class PlotViewer(QWidget):
         self.opts = {'general':MPLBaseOptions(),
                     'format':FormatOptions(),
                     'labels':AnnotationOptions(),
-                    'axes':AxesOptions()
+                    'axes':AxesOptions(),
+                    #'series':SeriesOptions()
                     }
         return
 
@@ -267,6 +268,7 @@ class PlotViewer(QWidget):
             return
         df = self.table.model.df
         self.opts['general'].update(df)
+        #self.opts['series'].update(df)
         return
 
     def clear(self):
@@ -458,9 +460,10 @@ class PlotViewer(QWidget):
         else:
             #special case of twin axes
             if axes_layout == 'twin axes':
+                self.ax.set_visible(False)
                 ax = self.fig.add_subplot(111)
-                ax.get_xaxis().set_ticks([])
-                ax.get_yaxis().set_ticks([])
+                #ax.get_xaxis().set_ticks([])
+                #ax.get_yaxis().set_ticks([])
                 if kind != 'line':
                     self.showWarning('twin axes only supported for line plots')
                     return
@@ -480,7 +483,7 @@ class PlotViewer(QWidget):
 
                 styles = []
                 cmap = plt.cm.get_cmap(kwds['colormap'])
-                #cmap = util.adjustColorMap(cmap, 0.15,1.0)
+
                 i=0
                 handles=[]
                 for col in cols:
@@ -493,8 +496,8 @@ class PlotViewer(QWidget):
                         cax.spines["right"].set_position(("axes", 1+i/20))
                     cax.set_ylabel(col)
                     handles.append(cax.get_lines()[0])
-                    if i>1:
-                        cax.get_xaxis().set_ticks([])
+                    #if i>=1:
+                    #    cax.get_xaxis().set_ticklabels([])
                     i+=1
 
                 ax.legend(handles, cols, loc='best')
@@ -1263,13 +1266,34 @@ def addFigure(parent, figure=None, resize_callback=None):
 
 class BaseOptions(object):
     """Class to generate widget dialog for dict of options"""
-    def __init__(self, parent=None):
+    def __init__(self):
         """Setup variables"""
 
-        self.parent = parent
+        #self.parent = parent
         #opts is used to create the widgets
         #kwds is the dictionary where we store all the key:value pairs
         self.opts = {}
+        self.style = '''
+                    QWidget {
+                        font-size: 12px;
+                        max-width: 240px;
+                    }
+                    QLabel, QLineEdit {
+                        min-width: 60px;
+                    }
+                    QPlainTextEdit {
+                        max-height: 100px;
+                        min-width: 100px;
+                    }
+                    QScrollBar:vertical {
+                         width: 15px;
+                     }
+                    QComboBox {
+                        combobox-popup: 0;
+                        max-height: 30px;
+                        max-width: 120px;
+                    }
+                '''
         return
 
     def setDefaults(self):
@@ -1300,6 +1324,8 @@ class BaseOptions(object):
             wrap: wrap for internal widgets
         """
 
+        self.style = style
+        self.parent = parent
         dialog, widgets = dialogFromOptions(parent, self.opts, self.groups,
                                 wrap=wrap, section_wrap=section_wrap, style=style)
         return dialog, widgets
@@ -1339,10 +1365,9 @@ class MPLBaseOptions(BaseOptions):
     legendlocs = ['best','upper right','upper left','lower left','lower right','right','center left',
                 'center right','lower center','upper center','center']
 
-    def __init__(self, parent=None):
+    def __init__(self):
         """Setup variables"""
 
-        self.parent = parent
         datacols=[]
         layouts = ['single','multiple','twin axes']
         scales = ['linear','log']
@@ -1394,10 +1419,10 @@ class MPLBaseOptions(BaseOptions):
 
 class FormatOptions(BaseOptions):
     """This class also provides custom tools for adding items to the plot"""
-    def __init__(self, parent=None):
+    def __init__(self):
         """Setup variables"""
 
-        self.parent = parent
+        #self.parent = parent
         scales = ['linear','log']
         style_list = ['default', 'classic', 'fivethirtyeight',
                      'seaborn-pastel','seaborn-whitegrid', 'ggplot','bmh',
@@ -1430,7 +1455,7 @@ class FormatOptions(BaseOptions):
 
 class AnnotationOptions(BaseOptions):
     """This class also provides custom tools for adding items to the plot"""
-    def __init__(self, parent=None):
+    def __init__(self):
         """Setup variables"""
 
         from matplotlib import colors
@@ -1448,7 +1473,7 @@ class AnnotationOptions(BaseOptions):
         alignments = ['left','center','right']
         colors = ['black','gray','red','blue','green','orange','purple','cyan','pink']
 
-        self.parent = parent
+        #self.parent = parent
         self.groups = grps = {'global labels':['title','xlabel','ylabel','rotx'],
                              'format': ['font','fontsize','fontweight','color']
                              }
@@ -1492,10 +1517,10 @@ class AnnotationOptions(BaseOptions):
 
 class AxesOptions(BaseOptions):
     """Class for additional formatting options like styles"""
-    def __init__(self, parent=None):
+    def __init__(self):
         """Setup variables"""
 
-        self.parent = parent
+        #self.parent = parent
         self.styles = sorted(plt.style.available)
         formats = ['auto','date','percent','eng','sci notation']
         datefmts = ['','%d','%b %d,''%Y-%m-%d','%d-%m-%Y',"%d-%m-%Y %H:%M"]
@@ -1523,15 +1548,16 @@ class AxesOptions(BaseOptions):
 
 class SeriesOptions(BaseOptions):
     """Class for selecting custom plot types for each series"""
-    def __init__(self, parent=None):
+    def __init__(self):
         """Setup variables"""
 
-        self.parent = parent
+        super(SeriesOptions, self).__init__()
         self.groups = grps = OrderedDict({'main':[]})
-        self.opts = {}
+        self.setDefaults()
         return
 
-    def createWidgets(self, df):
+    def updateWidgets(self, parent, df):
+        """Recreate widgets dynamically"""
 
         opts = self.opts = {}
         self.kwds = {}
@@ -1540,8 +1566,12 @@ class SeriesOptions(BaseOptions):
         cols = [str(c) for c in cols]
         for name in cols:
             self.opts[name] = {'type':'combobox','items':ptypes,'default':''}
-
         self.groups['main'] = self.opts.keys()
+        dialog, widgets = dialogFromOptions(parent, self.opts, self.groups,
+                                style=self.style)
+        self.widgets = widgets
+        #self.parent.setWidget(dialog)
+        #print (self.widgets)
         return
 
     def update(self, df):
@@ -1553,8 +1583,9 @@ class SeriesOptions(BaseOptions):
             cols = list(df.columns)
         #add empty value
         cols = [str(c) for c in cols]
-        cols = ['']+cols
-        for name in cols:
-            self.widgets[name].clear()
-            self.widgets[name].addItems(cols)
+        self.updateWidgets(df)
+        #print (self.widgets)
+        #for name in cols:
+        #    self.widgets[name].clear()
+        #    self.widgets[name].addItems(cols)
         return

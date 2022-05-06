@@ -27,6 +27,8 @@ import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime
 import string
 from .qt import *
+import logging
+logger = logging.getLogger(__name__)
 
 module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
@@ -1425,14 +1427,15 @@ class DataFrameTable(QTableView):
         data = df.iloc[rows,cols]
         #try to get numeric data for plotting
         colnames = data.columns
-        for c in colnames:
-        #for c in range(len(data.columns)):
+        #for c in colnames:
+        #try to get numeric values for plotting
+        for c in range(len(data.columns)):
             #print (data.iloc[:,c])
-            x = pd.to_numeric(data[c], errors='coerce').astype(float)
+            x = pd.to_numeric(data.iloc[:,c], errors='coerce').astype(float)
             if x.isnull().all():
                 continue
-            data[c] = x
-            #data.iloc[:,c] = x
+            #data[c] = x
+            data.iloc[:,c] = x
         return data
 
     def setSelected(self, rows, cols):
@@ -1723,6 +1726,7 @@ class DataFrameTable(QTableView):
         return
 
     def deleteColumn(self, column=None):
+        """Delete column"""
 
         idx = self.getSelectedColumns()
         if len(idx)>0:
@@ -1733,8 +1737,17 @@ class DataFrameTable(QTableView):
                              'Are you sure?', QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.No:
             return False
+
         self.storeCurrent()
-        self.model.df = self.model.df.drop(columns=cols)
+        df = self.model.df
+        #treat duplicates as unique for deleting
+        #dups = df.loc[:,df.columns.duplicated()].columns
+        #if len(dups) == 0:
+        self.model.df.drop(columns=cols, inplace=True)
+        #print (df.columns)
+        #else:
+        #    keep = [x for x in range(df.shape[1]) if x not in idx]
+        #    self.model.df = df.iloc[:, keep]
         self.refresh()
         return
 
