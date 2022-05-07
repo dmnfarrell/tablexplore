@@ -27,8 +27,6 @@ import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime
 import string
 from .qt import *
-import logging
-logger = logging.getLogger(__name__)
 
 module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
@@ -72,7 +70,8 @@ timeformats = ['infer','%d/%m/%Y','%d/%m/%y',
                 '%d%m%Y','%Y%m%d','%Y%d%m',
                 '%d-%b-%Y',
                 '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
-                '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
+                '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M',
+                '%Y','%m','%d','%b']
 
 class ColumnHeader(QHeaderView):
     def __init__(self):

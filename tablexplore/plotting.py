@@ -40,7 +40,6 @@ import numpy as np
 import pandas as pd
 from .qt import *
 from .dialogs import *
-import logging
 from . import util
 
 homepath = os.path.expanduser("~")
@@ -902,11 +901,6 @@ class PlotViewer(QWidget):
             if marker in ['x','+'] and bw == False:
                 ec = clr
 
-            if kwds['logx'] == 1:
-                ax.set_xscale('log')
-            if kwds['logy'] == 1:
-                ax.set_yscale('log')
-
             if axes_layout == 'multiple':
                 ax = self.fig.add_subplot(nrows,ncols,i)
             if pointsizes != '' and pointsizes in df.columns:
@@ -920,6 +914,11 @@ class PlotViewer(QWidget):
             sc = ax.scatter(x, y, marker=marker, alpha=alpha, linewidth=lw, c=c,
                        s=ms, edgecolors=ec, facecolor=clr, cmap=colormap,
                        norm=norm, label=cols[i], picker=True)
+
+            if kwds['logx'] == 1:
+                ax.set_xscale('log')
+            if kwds['logy'] == 1:
+                ax.set_yscale('log')
 
             #create proxy artist for markers so we can return these handles if needed
             mkr = Line2D([0], [0], marker=marker, alpha=alpha, ms=10, markerfacecolor=c,
@@ -1435,9 +1434,10 @@ class FormatOptions(BaseOptions):
         order = ['styles','formats','axes','colors']
         self.groups = OrderedDict((key, grps[key]) for key in order)
         opts = self.opts = {
-                'style':{'type':'combobox','default':'default','items': style_list},
+                'style':{'type':'combobox','default':core.PLOTSTYLE,'items': style_list},
                 'marker':{'type':'combobox','default':'','items': markers},
                 'linestyle':{'type':'combobox','default':'-','items': linestyles},
+                'linewidth':{'type':'doublespinbox','default':2.0,'range':(0,20),'interval':.2,'label':'line width'},
                 'ms':{'type':'spinbox','default':5,'range':(1,80),'interval':1,'label':'marker size'},
                 'grid':{'type':'checkbox','default':0,'label':'show grid'},
                 'cscale':{'type':'combobox','items':scales,'label':'color scale','default':'linear'},
@@ -1446,7 +1446,6 @@ class FormatOptions(BaseOptions):
                 'showxlabels':{'type':'checkbox','default':1,'label':'x tick labels'},
                 'showylabels':{'type':'checkbox','default':1,'label':'y tick labels'},
                 #'loc':{'type':'combobox','default':'best','items':self.legendlocs,'label':'legend loc'},
-                'linewidth':{'type':'doublespinbox','default':2.0,'range':(0,15),'interval':.5,'label':'line width'},
                 'alpha':{'type':'doublespinbox','default':0.9,'range':(.1,1),'interval':.1,'label':'alpha'},
                 'colormap':{'type':'combobox','default':'Spectral','items':colormaps},
                 }
@@ -1523,7 +1522,13 @@ class AxesOptions(BaseOptions):
         #self.parent = parent
         self.styles = sorted(plt.style.available)
         formats = ['auto','date','percent','eng','sci notation']
-        datefmts = ['','%d','%b %d,''%Y-%m-%d','%d-%m-%Y',"%d-%m-%Y %H:%M"]
+        datefmts = ['','%Y','%m','%d','%b','%d/%m/%Y','%d/%m/%y',
+                    '%Y/%m/%d','%y/%m/%d','%Y/%d/%m',
+                    '%d%m%Y','%Y%m%d','%Y%d%m',
+                    '%d-%b-%Y',
+                    '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
+                    '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M'
+                    ]
         self.groups = grps = OrderedDict({'main':['rows','cols','xmin','xmax','ymin','ymax',
                               'major x-ticks','major y-ticks','minor x-ticks','minor y-ticks',
                               'formatter','date format','symbol','precision'],

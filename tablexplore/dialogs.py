@@ -127,7 +127,7 @@ def dialogFromOptions(parent, opts, sections=None,
                 if 'width' in opt:
                     w.setMinimumWidth(opt['width'])
                     w.resize(opt['width'], 20)
-                #w.view().setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+                w.view().setMinimumWidth(120)
                 w.setMaxVisibleItems(12)
             elif t == 'list':
                 w = QListWidget()

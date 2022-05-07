@@ -124,10 +124,11 @@ class Application(QMainWindow):
         style = '''
             QWidget {
                 font-size: 12px;
-                max-width: 240px;
+                max-width: 220px;
             }
-            QLabel, QLineEdit {
+            QLabel {
                 min-width: 60px;
+                width:80px;
             }
             QPlainTextEdit {
                 max-height: 100px;
@@ -139,8 +140,10 @@ class Application(QMainWindow):
             QComboBox {
                 combobox-popup: 0;
                 max-height: 30px;
-                max-width: 120px;
+                max-width: 100px;
             }
+            QListView::item:selected {
+                min-width: 300px;}
         '''
 
         opts = plotting.defaultOptions()
@@ -883,7 +886,7 @@ class Application(QMainWindow):
 
         self.updatePlotWidgets(dfw)
         #set default style
-        pf.opts['format'].setWidgetValue('style', core.PLOTSTYLE)
+        #pf.opts['format'].setWidgetValue('style', core.PLOTSTYLE)
         self.tabs.setCurrentIndex(idx)
         return
 
