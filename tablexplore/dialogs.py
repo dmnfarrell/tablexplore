@@ -36,7 +36,6 @@ from . import util, core
 module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
 
-
 def getName(parent, current='', txt='Enter value'):
     """Wrapper for text inpuit dialog"""
 
@@ -188,6 +187,9 @@ def dialogFromOptions(parent, opts, sections=None,
                     w.setMinimum(min)
                     w.setMaximum(max)
                 w.setValue(val)
+            elif t == 'colorbutton':
+                w = ColorButton()
+                w.setColor(val)
             col+=1
             gl.addWidget(w,row,col)
             w.setStyleSheet(style)
@@ -228,6 +230,8 @@ def getWidgetValues(widgets):
                 val = w.value()
             elif type(w) in [QSpinBox,QDoubleSpinBox]:
                 val = w.value()
+            elif type(w) is ColorButton:
+                val = w.color()
             if val != None:
                 kwds[i] = val
     kwds = kwds
@@ -278,6 +282,58 @@ def addToolBarItems(toolbar, parent, items):
             btn.setCheckable(True)
         toolbar.addAction(btn)
     return toolbar
+
+class ColorButton(QPushButton):
+    '''
+    Custom Qt Widget to show a chosen color.
+
+    Left-clicking the button shows the color-chooser, while
+    right-clicking resets the color to None (no-color).
+    '''
+
+    colorChanged = Signal(object)
+
+    def __init__(self, *args, color=None, **kwargs):
+        super(ColorButton, self).__init__(*args, **kwargs)
+
+        self._color = None
+        self._default = color
+        self.pressed.connect(self.onColorPicker)
+
+        # Set the initial/default state.
+        self.setColor(self._default)
+
+    def setColor(self, color):
+        
+        if color != self._color:
+            self._color = color
+            self.colorChanged.emit(color)
+
+        if self._color:
+            self.setStyleSheet("background-color: %s;" % self._color)
+        else:
+            self.setStyleSheet("")
+
+    def color(self):
+        return self._color
+
+    def onColorPicker(self):
+        '''
+        Show color-picker dialog to select color.
+        Qt will use the native dialog by default.
+        '''
+        dlg = QColorDialog(self)
+        if self._color:
+            dlg.setCurrentColor(QColor(self._color))
+
+        if dlg.exec_():
+            self.setColor(dlg.currentColor().name())
+
+    def mousePressEvent(self, e):
+        if e.button() == Qt.RightButton:
+            self.setColor(self._default)
+
+        return super(ColorButton, self).mousePressEvent(e)
 
 class ProgressWidget(QDialog):
     """Progress widget class"""
@@ -1088,9 +1144,21 @@ class ConvertTypesDialog(BasicDialog):
         self.table.refresh()
         return
 
-class OrganiseDialog(BasicDialog):
+class Renamer():
+    def __init__(self):
+        self.d = dict()
+
+    def __call__(self, x):
+        if x not in self.d:
+            self.d[x] = 0
+            return x
+        else:
+            self.d[x] += 1
+            return "%s_%d" % (x, self.d[x])
+
+class ManageColumnsDialog(BasicDialog):
     """Qdialog for column re-arranging"""
-    def __init__(self, parent, df, title='Organise', app=None):
+    def __init__(self, parent, df, title='Manage Columns', app=None):
 
         BasicDialog.__init__(self, parent, df, title)
         self.table = self.parent.table
@@ -1129,6 +1197,9 @@ class OrganiseDialog(BasicDialog):
         button = QPushButton("Sort Columns")
         button.clicked.connect(self.sort)
         vbox.addWidget(button)
+        button = QPushButton("De-Duplicate")
+        button.clicked.connect(self.deduplicate)
+        vbox.addWidget(button)
         button = QPushButton("Undo")
         button.clicked.connect(self.undo)
         vbox.addWidget(button)
@@ -1138,13 +1209,10 @@ class OrganiseDialog(BasicDialog):
         return bw
 
     def update(self):
-        """Update table"""
+        """Update list"""
 
-        print ('update')
-        self.table.storeCurrent()
-        names = [self.cols_w.item(i).text() for i in range(self.cols_w.count())]
-        self.table.model.df.columns = names
-        self.table.refresh()
+        self.cols_w.clear()
+        self.cols_w.addItems(self.table.model.df.columns)
         return
 
     def delete(self):
@@ -1154,8 +1222,7 @@ class OrganiseDialog(BasicDialog):
         df = self.table.model.df
         self.table.model.df = df.drop(columns=names)
         self.table.refresh()
-        self.cols_w.clear()
-        self.cols_w.addItems(self.table.model.df.columns)
+        self.update()
         return
 
     def sort(self):
@@ -1168,7 +1235,21 @@ class OrganiseDialog(BasicDialog):
         self.table.refresh()
         return
 
+    def deduplicate(self):
+        """Rename duplicate column names"""
+
+        self.table.storeCurrent()
+        df = self.table.model.df
+        cols = df.columns
+        if len(df.columns) == len(set(df.columns)) is True:
+            return
+        self.table.model.df = df.rename(columns=Renamer())
+        self.table.refresh()
+        self.update()
+        return
+
     def undo(self):
+
         self.table.undo()
         self.cols_w.clear()
         self.cols_w.addItems(self.table.model.df.columns)
@@ -1211,14 +1292,17 @@ class PreferencesDialog(QDialog):
                      'grayscale','dark_background']
         themes = QStyleFactory.keys() + ['dark','light']
 
-        self.opts = {'rowheight':{'type':'spinbox','default':18,'range':(5,50),'label':'Row height'},
+        self.opts = {
+                #'rowheight':{'type':'spinbox','default':18,'range':(5,50),'label':'Row height'},
                 'alignment':{'type':'combobox','default':'w','items':['left','right','center'],'label':'Text Align'},
+                'bgcolor':{'type':'colorbutton','default':options['bgcolor'],'label':'Background Color'},
                 'font':{'type':'font','default':defaultfont,'default':options['font']},
                 'fontsize':{'type':'spinbox','default':options['fontsize'],'range':(5,40),
-                            'interval':1,'label':'font size'},
+                            'interval':1,'label':'Font Size'},
                 'timeformat':{'type':'combobox','default':options['timeformat'],
                             'items':timeformats,'label':'Date/Time format'},
-                #'floatprecision':{'type':'spinbox','default':2, 'label':'precision'},
+                'precision':{'type':'spinbox','default':options['precision'], 'range':(0,10),
+                            'interval':1,'label':'Precision'},
                 'showplotter': {'type':'checkbox','default':bool(options['showplotter']), 'label':'Show Plotter'},
                 'plotstyle':{'type':'combobox','default':options['plotstyle'],
                             'items':plotstyles,'label':'Plot Style'},
@@ -1227,8 +1311,8 @@ class PreferencesDialog(QDialog):
                 'theme':{'type':'combobox','default':options['theme'],'items': themes,
                         'label': 'Default Theme'}
                 }
-        sections = {'table':['alignment','rowheight',#'columnwidth',
-                    'font','fontsize','timeformat'],
+        sections = {'table':['alignment','font','fontsize',
+                        'timeformat','precision','bgcolor'],
                     'view':['iconsize','plotstyle','dpi','theme','showplotter']
                     }
 
@@ -1261,7 +1345,9 @@ class PreferencesDialog(QDialog):
         core.FONT = kwds['font']
         core.FONTSIZE = kwds['fontsize']
         #core.COLUMNWIDTH = kwds['columnwidth']
+        core.BGCOLOR = kwds['bgcolor']
         core.TIMEFORMAT = kwds['timeformat']
+        core.PRECISION = kwds['precision']
         core.SHOWPLOTTER = kwds['showplotter']
         core.PLOTSTYLE = kwds['plotstyle']
         core.DPI = kwds['dpi']

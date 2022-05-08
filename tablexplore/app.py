@@ -47,7 +47,7 @@ border-radius: 4px;
 """
 
 class Application(QMainWindow):
-    def __init__(self, project_file=None, csv_file=None):
+    def __init__(self, project_file=None, csv_file=None, excel_file=None):
 
         QMainWindow.__init__(self)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -97,6 +97,9 @@ class Application(QMainWindow):
         elif csv_file != None:
             self.newProject()
             self.importFile(csv_file)
+        elif excel_file != None:
+            self.newProject()
+            self.importExcel(excel_file)
         else:
             self.newProject()
         self.threadpool = QtCore.QThreadPool()
@@ -223,8 +226,10 @@ class Application(QMainWindow):
             self.theme = s.value('theme')
             core.FONT = s.value("font")
             core.FONTSIZE = int(s.value("fontsize"))
+            core.BGCOLOR = s.value('bgcolor')
             core.COLUMNWIDTH = int(s.value("columnwidth"))
             core.TIMEFORMAT = s.value("timeformat")
+            core.PRECISION = int(s.value("precision"))
             core.SHOWPLOTTER = util.valueToBool(s.value("showplotter"))
             core.PLOTSTYLE = s.value("plotstyle")
             core.DPI = int(s.value("dpi"))
@@ -252,7 +257,9 @@ class Application(QMainWindow):
         self.settings.setValue('iconsize', core.ICONSIZE)
         self.settings.setValue('font', core.FONT)
         self.settings.setValue('fontsize', core.FONTSIZE)
+        self.settings.setValue('bgcolor', core.BGCOLOR)
         self.settings.setValue('timeformat', core.TIMEFORMAT)
+        self.settings.setValue('precision', core.PRECISION)
         self.settings.setValue('showplotter', core.SHOWPLOTTER)
         self.settings.setValue('plotstyle', core.PLOTSTYLE)
         self.settings.setValue('dpi', core.DPI)
@@ -416,7 +423,7 @@ class Application(QMainWindow):
         icon = QIcon(os.path.join(iconpath,'tableinfo.png'))
         self.tools_menu.addAction(icon, '&Table Info', lambda: self._call('info'),
                 QtCore.Qt.CTRL + QtCore.Qt.Key_I)
-        self.tools_menu.addAction('Manage Columns', lambda: self._call('organise'))
+        self.tools_menu.addAction('Manage Columns', lambda: self._call('manageColumns'))
         icon = QIcon(os.path.join(iconpath,'clean.png'))
         self.tools_menu.addAction(icon, 'Clean Data', lambda: self._call('cleanData'))
         icon = QIcon(os.path.join(iconpath,'table-duplicates.png'))
@@ -686,7 +693,8 @@ class Application(QMainWindow):
 
             df = table.model.df
             cols = table.getColumnOrder()
-            df = df[cols]
+            if table.checkColumnsUnique() == True:
+                df = df[cols]
             data[i]['table'] = df
             data[i]['meta'] = self.saveMeta(tablewidget)
 
@@ -807,6 +815,13 @@ class Application(QMainWindow):
 
         return
 
+    def importExcel(self, filename=None):
+
+        self.addSheet()
+        w = self.getCurrentTable()
+        w.importExcel(filename)
+        return
+
     def importPickle(self):
 
         self.addSheet()
@@ -866,7 +881,7 @@ class Application(QMainWindow):
         idx = self.tabs.addTab(sheet, name)
         #provide reference to self to dataframewidget
         dfw = DataFrameWidget(sheet, dataframe=df, app=self,
-                                font=core.FONT, fontsize=core.FONTSIZE,
+                                font=core.FONT, fontsize=core.FONTSIZE, bg=core.BGCOLOR,
                                 columnwidth=core.COLUMNWIDTH, timeformat=core.TIMEFORMAT)
         sheet.addWidget(dfw)
         self.sheets[name] = dfw
@@ -1148,6 +1163,7 @@ class Application(QMainWindow):
             w = self.sheets[s].table
             w.font = core.FONT
             w.fontsize = core.FONTSIZE
+            w.model.bg = core.BGCOLOR
             w.refresh()
         return
 
@@ -1268,7 +1284,8 @@ class Application(QMainWindow):
         from . import dialogs
         opts = {'font':core.FONT, 'fontsize':core.FONTSIZE, 'showplotter': core.SHOWPLOTTER,
                 'iconsize':core.ICONSIZE, 'plotstyle':core.PLOTSTYLE, 'dpi':core.DPI,
-                'columnwidth':core.COLUMNWIDTH, 'timeformat':core.TIMEFORMAT,
+                'columnwidth':core.COLUMNWIDTH, 'bgcolor':core.BGCOLOR,
+                'timeformat':core.TIMEFORMAT, 'precision':core.PRECISION,
                 'theme':self.theme}
         dlg = dialogs.PreferencesDialog(self, opts)
         dlg.exec_()
@@ -1329,10 +1346,8 @@ def main():
                         help="Open a dataexplore project file", metavar="FILE")
     parser.add_argument("-i", "--csv", dest="csv_file",
                         help="Import a csv file", metavar="FILE")
-    #parser.add_argument("-x", "--excel", dest="excel",
-    #                    help="Import an excel file", metavar="FILE")
-    #parser.add_argument("-t", "--test", dest="test",  action="store_true",
-    #                    default=False, help="Run a basic test app")
+    parser.add_argument("-x", "--excel", dest="excel_file",
+                        help="Import an excel file", metavar="FILE")
     args = vars(parser.parse_args())
 
     app = QApplication(sys.argv)

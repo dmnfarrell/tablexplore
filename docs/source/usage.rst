@@ -7,12 +7,12 @@ Most of this functionality is available when you just use the table widget as we
 Purpose of the program
 -----------------------
 
-This program is for analyzing tabular data but is not meant to be a spreadsheet. Data is treated in a row/column centric fashion and a lot of the analysis is done in bulk on entire columns at once. So although you can edit cells it is not really meant for data entry. You can use a spreadsheet for that. Cell formulas are not possible for instance. You can however delete rows, columns and clear blocks of cells. New columns can be created through the use of functions. The primary goal is to let users explore their tables interactively without any prior programming knowledge and make interesting plots as they do this. One advantage is the ability to load and work with relatively large tables as compared to spreadsheets. So several million rows should not be a problem and is limited only by your computer memory.
+This program is for analyzing tabular data but is not meant to be a spreadsheet. Data is treated in a row/column centric fashion and a lot of the analysis is done in bulk on entire rows/columns at once. So although you can edit cells it is not especially meant for data entry. You can use a spreadsheet for that and then import the data. Cell formulas are not possible for instance. You can however delete rows, columns and clear blocks of cells. New columns can be created through the use of basic functions. The primary goal is to let users explore their tables interactively without any prior programming knowledge and make interesting plots as they do this.
 
 Interface layout
 ----------------
 
-The table is laid out with headers for row and columns. Much functionality can be accessed from the tools menu but also but right clicking on the row and column headers. You can resize columns by dragging in the header. Rows cannot be resized independently (zoom in to enlarge). Unlike spreadsheets column and ro headers can use indexes. You can set any column as an index. This has extra functionality when it comes to plotting.
+The table is laid out with headers for row and columns. Much functionality can be accessed from the tools menu but also by right clicking on the row and column headers. You can resize columns by dragging in the header. Rows cannot be resized independently (zoom in to enlarge). Unlike spreadsheets column and row headers can use indexes (arbitrary labels). You can set any column as an index. This has extra functionality when it comes to plotting. Duplicate column name indexes are allowed though should be avoided if you want predictable behaviour.
 
 .. image:: overview.png
 
@@ -29,23 +29,23 @@ Launching tablexplore from the command line allows you to provide several option
 
 ``tablexplore -p <project file>``
 
-**Open a dataframe stored as a messagepack file:**
-
-``tablexplore -f <file.txpl>``
-
 **Open a csv file and try to import it:**
 
 ``tablexplore -i <csv file>``
+
+**Open an excel file and try to import it:**
+
+``tablexplore -x <excel file>``
 
 Import text files
 -----------------
 
 Import of csv and general plain text formats is done from the file menu, toolbar or by right-clicking anywhere in the table and using the context menu. The dialog has most basic options such as delimiter, header selection, comment symbol, rows to skip etc. When you change the import option you can update the preview to see if the new table will look correct. You then press import. Note that it is generally a good idea to remove empty lines and bad data if you can before importing.
 
-Saving data
------------
+Saving your work
+----------------
 
-tablexplore projects (multiple groups of sheets with the plot view for each) are saved in **pickle** format and have the .txpl file extension. Note: it is not recommended that you use this project format for long term backup as it is subject to change with new versions. You should *always keep a copy your raw data* if it is important. Exporting to csv is also possible and saving individual tables to excel.
+tablexplore projects (multiple groups of sheets with the plot and settings for each) are saved in **pickle** format and have the .txpl file extension. The program will remember table selections also. Note: it is not recommended that you use this project format for long term backup as it is subject to change with new versions. You should *always keep a copy your raw data* if it is important. Exporting to csv is also possible and saving individual tables to excel files.
 
 Getting table info
 ------------------
@@ -58,7 +58,7 @@ The status bar at the bottom left shows the size of the table in rows and column
 Cleaning data
 -------------
 
-Pandas supports a variety of options for data 'cleaning' or dealing with missing data. The most basic are available from tablexplore from the main menu.
+Pandas supports a variety of options for data 'cleaning' or dealing with missing data. The most basic are available in tablexplore from the main menu.
 
 * Drop rows/columns with missing (empty) data
 * Fill missing data with a symbol

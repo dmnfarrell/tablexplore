@@ -44,6 +44,7 @@ SHOWPLOTTER = True
 ICONSIZE = 26
 PLOTSTYLE = 'default'
 DPI = 100
+BGCOLOR = '#F4F4F3'
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -261,11 +262,12 @@ class DataFrameWidget(QWidget):
             self.refresh()
         return
 
-    def importExcel(self):
+    def importExcel(self, filename=None):
         """Import excel file"""
 
-        options = QFileDialog.Options()
-        filename, _ = QFileDialog.getOpenFileName(self,"Import Excel",
+        if filename == None:
+            options = QFileDialog.Options()
+            filename, _ = QFileDialog.getOpenFileName(self,"Import Excel",
                              "","xlsx files (*.xlsx);;xls Files (*.xls);;All Files (*)",
                              options=options)
         if filename:
@@ -439,12 +441,12 @@ class DataFrameWidget(QWidget):
             self.showSubTable(new)
         return
 
-    def organise(self):
+    def manageColumns(self):
         """Edit columns"""
 
         df = self.table.model.df
         cols = df.columns
-        dlg = dialogs.OrganiseDialog(self, df)
+        dlg = dialogs.ManageColumnsDialog(self, df)
         dlg.exec_()
         if not dlg.accepted:
             return
@@ -795,11 +797,11 @@ class DataFrameWidget(QWidget):
         df = self.table.model.df
         st='01/01/2022'
         en='02/01/2022'
-        freqs = ['M','W','D','H','min','S','Q','A','AS','L','U']
+        freqs = ['auto','M','W','D','H','min','S','Q','A','AS','L','U']
         opts = {
                 'start':  {'type':'entry','default':st,'label':'Start','tooltip':'start value if filling with range'},
                 'end':  {'type':'entry','default':en,'label':'End','tooltip':'end value if filling with range'},
-                'freq': {'type':'combobox','default':'D','items':freqs,'label':'Freq'}
+                'freq': {'type':'combobox','default':'auto','items':freqs,'label':'Freq'}
                 }
         dlg = dialogs.MultipleInputDialog(self, opts, title='Fill Dates', width=300)
         dlg.exec_()
@@ -809,8 +811,12 @@ class DataFrameWidget(QWidget):
         start = kwds['start']
         end = kwds['end']
         freq = kwds['freq']
+        periods = None
+        if freq == 'auto':
+            freq=None
+            periods = len(df)
         l=len(df)
-        data = pd.date_range(start=start, end=end, freq=freq)[:l]
+        data = pd.date_range(start=start, end=end, freq=freq, periods=periods)[:l]
         #print (data)
         self.table.storeCurrent()
         self.table.model.df[column] = data
@@ -1229,7 +1235,8 @@ class DataFrameTable(QTableView):
     QTableView with pandas DataFrame as model.
     """
     def __init__(self, parent=None, dataframe=None, font='Arial',
-                    fontsize=12, columnwidth=80, timeformat='%m-%d-%Y', **kwargs):
+                    fontsize=12, columnwidth=80, timeformat='%m-%d-%Y',
+                    bg='#F4F4F3', **kwargs):
 
         QTableView.__init__(self)
         self.parent = parent
@@ -1284,6 +1291,7 @@ class DataFrameTable(QTableView):
 
         tm = DataFrameModel(dataframe)
         self.setModel(tm)
+        tm.bg = bg
         self.model = tm
         self.filtered = False
         self.setWordWrap(True)
@@ -1397,6 +1405,12 @@ class DataFrameTable(QTableView):
         logidx = [hh.logicalIndex(i) for i in range(0,self.model.columnCount())]
         cols = [df.columns[i] for i in logidx]
         return cols
+
+    def checkColumnsUnique(self):
+        """Check if columns are all unique"""
+
+        df = self.model.df
+        return len(df.columns) == len(set(df.columns))
 
     def getSelectedRows(self):
 
@@ -1896,6 +1910,7 @@ class DataFrameModel(QtCore.QAbstractTableModel):
         https://www.pythonguis.com/tutorials/pyside-qtableview-modelviews-numpy-pandas/
         """
 
+        floatfmt = '{0:.%sf}' %PRECISION
         i = index.row()
         j = index.column()
         #print (self.df.dtypes)
@@ -1914,8 +1929,8 @@ class DataFrameModel(QtCore.QAbstractTableModel):
             elif type(value) != str:
                 if type(value) in [float,np.float64] and np.isnan(value):
                     return ''
-                elif type(value) == np.float:
-                    return value
+                elif type(value) in [float,np.float64]:
+                    return floatfmt.format(value)
                 else:
                     return (str(value))
             else:

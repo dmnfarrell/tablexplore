@@ -2,11 +2,16 @@
 0.5.0
 -----
 
-* Re-did plot widgets, now movable docks
-* Now saves table selections, scroll position
-* Improvements to pie plot
-* Try to always get numeric values for plotting
+* re-did plot widgets, now movable docks
+* now saves table selections, scroll position
+* improvements to pie plot
+* try to always get numeric values for plotting
 * scratchpad stores plots, tables, text
+* xlabel rotation fix
+* de-duplicate col names option
+* float precision setting
+* background color setting
+* column fill dates
 
 -----
 0.4.1
