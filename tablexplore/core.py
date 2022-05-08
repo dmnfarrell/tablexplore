@@ -20,7 +20,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-import sys, os, io
+import sys, os, io, platform
 import tempfile
 import numpy as np
 import pandas as pd
@@ -32,19 +32,31 @@ module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
 pluginiconpath = os.path.join(module_path, 'plugins', 'icons')
 textalignment = None
-MODES = ['default','spreadsheet','locked']
-FONT = 'monospace'
-FONTSIZE = 12
-FONTSTYLE = ''
-COLUMNWIDTH = 80
-TIMEFORMAT = '%m/%d/%Y'
-PRECISION = 3
-ROWHEIGHT = 20
-SHOWPLOTTER = True
-ICONSIZE = 26
-PLOTSTYLE = 'default'
-DPI = 100
-BGCOLOR = '#F4F4F3'
+
+if 'Windows' in platform.platform():
+    defaultfont = 'Arial'
+else:
+    defaultfont = 'Monospace'
+#default settings, used across modules
+defaults = {'MODES':['default','spreadsheet','locked'],
+            'FONT' :defaultfont,
+            'FONTSIZE' : 12,
+            'FONTSTYLE' :'',
+            'ALIGNMENT' : 'w',
+            'COLUMNWIDTH' : 80,
+            'TIMEFORMAT' :'%m/%d/%Y',
+            'PRECISION' :3,
+            'ROWHEIGHT' :20,
+            'SHOWPLOTTER' : True,
+            'ICONSIZE' : 26,
+            'PLOTSTYLE'  :'bmh',
+            'DPI' : 100,
+            'BGCOLOR' : '#F4F4F3',
+            'THEME': 'Fusion'
+}
+#populate current class variable
+for k in defaults:
+    vars()[k] = defaults[k]
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8

@@ -1282,11 +1282,10 @@ class Application(QMainWindow):
         """Preferences dialog"""
 
         from . import dialogs
-        opts = {'font':core.FONT, 'fontsize':core.FONTSIZE, 'showplotter': core.SHOWPLOTTER,
-                'iconsize':core.ICONSIZE, 'plotstyle':core.PLOTSTYLE, 'dpi':core.DPI,
-                'columnwidth':core.COLUMNWIDTH, 'bgcolor':core.BGCOLOR,
-                'timeformat':core.TIMEFORMAT, 'precision':core.PRECISION,
-                'theme':self.theme}
+        opts = {}
+        for k in core.defaults.keys():
+            opts[k] = getattr(core,k)
+        opts['THEME'] = self.theme
         dlg = dialogs.PreferencesDialog(self, opts)
         dlg.exec_()
         return

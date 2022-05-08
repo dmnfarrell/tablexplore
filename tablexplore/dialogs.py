@@ -304,7 +304,7 @@ class ColorButton(QPushButton):
         self.setColor(self._default)
 
     def setColor(self, color):
-        
+
         if color != self._color:
             self._color = color
             self.colorChanged.emit(color)
@@ -1275,11 +1275,7 @@ class PreferencesDialog(QDialog):
         """create widgets"""
 
         import pylab as plt
-        import platform
-        if 'Windows' in platform.platform():
-            defaultfont = 'Arial'
-        else:
-            defaultfont = 'FreeSans'
+
         colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
         timeformats = ['%m/%d/%Y','%d/%m/%Y','%d/%m/%y',
                 '%Y/%m/%d','%y/%m/%d','%Y/%d/%m',
@@ -1294,26 +1290,26 @@ class PreferencesDialog(QDialog):
 
         self.opts = {
                 #'rowheight':{'type':'spinbox','default':18,'range':(5,50),'label':'Row height'},
-                'alignment':{'type':'combobox','default':'w','items':['left','right','center'],'label':'Text Align'},
-                'bgcolor':{'type':'colorbutton','default':options['bgcolor'],'label':'Background Color'},
-                'font':{'type':'font','default':defaultfont,'default':options['font']},
-                'fontsize':{'type':'spinbox','default':options['fontsize'],'range':(5,40),
+                'ALIGNMENT':{'type':'combobox','default':'w','items':['left','right','center'],'label':'Text Align'},
+                'BGCOLOR':{'type':'colorbutton','default':options['BGCOLOR'],'label':'Background Color'},
+                'FONT':{'type':'font','default':options['FONT'],'label':'Font'},
+                'FONTSIZE':{'type':'spinbox','default':options['FONTSIZE'],'range':(5,40),
                             'interval':1,'label':'Font Size'},
-                'timeformat':{'type':'combobox','default':options['timeformat'],
+                'TIMEFORMAT':{'type':'combobox','default':options['TIMEFORMAT'],
                             'items':timeformats,'label':'Date/Time format'},
-                'precision':{'type':'spinbox','default':options['precision'], 'range':(0,10),
+                'PRECISION':{'type':'spinbox','default':options['PRECISION'], 'range':(0,10),
                             'interval':1,'label':'Precision'},
-                'showplotter': {'type':'checkbox','default':bool(options['showplotter']), 'label':'Show Plotter'},
-                'plotstyle':{'type':'combobox','default':options['plotstyle'],
+                'SHOWPLOTTER': {'type':'checkbox','default':bool(options['SHOWPLOTTER']), 'label':'Show Plotter'},
+                'PLOTSTYLE':{'type':'combobox','default':options['PLOTSTYLE'],
                             'items':plotstyles,'label':'Plot Style'},
-                'dpi':{'type':'entry','default':100,'default':options['dpi'], 'label':'Plot DPI'},
-                'iconsize':{'type':'spinbox','default':options['iconsize'],'range':(16,64), 'label':'Icon Size'},
-                'theme':{'type':'combobox','default':options['theme'],'items': themes,
+                'DPI':{'type':'entry','default':100,'default':options['DPI'], 'label':'Plot DPI'},
+                'ICONSIZE':{'type':'spinbox','default':options['ICONSIZE'],'range':(16,64), 'label':'Icon Size'},
+                'THEME':{'type':'combobox','default':options['THEME'],'items': themes,
                         'label': 'Default Theme'}
                 }
-        sections = {'table':['alignment','font','fontsize',
-                        'timeformat','precision','bgcolor'],
-                    'view':['iconsize','plotstyle','dpi','theme','showplotter']
+        sections = {'table':['ALIGNMENT','FONT','FONTSIZE',
+                        'TIMEFORMAT','PRECISION','BGCOLOR'],
+                    'view':['ICONSIZE','PLOTSTYLE','DPI','THEME','SHOWPLOTTER']
                     }
 
         dialog, self.widgets = dialogFromOptions(self, self.opts, sections)
@@ -1332,6 +1328,9 @@ class PreferencesDialog(QDialog):
         button = QPushButton("Apply")
         button.clicked.connect(self.apply)
         vbox.addWidget(button)
+        button = QPushButton("Reset")
+        button.clicked.connect(self.reset)
+        vbox.addWidget(button)
         button = QPushButton("Close")
         button.clicked.connect(self.close)
         vbox.addWidget(button)
@@ -1342,19 +1341,44 @@ class PreferencesDialog(QDialog):
 
         kwds = getWidgetValues(self.widgets)
         from . import core
-        core.FONT = kwds['font']
-        core.FONTSIZE = kwds['fontsize']
+        core.FONT = kwds['FONT']
+        core.FONTSIZE = kwds['FONTSIZE']
         #core.COLUMNWIDTH = kwds['columnwidth']
-        core.BGCOLOR = kwds['bgcolor']
-        core.TIMEFORMAT = kwds['timeformat']
-        core.PRECISION = kwds['precision']
-        core.SHOWPLOTTER = kwds['showplotter']
-        core.PLOTSTYLE = kwds['plotstyle']
-        core.DPI = kwds['dpi']
-        core.ICONSIZE = kwds['iconsize']
-        self.parent.theme = kwds['theme']
+        core.BGCOLOR = kwds['BGCOLOR']
+        core.TIMEFORMAT = kwds['TIMEFORMAT']
+        core.PRECISION = kwds['PRECISION']
+        core.SHOWPLOTTER = kwds['SHOWPLOTTER']
+        core.PLOTSTYLE = kwds['PLOTSTYLE']
+        core.DPI = kwds['DPI']
+        core.ICONSIZE = kwds['ICONSIZE']
+        self.parent.theme = kwds['THEME']
         self.parent.refresh()
         self.parent.applySettings()
+        return
+
+    def updateWidgets(self, kwds=None):
+        """Update widgets from stored or supplied kwds"""
+
+        if kwds == None:
+            kwds = self.kwds
+        for k in kwds:
+            setWidgetValues(self.widgets, {k: kwds[k]})
+        return
+
+    def setDefaults(self):
+        """Populate default kwds dict"""
+
+        self.kwds = {}
+        for o in self.opts:
+            self.kwds[o] = core.defaults[o]
+        return
+
+    def reset(self):
+        """Reset to defaults"""
+
+        self.setDefaults()
+        self.updateWidgets()
+        self.apply()
         return
 
 class FindReplaceDialog(QWidget):
