@@ -53,7 +53,6 @@ Getting table info
 The status bar at the bottom left shows the size of the table in rows and columns at all times. For a more detailed summary use Tools->Table info. This brings up a window showing the type of each column and memory usage. 'object' columns are those with text/mixed data and float and int must be numbers only.
 
 .. image:: table_info.png
-     :scale: 80%
 
 Cleaning data
 -------------
@@ -152,7 +151,6 @@ Resampling columns
 Resampling is a way to average data over specific windows or periods. It is a possible way to smooth out noisy data for example or get an average trend. You can resample columns from the column header menu. In the example below this is used to smooth out the sawtooth shaped C02 data. The larger the window the more averaging will take place.
 
 .. image:: resample_example.gif
-      :scale: 60 %
 
 Plot options
 ------------
