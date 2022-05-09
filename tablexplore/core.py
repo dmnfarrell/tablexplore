@@ -32,21 +32,20 @@ module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
 pluginiconpath = os.path.join(module_path, 'plugins', 'icons')
 textalignment = None
+MODES = ['default','spreadsheet','locked']
 
 if 'Windows' in platform.platform():
     defaultfont = 'Arial'
 else:
     defaultfont = 'Monospace'
 #default settings, used across modules
-defaults = {'MODES':['default','spreadsheet','locked'],
+defaults = {
             'FONT' :defaultfont,
             'FONTSIZE' : 12,
-            'FONTSTYLE' :'',
             'ALIGNMENT' : 'w',
             'COLUMNWIDTH' : 80,
             'TIMEFORMAT' :'%m/%d/%Y',
             'PRECISION' :3,
-            'ROWHEIGHT' :20,
             'SHOWPLOTTER' : True,
             'ICONSIZE' : 26,
             'PLOTSTYLE'  :'bmh',
@@ -1075,7 +1074,7 @@ class DataFrameWidget(QWidget):
 
     def transpose(self):
 
-        self.table.model.df = self.table.model.df.T
+        self.table.model.df = self.table.model.df.T        
         self.refresh()
         return
 
@@ -1973,18 +1972,19 @@ class DataFrameModel(QtCore.QAbstractTableModel):
     def headerData(self, col, orientation, role):
         """What's displayed in the headers"""
 
-        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
-            return str(self.df.columns[col])
-        if orientation == QtCore.Qt.Vertical and role == QtCore.Qt.DisplayRole:
-            value = self.df.index[col]
-            if type( self.df.index) == pd.DatetimeIndex:
-                if not value is pd.NaT:
-                    try:
-                        return value.strftime(TIMEFORMAT)
-                    except:
-                        return ''
-            else:
-                return str(value)
+        if role == QtCore.Qt.DisplayRole:
+            if orientation == QtCore.Qt.Horizontal:
+                return str(self.df.columns[col])
+            if orientation == QtCore.Qt.Vertical:
+                value = self.df.index[col]
+                if type( self.df.index) == pd.DatetimeIndex:
+                    if not value is pd.NaT:
+                        try:
+                            return value.strftime(TIMEFORMAT)
+                        except:
+                            return ''
+                else:
+                    return str(value)
         return None
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):

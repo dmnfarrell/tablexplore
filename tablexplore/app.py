@@ -211,15 +211,28 @@ class Application(QMainWindow):
         """Logging"""
 
         import logging
-        path = os.path.dirname(self.settings.fileName())
+        if platform.system() == 'Windows':
+            path = QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.ConfigLocation)
+            print (path)
+        else:
+            path = os.path.dirname(self.settings.fileName())
         self.logfile = os.path.join(path, 'error.log')
         logging.basicConfig(filename=self.logfile,format='%(asctime)s %(message)s')
         return
+
+    def checkSettings(self):
+        """Check for missing settings"""
+
+        for s in core.defaults:
+            k = s.lower()
+            if k not in self.settings.childKeys():
+                self.settings.setValue(k,core.defaults[s])
 
     def loadSettings(self):
         """Load GUI settings"""
 
         s = self.settings = QtCore.QSettings('tablexplore','default')
+        self.checkSettings()
         try:
             self.resize(s.value('window_size'))
             self.move(s.value('window_position'))

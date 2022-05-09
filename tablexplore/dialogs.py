@@ -1200,6 +1200,9 @@ class ManageColumnsDialog(BasicDialog):
         button = QPushButton("De-Duplicate")
         button.clicked.connect(self.deduplicate)
         vbox.addWidget(button)
+        #button = QPushButton("Convert to String")
+        #button.clicked.connect(self.convert)
+        #vbox.addWidget(button)
         button = QPushButton("Undo")
         button.clicked.connect(self.undo)
         vbox.addWidget(button)
@@ -1212,7 +1215,7 @@ class ManageColumnsDialog(BasicDialog):
         """Update list"""
 
         self.cols_w.clear()
-        self.cols_w.addItems(self.table.model.df.columns)
+        self.cols_w.addItems(self.table.model.df.columns.astype(str))
         return
 
     def delete(self):
@@ -1229,9 +1232,8 @@ class ManageColumnsDialog(BasicDialog):
 
         df=self.table.model.df
         cols = df.columns
-        self.cols_w.clear()
         self.table.model.df.columns = sorted(cols)
-        self.cols_w.addItems(self.table.model.df.columns)
+        self.update()
         self.table.refresh()
         return
 
@@ -1246,6 +1248,14 @@ class ManageColumnsDialog(BasicDialog):
         self.table.model.df = df.rename(columns=Renamer())
         self.table.refresh()
         self.update()
+        return
+
+    def convert(self):
+        self.table.storeCurrent()
+        df = self.table.model.df
+        cols = df.columns
+        self.table.model.df.columns = df.columns.astype(str)
+        self.table.refresh()
         return
 
     def undo(self):
