@@ -1,4 +1,4 @@
-Using the program
+Using the Program
 =================
 
 This page details some of the tasks available in tablexplore. For a general introduction also see the screencast at https://youtu.be/Ss0QIFywt74.
@@ -12,7 +12,7 @@ This program is for analyzing tabular data but is not meant to be a spreadsheet.
 Interface layout
 ----------------
 
-The table is laid out with headers for row and columns. Much functionality can be accessed from the tools menu but also by right clicking on the row and column headers. You can resize columns by dragging in the header. Rows cannot be resized independently (zoom in to enlarge). Unlike spreadsheets column and row headers can use indexes (arbitrary labels). You can set any column as an index. This has extra functionality when it comes to plotting. Duplicate column name indexes are allowed though should be avoided if you want predictable behaviour.
+The table is laid out with headers for row and columns. Much functionality can be accessed from the tools menu but also by right clicking on the row and column headers. You can resize columns by dragging in the header. Rows cannot be resized independently (zoom in to enlarge). Unlike spreadsheets column and row headers can use indexes (arbitrary labels). You can set any column as an index. This has extra functionality when it comes to plotting. Duplicate column name indexes are allowed though should be avoided if you want predictable behaviour. Every table has a vertical toolbar on the right and a plot view associated with it. You can make the plot hidden if needed.
 
 .. image:: overview.png
 
@@ -93,20 +93,24 @@ The primary way to summarize data is to use the aggregate dialog. It is accessed
 
 It is often easiest to test the selections out until you get the required result.
 
+Pivoting tables
+---------------
+
+Pivot tables is an operation some people might be familiar with from excel. A pivot might best be described as way of summarizing data by 'unstacking' the grouped data into new columns. It is a more specialized version of the aggregation method above. A comprehensive explanation is given here: https://www.dataquest.io/blog/pandas-pivot-table/ The example below shows the titanic data being pivoted to show average ages per sex by pclass.
+
+.. image:: pivot_example.gif
+
 Merging two tables
 ------------------
 
 Merging tables is done in tablexplore by first putting your second table in the sub-table below. You can do that by pasting it from another sheet or making an empty sub-table and importing. Once this is done you open the merge dialog in the toolbar. You select which columns in each table to merge on (at least one columns should be shared between each). The apply and the result is opened in the dialog to preview. You can copy this to a new sheet.
 
-Pivoting tables
----------------
-
-Pivot tables is an operation some people might be familiar with from excel. A pivot might best be described as way of summarizing data by 'unstacking' the grouped data into new columns. It is a more specialized version of the aggregation method above. A comprehensive explanation is given here: https://www.dataquest.io/blog/pandas-pivot-table/
+.. image:: merge_example.gif
 
 Transpose tables
 ----------------
 
-A transpose is rotating the table on its axes so the rows become columns and vice versa. This can be useful for plotting purposes when you want to treat the row data as series. This is illustrated in the animation below where the same table is plotted first with the years as series and then with 'col1' and 'col2' as series and years as data points. Your row index will become the new columns when you transpose, so you should make sure the **correct index is set** beforehand. If you make a mistake you can undo or transpose again to reverse. Note: transposing extremely large tables might be slow.
+A transpose is rotating the table on its axes so the rows become columns and vice versa. This can be useful for plotting purposes when you want to treat the row data as series. This is illustrated in the animation below. Your row index will become the new columns when you transpose, so you should make sure the **correct index is set** beforehand. If you make a mistake you can undo or transpose again to reverse. Note: transposing extremely large tables might be slow.
 
 .. image:: transpose_example.gif
 
@@ -115,21 +119,23 @@ Filtering tables
 
 Filtering tables is done using either a string query and/or one or more pre-defined filters defined with widgets.
 
-Query with widgets
-++++++++++++++++++
+Filter with widgets
++++++++++++++++++++
 
 Pressing the filtering button will bring up the dialog below the table. Manual predefined filters can be added by pressing the + button. These are used alone or in conjunction with the string query as shown below. The filters are joined together using the first menu item using either 'AND', 'OR' or 'NOT' boolean logic. When filtered results are found the found rows are highlighted. You can also limit the table to show the filtered set which can be treated as usual (i.e. plots made etc). Closing the query box restores the full table. If you want to keep the filtered table you can copy and paste in another sheet.
 
-String query
-++++++++++++
+String filter
++++++++++++++
 
-String based query are made up fairly intuitive expressions. The one caveat is that column names cannot contain spaces to be used in an expression. It is best in these cases to convert column names (i.e. replace spaces with an underscore '_'). You may also use Python/pandas style expressions to perform filters, useful with string based queries.
+String based queries are made up fairly intuitive expressions in Python syntax. The one caveat is that column names cannot contain spaces to be used in an expression. It is best in these cases to convert column names (i.e. replace spaces with an underscore '_'). You may also use Python/pandas style expressions to perform filters, useful with string based queries.
 
-Examples::
+Examples of string filters::
 
     x>4 and y<3 #filter by values of columns x and y
     x.str.contains("abc") #find only values of column x containing substring #abc
     x.str.len()>3 #find only rows where length of strings in x is greater than 3
+
+Example of usage:
 
 .. image:: filtering_example.gif
 
@@ -148,23 +154,23 @@ It may sometimes be necessary to re-format column names, for example to remove u
 Resampling columns
 ------------------
 
-Resampling is a way to average data over specific windows or periods. It is a possible way to smooth out noisy data for example or get an average trend. You can resample columns from the column header menu. In the example below this is used to smooth out the sawtooth shaped C02 data. The larger the window the more averaging will take place.
+Resampling is a way to average data over specific windows or periods. It is a possible way to smooth out noisy data for example or get an average trend. You can resample columns from the column header menu. In the example below we create a date column and then use resampling to smooth out the data in another column using a window of 7.
 
 .. image:: resample_example.gif
 
 Plot options
 ------------
 
-The plot frame has an options dialog underneath with multiple tabs grouped by functionality. Most default formatting options such as the type of plot, whether to show a legend etc. are in the first tab. The dialogs may look a bit cluttered for some users but the idea is to have all available options quickly accessible rather than hidden in menus. If you use the program regularly you will be familiar with where things are. Some of the less obvious options are explained in the image below.
+The plot options are a series of docked widgets on the right side of the plot, grouped by functionality. The docks can be dragged to the other sides of the application window or closed. Re-opening is done from the dock menu. Most default formatting options such as the type of plot, whether to show a legend etc. are in the 'general' tab. If you use the program regularly you will be familiar with where things are.
 
 .. image:: plot_options.png
 
 The following plot types are currently supported:
 
 * line
-* scatter
 * bar
 * barh
+* scatter
 * pie
 * histogram
 * box plot
@@ -174,18 +180,15 @@ The following plot types are currently supported:
 * hexbin
 * contour
 * scatter matrix
-* venn
-
-Other tabs contain options for grid layouts, text annotation such as titles and text boxes, and access to the plot animation settings.
 
 Plotting grouped data
 ---------------------
 
-Rather than grouping the table directly it is also possible to plot data grouped. This requires you select the appropriate columns including the one to be grouped by and select the grouping column in the 'groupby' menu in the plot options. Plots can be grouped by 2 columns at once.
-
-Plotting in a grid
-------------------
-
+Rather than grouping the table directly and then plotting, it is also possible to plot data grouped. This requires you select the appropriate columns including the one to be grouped by and select the grouping column in the 'groupby' menu in the plot options. Plots can be grouped by 1-2 columns at once.
 
 Setting preferences
 -------------------
+
+Application settings are set from the Edit->Preferences menu. The image below shows the settings which are mostly self explanatory. If settings get corrupted or you want to restor defaults use the 'reset' button.
+
+.. image:: preferences.png

@@ -330,7 +330,7 @@ class ColorButton(QPushButton):
             self.setColor(dlg.currentColor().name())
 
     def mousePressEvent(self, e):
-        if e.button() == Qt.RightButton:
+        if e.button() == QtCore.Qt.RightButton:
             self.setColor(self._default)
 
         return super(ColorButton, self).mousePressEvent(e)
@@ -1340,10 +1340,8 @@ class PreferencesDialog(QDialog):
         """Apply options to current table"""
 
         kwds = getWidgetValues(self.widgets)
-        from . import core
         core.FONT = kwds['FONT']
         core.FONTSIZE = kwds['FONTSIZE']
-        #core.COLUMNWIDTH = kwds['columnwidth']
         core.BGCOLOR = kwds['BGCOLOR']
         core.TIMEFORMAT = kwds['TIMEFORMAT']
         core.PRECISION = kwds['PRECISION']
