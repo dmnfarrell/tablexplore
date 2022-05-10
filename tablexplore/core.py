@@ -116,10 +116,12 @@ class ItemEditorFactory(QItemEditorFactory):
         super().__init__()
 
     def createEditor(self, userType, parent):
-        if userType == QtCore.QVariant.Double:
+        print (userType)
+        #if userType == QVariant.Double:
+        if userType == 6:
             doubleSpinBox = QDoubleSpinBox(parent)
-            doubleSpinBox.setDecimals(3)
-            #doubleSpinBox.setMaximum(1000)
+            doubleSpinBox.setDecimals(5)
+            doubleSpinBox.setMinimum(-1e6)
             return doubleSpinBox
         else:
             return super().createEditor(userType, parent)
@@ -1074,7 +1076,7 @@ class DataFrameWidget(QWidget):
 
     def transpose(self):
 
-        self.table.model.df = self.table.model.df.T        
+        self.table.model.df = self.table.model.df.T
         self.refresh()
         return
 
@@ -1315,9 +1317,9 @@ class DataFrameTable(QTableView):
             hh.setSectionsClickable(False)
             #hh.setStyle(HeaderProxyStyle())
 
-        #styledItemDelegate=QStyledItemDelegate()
-        #styledItemDelegate.setItemEditorFactory(ItemEditorFactory())
-        #self.setItemDelegate(styledItemDelegate)
+        styledItemDelegate = QStyledItemDelegate()
+        styledItemDelegate.setItemEditorFactory(ItemEditorFactory())
+        self.setItemDelegate(styledItemDelegate)
 
         #temp file for undo
         file, self.undo_file = tempfile.mkstemp(suffix='.pkl')
@@ -1698,7 +1700,9 @@ class DataFrameTable(QTableView):
         return
 
     def setIndex(self, column):
+        """Set column as index"""
 
+        self.storeCurrent()
         self.model.df.set_index(column, inplace=True)
         self.refresh()
         return
@@ -1952,6 +1956,8 @@ class DataFrameModel(QtCore.QAbstractTableModel):
             #print (value,type(value))
             if type(value) is str:
                 return value
+            if type(value) in [int,np.int64]:
+                return int(value)
             if np.isnan(value):
                 return ''
             if type(value) in [float,np.float64]:

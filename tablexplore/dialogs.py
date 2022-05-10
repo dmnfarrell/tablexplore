@@ -1163,6 +1163,7 @@ class ManageColumnsDialog(BasicDialog):
         BasicDialog.__init__(self, parent, df, title)
         self.table = self.parent.table
         self.setGeometry(QtCore.QRect(400, 300, 600, 600))
+        self.checknumeric()
         return
 
     def createWidgets(self):
@@ -1200,9 +1201,6 @@ class ManageColumnsDialog(BasicDialog):
         button = QPushButton("De-Duplicate")
         button.clicked.connect(self.deduplicate)
         vbox.addWidget(button)
-        #button = QPushButton("Convert to String")
-        #button.clicked.connect(self.convert)
-        #vbox.addWidget(button)
         button = QPushButton("Undo")
         button.clicked.connect(self.undo)
         vbox.addWidget(button)
@@ -1215,7 +1213,7 @@ class ManageColumnsDialog(BasicDialog):
         """Update list"""
 
         self.cols_w.clear()
-        self.cols_w.addItems(self.table.model.df.columns.astype(str))
+        self.cols_w.addItems(self.table.model.df.columns)
         return
 
     def delete(self):
@@ -1232,7 +1230,7 @@ class ManageColumnsDialog(BasicDialog):
 
         df=self.table.model.df
         cols = df.columns
-        self.table.model.df.columns = sorted(cols)
+        self.table.model.df = df[sorted(cols)]
         self.update()
         self.table.refresh()
         return
@@ -1250,12 +1248,30 @@ class ManageColumnsDialog(BasicDialog):
         self.update()
         return
 
-    def convert(self):
-        self.table.storeCurrent()
+    def checknumeric(self):
+        """Check if any cols numeric"""
+
         df = self.table.model.df
         cols = df.columns
+        f=False
+        for c in cols:
+            if type(c) in [float,int]:
+                f=True
+        if f is True:
+            reply = QMessageBox.question(self, 'Convert?',
+                                 'Some columns are numeric. Convert to string?',
+                                  QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                self.convert()
+        return
+
+    def convert(self):
+
+        self.table.storeCurrent()
+        df = self.table.model.df
         self.table.model.df.columns = df.columns.astype(str)
         self.table.refresh()
+        self.update()
         return
 
     def undo(self):

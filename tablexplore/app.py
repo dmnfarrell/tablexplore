@@ -225,7 +225,7 @@ class Application(QMainWindow):
 
         for s in core.defaults:
             k = s.lower()
-            if k not in self.settings.childKeys():
+            if k not in self.settings.childKeys():                
                 self.settings.setValue(k,core.defaults[s])
 
     def loadSettings(self):
