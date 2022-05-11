@@ -213,7 +213,8 @@ class Application(QMainWindow):
         import logging
         if platform.system() == 'Windows':
             path = QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.ConfigLocation)
-            print (path)
+            if not os.path.exists(path):
+                os.makedirs(path)
         else:
             path = os.path.dirname(self.settings.fileName())
         self.logfile = os.path.join(path, 'error.log')
@@ -225,7 +226,7 @@ class Application(QMainWindow):
 
         for s in core.defaults:
             k = s.lower()
-            if k not in self.settings.childKeys():                
+            if k not in self.settings.childKeys():
                 self.settings.setValue(k,core.defaults[s])
 
     def loadSettings(self):

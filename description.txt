@@ -1,18 +1,18 @@
 Introduction
 ------------
 
-Tablexplore is an application for data analysis and plotting built in Python
+Tablexplore is an application for data analysis and plotting built in Python 
 using the PySide2/Qt toolkit. It uses the pandas DataFrame class to store the
- table data. Pandas is an open source Python library providing high-performance
- data structures and data analysis tools.
+table data. Pandas is an open source Python library providing high-performance
+data structures and data analysis tools.
 
 This application is intended primarily for educational/scientific use and allows
- quick visualization of data with convenient plotting. The primary goal is to
-  let users explore their tables interactively without any prior programming
-  knowledge and make interesting plots as they do this. One advantage is the
-  ability to load and work with relatively large tables as compared to spreadsheets.
-  The focus is on data manipulation rather than data entry. Though basic cell
-  editing and row/column changes are supported.
+quick visualization of data with convenient plotting. The primary goal is to
+let users explore their tables interactively without any prior programming
+knowledge and make interesting plots as they do this. One advantage is the
+ability to load and work with relatively large tables as compared to spreadsheets.
+The focus is on data manipulation rather than data entry. Though basic cell
+editing and row/column changes are supported.
 
 Installation
 ------------
