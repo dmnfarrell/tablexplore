@@ -160,6 +160,7 @@ def dialogFromOptions(parent, opts, sections=None,
                     min = int(min)
                     max = int(max)
                     w.setRange(min,max)
+                    w.setMaximum(max)
                     w.setMinimum(min)
                 if 'interval' in opt:
                     w.setSingleStep(opt['interval'])
@@ -1328,7 +1329,8 @@ class PreferencesDialog(QDialog):
                 'SHOWPLOTTER': {'type':'checkbox','default':bool(options['SHOWPLOTTER']), 'label':'Show Plotter'},
                 'PLOTSTYLE':{'type':'combobox','default':options['PLOTSTYLE'],
                             'items':plotstyles,'label':'Plot Style'},
-                'DPI':{'type':'entry','default':100,'default':options['DPI'], 'label':'Plot DPI'},
+                'DPI':{'type':'entry','default':options['DPI'],#'range':(20,300),'interval':10,
+                        'label':'Plot DPI'},
                 'ICONSIZE':{'type':'spinbox','default':options['ICONSIZE'],'range':(16,64), 'label':'Icon Size'},
                 'THEME':{'type':'combobox','default':options['THEME'],'items': themes,
                         'label': 'Default Theme'}

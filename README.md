@@ -51,6 +51,10 @@ A Windows standalone binary can be downloaded [here](https://dmnfarrell.github.i
 
 <img src=img/scr1.png width=600px>
 
+## Usage
+
+See [documentation](https://tablexplore.readthedocs.io/en/latest/)
+
 ## Videos
 
 * [Introduction](https://youtu.be/0_KGjrNWpb4 )
@@ -96,4 +100,5 @@ if __name__ == '__main__':
 ## See also
 
 * [Homepage](https://dmnfarrell.github.io/tablexplore/)
+* [documentation](https://tablexplore.readthedocs.io/en/latest/)
 * [pandastable - Tkinter based version](https://github.com/dmnfarrell/pandastable)

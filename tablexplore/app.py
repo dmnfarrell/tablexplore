@@ -478,8 +478,9 @@ class Application(QMainWindow):
         self.menuBar().addSeparator()
         self.menuBar().addMenu(self.help_menu)
         self.help_menu.addAction('View Error Log', self.showErrorLog)
+        self.help_menu.addAction('Online Help', self.online_documentation)
         icon = QIcon(os.path.join(iconpath,'logo.png'))
-        self.help_menu.addAction(icon, '&About', self.about)
+        self.help_menu.addAction(icon, 'About', self.about)
 
         #plot shortcut
         self.plotshc = QShortcut(QKeySequence('Ctrl+P'), self)
@@ -1317,7 +1318,7 @@ class Application(QMainWindow):
         """Open the online documentation"""
 
         import webbrowser
-        link='https://github.com/dmnfarrell/tablexplore'
+        link = 'https://tablexplore.readthedocs.io/en/latest/'
         webbrowser.open(link,autoraise=1)
         return
 

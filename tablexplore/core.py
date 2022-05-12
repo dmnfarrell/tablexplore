@@ -116,7 +116,7 @@ class ItemEditorFactory(QItemEditorFactory):
         super().__init__()
 
     def createEditor(self, userType, parent):
-        print (userType)
+        #print (userType)
         #if userType == QVariant.Double:
         if userType == 6:
             doubleSpinBox = QDoubleSpinBox(parent)
