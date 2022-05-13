@@ -1243,6 +1243,47 @@ class HeaderProxyStyle(QProxyStyle):
             element, option, painter, widget
         )
 
+class HeaderView(QHeaderView):
+    """"
+    Column header class.
+    """
+    def __init__(self, parent):
+        super(HeaderView, self).__init__(QtCore.Qt.Horizontal, parent)
+        '''self.setStyleSheet(
+            "QHeaderView::section{background-color: #ffffff; "
+            "font-weight: bold; "
+            "border-bottom: 1px solid gray;}")'''
+
+        self.setDefaultAlignment(QtCore.Qt.AlignLeft|QtCore.Qt.Alignment(QtCore.Qt.TextWordWrap))
+        sizePol = QSizePolicy()
+        sizePol.setVerticalPolicy(QSizePolicy.Maximum)
+        sizePol.setHorizontalPolicy(QSizePolicy.Maximum)
+        self.setSizePolicy(sizePol)
+        self.MAX_HEIGHT = 240
+        self.setMinimumHeight(26)
+        self.setMaximumHeight(self.MAX_HEIGHT )
+        self.setSectionsClickable(True)
+        self.setSelectionBehavior(QTableView.SelectColumns)
+        self.setStretchLastSection(False)
+        return
+
+    def sectionSizeFromContents(self, logicalIndex):
+        """Get section size from contents"""
+
+        text = self.model().headerData(logicalIndex, self.orientation(), QtCore.Qt.DisplayRole)
+        alignment = self.defaultAlignment()
+        metrics = QFontMetrics(self.fontMetrics())
+        width = metrics.boundingRect(QtCore.QRect(), alignment, text).width()
+
+        heights = []
+        for i in range(self.count()):
+            text = self.model().headerData(i, self.orientation(),QtCore.Qt.DisplayRole)
+            size = self.sectionSize(i)
+            rect = QtCore.QRect(0, 0, size, self.MAX_HEIGHT)
+            heights.append(metrics.boundingRect(rect, alignment, text).height())
+        height = sorted(heights)[-1] + 5
+        return QtCore.QSize(width, height)
+
 class DataFrameTable(QTableView):
     """
     QTableView with pandas DataFrame as model.
@@ -1259,22 +1300,18 @@ class DataFrameTable(QTableView):
         self.timeformat = timeformat
         self.clicked.connect(self.showSelection)
         #self.doubleClicked.connect(self.handleDoubleClick)
-        #self.setSelectionBehavior(QTableView.SelectRows)
-        #self.setSelectionBehavior(QTableView.SelectColumns)
-        #vh = self.vheader = RowHeader()
-        #self.setVerticalHeader(vh)
+
         vh = self.verticalHeader()
         vh.setVisible(True)
         vh.setDefaultSectionSize(30)
         vh.setMinimumWidth(50)
         vh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         vh.customContextMenuRequested.connect(self.rowHeaderMenu)
-        #vh.sectionClicked.connect(self.rowClicked)
 
+        self.headerview = HeaderView(self)
+        self.setHorizontalHeader(self.headerview)
         hh = self.horizontalHeader()
-        hh.setVisible(True)
 
-        #hh.setSectionResizeMode(QHeaderView.ResizeToContents)
         hh.setDefaultSectionSize(columnwidth)
         hh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         hh.customContextMenuRequested.connect(self.columnHeaderMenu)
@@ -1283,9 +1320,8 @@ class DataFrameTable(QTableView):
         hh.setSectionsMovable(True)
         hh.setSelectionBehavior(QTableView.SelectColumns)
         hh.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        hh.setDefaultAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.Alignment(QtCore.Qt.TextWordWrap))
-        #hh.setMaximumHeight(30)
-        hh.setFixedHeight(28)
+        hh.setDefaultAlignment(QtCore.Qt.AlignLeft|QtCore.Qt.Alignment(QtCore.Qt.TextWordWrap))
+
         #formats
         self.setDragEnabled(True)
         self.viewport().setAcceptDrops(True)

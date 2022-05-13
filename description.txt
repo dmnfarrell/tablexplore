@@ -1,7 +1,7 @@
 Introduction
 ------------
 
-Tablexplore is an application for data analysis and plotting built in Python 
+Tablexplore is an application for data analysis and plotting built in Python
 using the PySide2/Qt toolkit. It uses the pandas DataFrame class to store the
 table data. Pandas is an open source Python library providing high-performance
 data structures and data analysis tools.
@@ -14,16 +14,20 @@ ability to load and work with relatively large tables as compared to spreadsheet
 The focus is on data manipulation rather than data entry. Though basic cell
 editing and row/column changes are supported.
 
+Documentation
+-------------
+
+https://readthedocs.org/projects/tablexplore/
+
 Installation
 ------------
 
-::
-  pip install -e git+https://github.com/dmnfarrell/tablexplore.git#egg=tablexplore
+pip install -e git+https://github.com/dmnfarrell/tablexplore.git#egg=tablexplore
 
 Windows
 -------
 
-A Windows standalone binary can be downloaded at https://dmnfarrell.github.io/tablexplore/.
+A Windows standalone binary can be downloaded at https://github.com/dmnfarrell/tablexplore/releases/latest.
 
 Use the widget in Python
 ------------------------
@@ -64,6 +68,8 @@ Code::
 Links
 -----
 
-https://github.com/dmnfarrell/pandastable
+https://github.com/dmnfarrell/tablexplore/
+
+https://dmnfarrell.github.io/tablexplore/
 
 https://www.youtube.com/watch?v=nscmtsG5SKQ
