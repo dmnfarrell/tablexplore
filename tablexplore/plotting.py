@@ -167,11 +167,19 @@ class PlotViewer(QWidget):
     def setFigure(self, figure):
         """Recreate canvas with given figure"""
 
+        self.clear()
         self.canvas.figure = figure
         self.fig = self.canvas.figure
         self.ax = self.canvas.ax
         self.canvas.draw()
         return
+
+    def getFigureSize(self):
+
+        fig=self.fig
+        bbox = fig.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+        width, height = int(bbox.width), int(bbox.height)
+        return (width,height)
 
     def createOptions(self):
         """Create option attributes for plotter"""

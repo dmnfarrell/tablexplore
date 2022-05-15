@@ -45,16 +45,6 @@ style = '''
     }
 '''
 
-class PlotDocker(QWidget):
-    def __init__(self, parent=None):
-        super(PlotDocker, self).__init__(parent)
-        self.createDialogs()
-
-    def createDialogs(self):
-        """Create widgets"""
-
-        return
-
 class ScratchPad(QWidget):
     """Temporary storage widget for plots and other items.
     Currently supports storing text, mpl figures and dataframes"""
@@ -103,7 +93,7 @@ class ScratchPad(QWidget):
         self.main.clear()
         for name in items:
             obj = items[name]
-            #print (type(obj))
+            #print (name,type(obj))
             if type(obj) is str:
                 te = dialogs.PlainTextEditor()
                 te.setPlainText(obj)

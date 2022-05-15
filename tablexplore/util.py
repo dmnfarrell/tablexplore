@@ -27,6 +27,8 @@ import string, copy
 import numpy as np
 import pandas as pd
 import matplotlib
+import pylab as plt
+import matplotlib.colors as colors
 
 def valueToBool(value):
     return value.lower() == 'true' if isinstance(value, str) else bool(value)
@@ -204,14 +206,15 @@ def gen_colors(cmap,n,reverse=False):
         colorlist.reverse()
     return colorlist
 
-def show_colors(colors):
+def show_colors(colors, ax=None):
     """display a list of colors"""
 
-    plt.figure(figsize=(6,1))
-    plt.bar(range(len(colors)),height=1,color=colors,width=1)
-    plt.axis('off')
+    if ax == None:
+        f,ax = plt.subplots(1,1,figsize=(6,1))
+    ax.bar(range(len(colors)),height=1,color=colors,width=1)
+    ax.axis('off')
     return
-    
+
 def checkOS():
     """Check the OS we are in"""
 

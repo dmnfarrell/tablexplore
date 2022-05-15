@@ -1330,6 +1330,7 @@ class DataFrameTable(QTableView):
         vh.setVisible(True)
         vh.setDefaultSectionSize(30)
         vh.setMinimumWidth(50)
+        vh.setMaximumWidth(500)
         vh.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         vh.customContextMenuRequested.connect(self.rowHeaderMenu)
 
@@ -1397,6 +1398,7 @@ class DataFrameTable(QTableView):
         font.setPointSize(int(self.fontsize))
         self.setFont(font)
         self.horizontalHeader().setFont(font)
+        self.verticalHeader().setFont(font)
         return
 
     def refresh(self):

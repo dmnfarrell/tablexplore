@@ -81,6 +81,9 @@ class ExamplePlugin(Plugin):
         button = QPushButton("Colormaps Demo")
         button.clicked.connect(self.colorMapDemo)
         vbox.addWidget(button)
+        button = QPushButton("Sample Colormaps")
+        button.clicked.connect(self.showColorMaps)
+        vbox.addWidget(button)
         button = QPushButton("Random Format")
         button.clicked.connect(self.randomFormat)
         vbox.addWidget(button)
@@ -121,6 +124,26 @@ class ExamplePlugin(Plugin):
             self.table.plot()
             QtCore.QCoreApplication.processEvents()
             time.sleep(0.3)
+        return
+
+    def showColorMaps(self):
+
+        cmaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
+        pf = self.table.pf
+        n=20
+        figsize = pf.getFigureSize()
+        print (figsize)
+        fig,ax=plt.subplots(n,1,figsize=figsize)
+        axs=ax.flat
+        for i in range(n):
+            cmap = random.choice(cmaps)
+            colors = util.gen_colors(cmap,8)
+            util.show_colors(colors, ax=axs[i])
+            axs[i].text(0.5, 0.5, cmap, horizontalalignment='center',
+                    verticalalignment='center', transform=axs[i].transAxes)
+        plt.tight_layout()
+        pf.setFigure(fig)
+        #plt.show()
         return
 
     def randomFormat(self):

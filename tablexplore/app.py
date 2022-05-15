@@ -473,9 +473,7 @@ class Application(QMainWindow):
         self.menuBar().addMenu(self.help_menu)
         self.help_menu.addAction('View Error Log', self.showErrorLog)
         url = 'https://tablexplore.readthedocs.io/en/latest/'
-        self.help_menu.addAction('Online Help', lambda url: self.open_url(url))
-        url = 'https://matplotlib.org/3.5.0/gallery/color/colormap_reference.html'
-        self.help_menu.addAction('Colormap Ref', lambda url: self.open_url(url))
+        self.help_menu.addAction('Online Help', lambda: self.open_url(url))
         icon = QIcon(os.path.join(iconpath,'logo.png'))
         self.help_menu.addAction(icon, 'About', self.about)
 
@@ -1219,7 +1217,7 @@ class Application(QMainWindow):
         """Cache the current plot so it can be viewed later"""
 
         w = self.getCurrentTable()
-        if label == None:
+        if label == None or label is False:
             index = self.tabs.currentIndex()
             name = self.tabs.tabText(index)
             t = time.strftime("%H:%M:%S")
@@ -1278,8 +1276,7 @@ class Application(QMainWindow):
 
         if plugin.name in openplugins:
             p = openplugins[plugin.name]
-            #p.main.show()
-            print (self.docks)
+            self.docks[plugin.name].show()
         else:
             try:
                 p = plugin(parent=self, table=tablew)
@@ -1294,6 +1291,7 @@ class Application(QMainWindow):
         return
 
     def showPlugin(self, plugin):
+        """Add plugin as dock widget"""
 
         dockstyle = '''
             QDockWidget::title {
@@ -1307,6 +1305,7 @@ class Application(QMainWindow):
         dock.setWidget(area)
         area.setWidget(plugin.main)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock)
+        self.docks[plugin.name] = dock
         return
 
     def updatePluginMenu(self):
