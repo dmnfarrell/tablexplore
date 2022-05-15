@@ -1,4 +1,13 @@
 -----
+0.6.0
+-----
+
+* fix to duplicate sheet bug
+* column headers resize to fit wrapped text
+* changed plugins to dock in app, not table
+* udpated tests plugin
+
+-----
 0.5.0
 -----
 

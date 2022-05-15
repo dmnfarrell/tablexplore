@@ -41,6 +41,7 @@ import pandas as pd
 from .qt import *
 from .dialogs import *
 from . import util
+import logging
 
 homepath = os.path.expanduser("~")
 module_path = os.path.dirname(os.path.abspath(__file__))
@@ -48,7 +49,7 @@ iconpath = os.path.join(module_path, 'icons')
 
 colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
 markers = ['','o','.','^','v','>','<','s','+','x','p','d','h','*']
-linestyles = ['-','--','-.',':','steps']
+linestyles = ['-','--','-.',':']
 valid_kwds = {'line': ['alpha', 'colormap', 'grid', 'legend', 'linestyle','ms',
                   'linewidth', 'marker', 'subplots', 'rotx', 'logx', 'logy',
                   'sharex','sharey', 'kind'],
@@ -1355,6 +1356,20 @@ class BaseOptions(object):
         self.setWidgetValue(key, new)
         return
 
+    def randomSettings(self):
+        """Get random settings"""
+
+        kwds = self.kwds
+        for k in kwds:
+            opt = self.opts[k]
+            if opt['type'] == 'combobox':
+                kwds[k] = random.choice(opt['items'])
+            elif opt['type'] == 'spinbox':
+                if 'range' in opt.keys():
+                    r=opt['range']
+                    kwds[k] = random.randint(r[0],r[1])
+        return
+
 class MPLBaseOptions(BaseOptions):
     """Class to provide a dialog for matplotlib options and returning
         the selected prefs"""
@@ -1488,7 +1503,7 @@ class AnnotationOptions(BaseOptions):
                 'boxstyle':{'type':'combobox','default':'square','items': bstyles},
                 'text':{'type':'scrolledtext','default':'','width':20},
                 #'align':{'type':'combobox','default':'center','items': alignments},
-                'font':{'type':'combobox','default':defaultfont,'items':fonts},
+                'font':{'type':'font','default':defaultfont,'items':fonts},
                 'fontsize':{'type':'spinbox','default':12,'range':(4,50),'label':'font size'},
                 'fontweight':{'type':'combobox','default':'normal','items': fontweights},
                 'color':{'type':'combobox','default':'black','items': colors},
@@ -1589,8 +1604,9 @@ class SeriesOptions(BaseOptions):
         #add empty value
         cols = [str(c) for c in cols]
         self.updateWidgets(df)
-        #print (self.widgets)
-        #for name in cols:
-        #    self.widgets[name].clear()
-        #    self.widgets[name].addItems(cols)
         return
+
+class CustomizeOptions():
+    """Class for selecting more custom plot options.  """
+    def __init__(self):
+        """Setup variables"""

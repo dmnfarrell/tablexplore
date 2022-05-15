@@ -27,7 +27,7 @@ from collections import OrderedDict
 from tablexplore.qt import *
 import pandas as pd
 import numpy as np
-from tablexplore import util, data, core, dialogs
+from tablexplore import util, core, dialogs
 from tablexplore.plugin import Plugin
 import pylab as plt
 

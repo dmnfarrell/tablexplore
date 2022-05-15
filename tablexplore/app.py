@@ -29,7 +29,7 @@ from .qt import *
 import pandas as pd
 from .core import DataFrameModel, DataFrameTable, DataFrameWidget
 from .plotting import PlotViewer
-from . import util, data, core, dialogs, widgets, plotting
+from . import util, core, dialogs, widgets, plotting
 
 homepath = os.path.expanduser("~")
 module_path = os.path.dirname(os.path.abspath(__file__))
@@ -194,17 +194,9 @@ class Application(QMainWindow):
 
         for key in self.plotwidgets:
             opts = table.pf.opts[key]
-            if key == 'series':
-                df = table.table.model.df
-                #opts.widgets = self.plotwidgets[key]
-                area = self.docks[key].widget()
-                opts.updateWidgets(area, df)
-                self.plotwidgets[key] = opts.widgets
-            else:
-                opts.widgets = self.plotwidgets[key]
-                opts.updateWidgets()
+            opts.widgets = self.plotwidgets[key]
+            opts.updateWidgets()
         table.pf.updateData()
-
         return
 
     def startLogging(self):
@@ -428,10 +420,12 @@ class Application(QMainWindow):
         self.sheet_menu.addAction(icon, 'Add', self.addSheet)
         self.sheet_menu.addAction('Rename', self.renameSheet)
         icon = QIcon(os.path.join(iconpath,'copy.png'))
-        self.sheet_menu.addAction(icon, '&Copy', self.copySheet)
-        self.sheet_menu.addAction('Concat', self.concatSheets)
+        #self.sheet_menu.addAction(icon, 'Copy', self.copySheet)
+        self.sheet_menu.addAction(icon, 'Duplicate', self.duplicateSheet)
+        self.sheet_menu.addAction('Join', self.concatSheets)
         icon = QIcon(os.path.join(iconpath,'merge.png'))
         self.sheet_menu.addAction(icon, 'Merge', self.mergeSheets)
+        self.sheet_menu.addAction('Clear All', self.clearSheets)
 
         self.tools_menu = QMenu('Tools', self)
         icon = QIcon(os.path.join(iconpath,'tableinfo.png'))
@@ -478,7 +472,10 @@ class Application(QMainWindow):
         self.menuBar().addSeparator()
         self.menuBar().addMenu(self.help_menu)
         self.help_menu.addAction('View Error Log', self.showErrorLog)
-        self.help_menu.addAction('Online Help', self.online_documentation)
+        url = 'https://tablexplore.readthedocs.io/en/latest/'
+        self.help_menu.addAction('Online Help', lambda url: self.open_url(url))
+        url = 'https://matplotlib.org/3.5.0/gallery/color/colormap_reference.html'
+        self.help_menu.addAction('Colormap Ref', lambda url: self.open_url(url))
         icon = QIcon(os.path.join(iconpath,'logo.png'))
         self.help_menu.addAction(icon, 'About', self.about)
 
@@ -936,6 +933,8 @@ class Application(QMainWindow):
     def renameSheet(self):
         """Rename the current sheet"""
 
+        if len(self.sheets) == 0:
+            return
         index = self.tabs.currentIndex()
         name = self.tabs.tabText(index)
         new, ok = QInputDialog.getText(self, 'New name', 'Name:',
@@ -950,21 +949,26 @@ class Application(QMainWindow):
             self.tabs.setTabText(index, new)
         return
 
-    def copySheet(self):
-        """Copy sheet"""
+    def duplicateSheet(self):
+        """Make a copy of a sheet"""
 
+        if len(self.sheets) == 0:
+            return
         index = self.tabs.currentIndex()
         name = self.tabs.tabText(index)
-        df = self.sheets[name].table.model.df
+        df = self.sheets[name].table.model.df.copy()
+        meta = self.saveMeta(self.sheets[name])
         new, ok = QInputDialog.getText(self, 'New name', 'Name:',
                     QLineEdit.Normal, name+'_copy')
         if ok:
-            self.addSheet(new, df)
+            self.addSheet(new, df, meta=meta)
         return
 
     def concatSheets(self):
         """Combine sheets into one table"""
 
+        if len(self.sheets) == 0:
+            return
         names = self.sheets.keys()
         if len(names) < 2:
             return
@@ -996,6 +1000,8 @@ class Application(QMainWindow):
     def mergeSheets(self):
         """Merge two sheets"""
 
+        if len(self.sheets) < 2:
+            return
         names = self.sheets.keys()
         opts = {'sheet1':{'type':'combobox','default':'','items':names},
                 'sheet2':{'type':'combobox','default':'','items':names}
@@ -1012,6 +1018,19 @@ class Application(QMainWindow):
         dlg.exec_()
         if not dlg.accepted:
             return
+        return
+
+    def clearSheets(self, ask=True):
+        """Clear all sheets"""
+
+        if ask == True:
+            reply = QMessageBox.question(self, 'Clear all sheets?',
+                                 'This will remove all sheets. Are you sure?',
+                                 QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.No:
+                return
+        self.tabs.clear()
+        self.sheets = {}
         return
 
     def showPlotFrame(self):
@@ -1097,11 +1116,11 @@ class Application(QMainWindow):
                 cols = kwds['cols']
                 n = kwds['n']
             if ok:
-                df = data.getSampleData(rows,cols,n)
+                df = util.getSampleData(rows,cols,n)
             else:
                 return
         else:
-            df = data.getPresetData(name)
+            df = util.getPresetData(name)
         self.addSheet(sheetname,df)
         return
 
@@ -1196,18 +1215,20 @@ class Application(QMainWindow):
             self.scratchpad.update(self.scratch_items)
         return
 
-    def plotToScratchpad(self):
+    def plotToScratchpad(self, label=None):
         """Cache the current plot so it can be viewed later"""
 
         w = self.getCurrentTable()
-        index = self.tabs.currentIndex()
-        name = self.tabs.tabText(index)
+        if label == None:
+            index = self.tabs.currentIndex()
+            name = self.tabs.tabText(index)
+            t = time.strftime("%H:%M:%S")
+            label = name+'-'+t
         #get the current figure and make a copy of it by using pickle
         fig = w.pf.fig
         p = pickle.dumps(fig)
         fig = pickle.loads(p)
-        t = time.strftime("%H:%M:%S")
-        label = name+'-'+t
+
         self.scratch_items[label] = fig
         if hasattr(self, 'scratchpad'):
             self.scratchpad.update(self.scratch_items)
@@ -1257,22 +1278,35 @@ class Application(QMainWindow):
 
         if plugin.name in openplugins:
             p = openplugins[plugin.name]
-            p.main.show()
+            #p.main.show()
+            print (self.docks)
         else:
-            #plugin should be added to the splitter as a dock widget
-            #should also be able to add standalone windows
             try:
                 p = plugin(parent=self, table=tablew)
                 #track which plugin is running
                 openplugins[plugin.name] = p
             except Exception as e:
                 QMessageBox.information(self, "Plugin error", str(e))
+                return
 
-            if 'docked' in p.capabilities:
-                tablew.splitter.addWidget(p.main)
-                index = tablew.splitter.indexOf(p.main)
-                tablew.splitter.setCollapsible(index, False)
+            #plugin should be added as a dock widget
+            self.showPlugin(p)
+        return
 
+    def showPlugin(self, plugin):
+
+        dockstyle = '''
+            QDockWidget::title {
+                background-color: #d7edce;
+            }
+        '''
+        dock = QDockWidget(plugin.name)
+        dock.setStyleSheet(dockstyle)
+        area = QScrollArea()
+        area.setWidgetResizable(True)
+        dock.setWidget(area)
+        area.setWidget(plugin.main)
+        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock)
         return
 
     def updatePluginMenu(self):
@@ -1314,12 +1348,11 @@ class Application(QMainWindow):
         dlg.exec_()
         return
 
-    def online_documentation(self,event=None):
+    def open_url(self,url='',event=None):
         """Open the online documentation"""
 
         import webbrowser
-        link = 'https://tablexplore.readthedocs.io/en/latest/'
-        webbrowser.open(link,autoraise=1)
+        webbrowser.open(url,autoraise=1)
         return
 
     def about(self):

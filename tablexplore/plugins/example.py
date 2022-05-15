@@ -25,7 +25,7 @@ import pickle, gzip
 from collections import OrderedDict
 from tablexplore.qt import *
 import pandas as pd
-from tablexplore import util, data, core, dialogs
+from tablexplore import util, core, dialogs
 from tablexplore.plugin import Plugin
 
 class ExamplePlugin(Plugin):
@@ -36,7 +36,7 @@ class ExamplePlugin(Plugin):
     requires = ['']
     menuentry = 'Example Plugin'
     name = 'Example Plugin'
-    
+
     def __init__(self, parent=None, table=None):
         """Customise this and/or doFrame for your widgets"""
 
@@ -56,14 +56,11 @@ class ExamplePlugin(Plugin):
     def createWidgets(self):
         """Create widgets if GUI plugin"""
 
-        if 'docked' in self.capabilities:
-            self.main = QDockWidget()
-        else:
-            self.main = QWidget()
-        self.frame = QWidget(self.main)
-        self.main.setWidget(self.frame)
-        layout = self.layout = QHBoxLayout()
-        self.frame.setLayout(layout)
+        self.main = QWidget()
+
+        layout = self.layout = QVBoxLayout()
+        layout.setAlignment(QtCore.Qt.AlignTop)
+        self.main.setLayout(layout)
         tb = self.textbox = dialogs.PlainTextEditor()
         tb.resize(300,300)
         layout.addWidget(tb)
@@ -72,12 +69,12 @@ class ExamplePlugin(Plugin):
         'for code examples.'
         tb.insertPlainText(text)
         #add a table widget
-        t = self.tablewidget = core.DataFrameWidget(self.frame, font=core.FONT,
+        t = self.tablewidget = core.DataFrameWidget(self.main, font=core.FONT,
                                     statusbar=False, toolbar=False)
         t.resize(300,300)
         layout.addWidget(self.tablewidget)
         #add some buttons
-        bw = self.createButtons(self.frame)
+        bw = self.createButtons(self.main)
         layout.addWidget(bw)
         return
 

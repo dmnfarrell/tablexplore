@@ -836,6 +836,31 @@ class DataFrameWidget(QWidget):
         self.refresh()
         return
 
+    def fillStrings(self, column):
+        """Fill column with string data"""
+
+        df = self.table.model.df
+        chartypes = ['lower','upper','printable']
+        opts = {'length': {'type':'spinbox','default':5,'label':'Length'},
+                'chartype':{'type':'combobox','items':chartypes,'default':'lower','label':'Word type'},
+            }
+        dlg = dialogs.MultipleInputDialog(self, opts, title='Fill String', width=300)
+        dlg.exec_()
+        if not dlg.accepted:
+            return
+        kwds = dlg.values
+        namelen = kwds['length']
+        chartype = kwds['chartype']
+        if chartype == 'lower':
+            data = [util.gen_lower(namelen) for i in range(len(df))]
+        elif chartype == 'upper':
+            data = [util.gen_upper(namelen) for i in range(len(df))]
+        else:
+            data = [util.gen_word(namelen) for i in range(len(df))]
+        self.table.storeCurrent()
+        self.table.model.df[column] = data
+        self.refresh()
+
     def fillData(self, column):
         """Fill column with data"""
 
@@ -1621,10 +1646,14 @@ class DataFrameTable(QTableView):
         addColumnAction = colmenu.addAction("Add Column")
         setTypeAction = colmenu.addAction("Set Data Type")
         convertNumericAction = colmenu.addAction("Convert to Numeric")
-
         menu.addAction(colmenu.menuAction())
-        filldataAction = menu.addAction("Fill Data")
-        filldatesAction = menu.addAction("Fill Dates")
+
+        fillmenu = QMenu("Fill",menu)
+        filldataAction = fillmenu.addAction("Fill Data")
+        fillstringsAction = fillmenu.addAction("Fill Strings")
+        filldatesAction = fillmenu.addAction("Fill Dates")
+        menu.addAction(fillmenu.menuAction())
+
         applyFunctionAction = menu.addAction("Apply Function")
         transformResampleAction = menu.addAction("Transform/Resample")
         stringOpAction = menu.addAction("String Operation")
@@ -1652,6 +1681,8 @@ class DataFrameTable(QTableView):
             self.parent.convertDates(column)
         elif action == filldataAction:
             self.parent.fillData(column)
+        elif action == fillstringsAction:
+            self.parent.fillStrings(column)
         elif action == filldatesAction:
             self.parent.fillDates(column)
         elif action == applyFunctionAction:

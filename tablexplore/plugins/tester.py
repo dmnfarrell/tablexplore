@@ -21,12 +21,13 @@
 from __future__ import absolute_import, division, print_function
 import inspect
 import sys,os,platform,time,traceback
-import pickle, gzip
+import pickle, gzip, random
 from collections import OrderedDict
 from tablexplore.qt import *
 import pandas as pd
-from tablexplore import util, data, core, dialogs
+from tablexplore import util, core, dialogs
 from tablexplore.plugin import Plugin
+import pylab as plt
 
 class ExamplePlugin(Plugin):
     """Template plugin for TableExplore"""
@@ -57,69 +58,87 @@ class ExamplePlugin(Plugin):
     def createWidgets(self):
         """Create widgets if GUI plugin"""
 
-        if 'docked' in self.capabilities:
-            self.main = QDockWidget()
-            self.main.setFeatures(QDockWidget.DockWidgetClosable)
-        else:
-            self.main = QWidget()
-        self.frame = QWidget(self.main)
-        self.main.setWidget(self.frame)
-        layout =  QHBoxLayout()
-        self.frame.setLayout(layout)
-        #add table
-        t = self.tablewidget = core.DataFrameWidget(self.frame, font=core.FONT,
-                                    statusbar=False, toolbar=False)
-        t.resize(500,500)
-        layout.addWidget(self.tablewidget)
-        bw = self.createButtons(self.frame)
-        layout.addWidget(bw)
+        self.main = QWidget()
+        l = self.layout = QHBoxLayout()
+        l.setSpacing(1)
+        l.setAlignment(QtCore.Qt.AlignTop)
+        self.main.setLayout(l)
+        bw = self.createButtons(self.main)
+        l.addWidget(bw)
         return
 
     def createButtons(self, parent):
 
         bw = QWidget(parent)
-        bw.setMaximumWidth(100)
+        bw.setMaximumWidth(200)
         vbox = QVBoxLayout(bw)
         button = QPushButton("Plot Test")
         button.clicked.connect(self.plotTests)
         vbox.addWidget(button)
-        button = QPushButton("Table Test")
+        button = QPushButton("Make Test Data")
         button.clicked.connect(self.tableTests)
         vbox.addWidget(button)
-        button = QPushButton("Close")
-        button.clicked.connect(self.quit)
+        button = QPushButton("Colormaps Demo")
+        button.clicked.connect(self.colorMapDemo)
+        vbox.addWidget(button)
+        button = QPushButton("Random Format")
+        button.clicked.connect(self.randomFormat)
         vbox.addWidget(button)
         return bw
 
     def plotTests(self):
-        """Test plotting"""
+        """Test general plotting"""
 
-        self.tablewidget.pf = self.table.pf
-        df = data.getSampleData(100,4)
-        self.tablewidget.table.model.df = df
-        self.tablewidget.refresh()
-        self.tablewidget.selectAll()
-        opts = self.tablewidget.pf.generalopts
+        self.table.selectAll()
+        opts = self.table.pf.opts['general']
         for kind in ['line','area','scatter','histogram','boxplot','violinplot',
                     'heatmap','density']:
-            opts.updateWidgets({'kind':kind})
-            self.tablewidget.plot()
+            opts.updateWidgets({'kind':kind,'subplots':'single'})
+            self.table.plot()
             QtCore.QCoreApplication.processEvents()
             time.sleep(0.3)
-        opts.updateWidgets({'groupby':'label'})
-        for kind in ['bar','line','area','histogram','heatmap']:
-            #opts.updateWidgets({'kind':kind})
-            self.tablewidget.plot()
+            self.parent.plotToScratchpad(label=kind)
+        for kind in ['bar','line','area','histogram']:
+            opts.updateWidgets({'kind':kind,'axes_layout':'multiple'})
+            self.table.plot()
             QtCore.QCoreApplication.processEvents()
             time.sleep(0.3)
+            self.parent.plotToScratchpad(label=kind+'_subplots')
+        self.parent.showScratchpad()
+        return
+
+    def colorMapDemo(self):
+
+        opts = self.table.pf.opts['general']
+        formatopts = self.table.pf.opts['format']
+        labelopts = self.table.pf.opts['labels']
+        self.table.selectAll()
+        cmaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
+        for cmap in random.sample(cmaps,20):
+            #opts.updateWidgets({'kind':'heatmap'})
+            formatopts.updateWidgets({'colormap':cmap})
+            labelopts.updateWidgets({'title':cmap})
+            self.table.plot()
+            QtCore.QCoreApplication.processEvents()
+            time.sleep(0.3)
+        return
+
+    def randomFormat(self):
+        """Random format settings"""
+
+        for k in ['format','labels']:
+            opts = self.table.pf.opts[k]
+            opts.randomSettings()
+            opts.updateWidgets()
+        self.table.plot()
         return
 
     def tableTests(self):
         """Test table functions"""
 
-        df = data.getSampleData(500,5)
-        self.tablewidget.table.model.df = df
-        self.tablewidget.refresh()
+        df = util.getSampleData(50,5)
+        self.table.table.model.df = df
+        self.table.refresh()
         return
 
     def quit(self, evt=None):

@@ -22,6 +22,7 @@
 from __future__ import absolute_import, division, print_function
 import math, time
 import os, types
+import random
 import string, copy
 import numpy as np
 import pandas as pd
@@ -34,6 +35,45 @@ def getEmptyData(rows=10,columns=4):
 
     colnames = list(string.ascii_lowercase[:columns])
     df = pd.DataFrame(index=range(rows),columns=colnames)
+    return df
+
+def gen_lower(n=2):
+    """Generate lower case words"""
+    return ''.join(random.choice(string.ascii_lowercase) for i in range(n))
+
+def gen_upper(n=2):
+    """Generate upper case words"""
+    return ''.join(random.choice(string.ascii_uppercase) for i in range(n))
+
+def gen_word(n=2):
+    """Generate words with strings or symbols"""
+    return ''.join(random.choice(string.printable) for i in range(n))
+
+def getSampleData(rows=400, cols=5, namelen=2):
+    """Generate sample data"""
+
+    if namelen == 1:
+        colnames = list(string.ascii_lowercase[:cols])
+    else:
+        colnames = [gen_lower(namelen) for i in range(cols)]
+    if namelen==1 and cols>26:
+        cols=26
+    coldata = [np.random.normal(x,1,rows) for x in np.random.normal(5,3,cols)]
+    n = np.array(coldata).T
+    df = pd.DataFrame(n, columns=colnames)
+    l0=df.columns[0]
+    l1 = df.columns[1]
+    df[l1] = df[l0]*np.random.normal(.8, 0.1, len(df))
+    df = np.round(df, 3)
+    cats = ['green','blue','red','orange','yellow']
+    df['label'] = [cats[i] for i in np.random.randint(0,5,rows)]
+    return df
+
+def getPresetData(name):
+    """Get iris dataset"""
+
+    path = os.path.dirname(__file__)
+    df = pd.read_csv(os.path.join(path,'datasets','%s.csv' %name),index_col=0)
     return df
 
 def check_multiindex(index):
@@ -124,6 +164,54 @@ def colorScale(hex_color, brightness_offset=1):
     # hex() produces "0x88", we want just "88"
     return "#{0:02x}{1:02x}{2:02x}".format(r, g, b)
 
+def random_colors(n=10, seed=1):
+    """Generate random hex colors as list of length n."""
+
+    import random
+    random.seed(seed)
+    clrs=[]
+    for i in range(n):
+        r = lambda: random.randint(0,255)
+        c='#%02X%02X%02X' % (r(),r(),r())
+        clrs.append(c)
+    return clrs
+
+def gen_colors(cmap,n,reverse=False):
+    '''Generates n distinct color from a given colormap.
+    Args:
+        cmap(str): The name of the colormap you want to use.
+            Refer https://matplotlib.org/stable/tutorials/colors/colormaps.html to choose
+            Suggestions:
+            For Metallicity in Astrophysics: Use coolwarm, bwr, seismic in reverse
+            For distinct objects: Use gnuplot, brg, jet,turbo.
+        n(int): Number of colors you want from the cmap you entered.
+        reverse(bool): False by default. Set it to True if you want the cmap result to be reversed.
+    Returns:
+        colorlist(list): A list with hex values of colors.
+    Taken from the mycolorpy package by binodbhttr
+    see also https://matplotlib.org/stable/tutorials/colors/colormaps.html
+    '''
+
+    c_map = plt.cm.get_cmap(str(cmap)) # select the desired cmap
+    arr=np.linspace(0,1,n) #create a list with numbers from 0 to 1 with n items
+    colorlist=list()
+    for c in arr:
+        rgba=c_map(c) #select the rgba value of the cmap at point c which is a number between 0 to 1
+        clr=colors.rgb2hex(rgba) #convert to hex
+        colorlist.append(str(clr)) # create a list of these colors
+
+    if reverse==True:
+        colorlist.reverse()
+    return colorlist
+
+def show_colors(colors):
+    """display a list of colors"""
+
+    plt.figure(figsize=(6,1))
+    plt.bar(range(len(colors)),height=1,color=colors,width=1)
+    plt.axis('off')
+    return
+    
 def checkOS():
     """Check the OS we are in"""
 
