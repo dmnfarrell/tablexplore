@@ -91,7 +91,8 @@ class Application(QMainWindow):
         self.setIconSize(QtCore.QSize(core.ICONSIZE, core.ICONSIZE))
         self.showRecentFiles()
         self.startLogging()
-
+        plotting.loadColormaps()
+        
         if project_file != None:
             self.openProject(project_file)
         elif csv_file != None:

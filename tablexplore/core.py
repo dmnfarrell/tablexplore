@@ -28,9 +28,13 @@ from pandas.api.types import is_datetime64_any_dtype as is_datetime
 import string
 from .qt import *
 
+homepath = os.path.expanduser("~")
 module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
 pluginiconpath = os.path.join(module_path, 'plugins', 'icons')
+settingspath = os.path.join(homepath, '.config','tablexplore')
+cmapsfile = os.path.join(settingspath, 'cmaps.pkl')
+
 textalignment = None
 MODES = ['default','spreadsheet','locked']
 

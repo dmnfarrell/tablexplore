@@ -46,6 +46,8 @@ import logging
 homepath = os.path.expanduser("~")
 module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
+settingspath = os.path.join(homepath, '.config','tablexplore')
+cmapsfile = os.path.join(settingspath, 'cmaps.pkl')
 
 colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
 markers = ['','o','.','^','v','>','<','s','+','x','p','d','h','*']
@@ -94,6 +96,20 @@ def defaultOptions():
             #'series':SeriesOptions(),
             }
     return opts
+
+def loadColormaps():
+    """Load stored colormaps"""
+
+    if not os.path.exists(cmapsfile):
+        return
+    import pickle
+    fp = open(cmapsfile, 'rb')
+    cmap = pickle.load(fp)
+    fp.close()
+    mpl.colormaps.register(cmap)
+    global colormaps
+    colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
+    return
 
 class PlotWidget(FigureCanvas):
     def __init__(self, parent=None, figure=None, dpi=100, hold=False):
@@ -177,9 +193,8 @@ class PlotViewer(QWidget):
     def getFigureSize(self):
 
         fig=self.fig
-        bbox = fig.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-        width, height = int(bbox.width), int(bbox.height)
-        return (width,height)
+        size = fig.get_size_inches()
+        return size
 
     def createOptions(self):
         """Create option attributes for plotter"""

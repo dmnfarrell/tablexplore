@@ -24,11 +24,14 @@ import sys,os,platform,time,traceback
 import pickle, gzip, random
 from collections import OrderedDict
 from tablexplore.qt import *
+import numpy as np
 import pandas as pd
 from tablexplore import util, core, dialogs
 from tablexplore.plugin import Plugin
+import matplotlib as mpl
 import pylab as plt
-from matplotlib.colors import ListedColormap
+
+cmapsfile = core.cmapsfile
 
 class ColormapsPlugin(Plugin):
     """Template plugin for TableExplore"""
@@ -66,11 +69,6 @@ class ColormapsPlugin(Plugin):
         self.main.setLayout(l)
         bw = self.createButtons(self.main)
         l.addWidget(bw)
-
-        self.ncolors = w = QSpinBox()
-        w.setValue(5)
-        w.setRange(2,20)
-        l.addWidget(w)
         self.cbw = QWidget()
         return
 
@@ -82,8 +80,24 @@ class ColormapsPlugin(Plugin):
         button = QPushButton("Sample Colormaps")
         button.clicked.connect(self.showColorMaps)
         vbox.addWidget(button)
-        button = QPushButton("Create Random")
+        button = QPushButton("Random Colors")
         button.clicked.connect(self.makeRandom)
+        vbox.addWidget(button)
+        self.ncolors = w = QSpinBox()
+        w.setValue(5)
+        w.setRange(2,20)
+        vbox.addWidget(w)
+
+        vbox.addWidget(QLabel('type:'))
+        self.cmaptype_w = cb = QComboBox()
+        cb.addItems(['discrete','interpolated'])
+        vbox.addWidget(cb)
+        vbox.addWidget(QLabel('num colors:'))
+        button = QPushButton("Update")
+        button.clicked.connect(self.update)
+        vbox.addWidget(button)
+        button = QPushButton("Save")
+        button.clicked.connect(self.save)
         vbox.addWidget(button)
         return bw
 
@@ -107,31 +121,19 @@ class ColormapsPlugin(Plugin):
         return
 
     def makeRandom(self):
+        """Create random colors"""
 
-        pf = self.table.pf
-        figsize = pf.getFigureSize()
-        fig = plt.figure(figsize=figsize)
-        grid = fig.add_gridspec(4, 1, wspace=0.2, hspace=0.2)
-        ax1=fig.add_subplot(grid[0, 0])
         n=int(self.ncolors.value())
-        colors = util.random_colors(n=n,seed=None)
-        util.show_colors(colors, ax=ax1)
-
-        mycmap = ListedColormap(colors)
-
-        X = util.getSampleData(1,cols=n).iloc[:,:-1]
-        ax2=fig.add_subplot(grid[1:,0])
-        #ax2.pcolor(X, cmap=mycmap)
-        X.plot(kind='bar',cmap=mycmap,ax=ax2)
-        pf.setFigure(fig)
-
+        colors = self.colors = util.random_colors(n=n,seed=None)
         self.cbw.deleteLater()
         self.cbw = self.createColorButtons(self.main, colors)
         self.layout.addWidget(self.cbw)
+        self.update()
         return
 
     def createColorButtons(self, parent, colors):
 
+        self.cbuttons = []
         bw = QWidget(parent)
         vbox = QVBoxLayout(bw)
         bw.setMaximumWidth(200)
@@ -140,5 +142,84 @@ class ColormapsPlugin(Plugin):
             btn = dialogs.ColorButton()
             btn.setColor(c)
             vbox.addWidget(btn)
+            self.cbuttons.append(btn)
 
         return bw
+
+    def update(self, event=None):
+        """Update the colormaps and preview"""
+
+        colors = [btn._color for btn in self.cbuttons]
+        type = self.cmaptype_w.currentText()
+
+        if type == 'discrete':
+            self.mycmap = mpl.colors.ListedColormap(colors)
+        else:
+            self.mycmap = get_continuous_cmap(colors)
+
+        pf = self.table.pf
+        figsize = pf.getFigureSize()
+        fig = plt.figure(figsize=figsize)
+        grid = fig.add_gridspec(5, 1, wspace=0.2, hspace=0.2)
+        ax1=fig.add_subplot(grid[0, 0])
+
+        util.show_colors(colors, ax=ax1)
+        ax2 = fig.add_subplot(grid[1:,0])
+        self.plot_examples(self.mycmap, ax2)
+        pf.setFigure(fig)
+        return
+
+    def save(self):
+        """Save colormap to file"""
+
+        self.mycmap.name = 'mycmap'
+        mpl.colormaps.register(self.mycmap)
+        #save as pickle
+        fp = open(cmapsfile, 'wb')
+        pickle.dump(self.mycmap, fp)
+        fp.close()
+        print (mpl.colormaps['mycmap'])
+        return
+
+    def plot_examples(self, cmap, ax=None):
+        """
+        Helper function to plot data with associated colormap.
+        """
+        np.random.seed(19680801)
+        data = np.random.randn(30, 30)
+        psm = ax.pcolormesh(data, cmap=cmap, rasterized=True, vmin=-4, vmax=4)
+        ax.figure.colorbar(psm, ax=ax)
+        return
+
+def get_continuous_cmap(hex_list):
+    """
+    https://towardsdatascience.com/beautiful-custom-colormaps-with-matplotlib-5bab3d1f0e72
+    """
+
+    #diverging
+    #divnorm = mcolors.TwoSlopeNorm(vmin=z.min(),vcenter=center, vmax=z.max())
+
+    rgb_list = [rgb_to_dec(hex_to_rgb(i)) for i in hex_list]
+    float_list = list(np.linspace(0,1,len(rgb_list)))
+    cdict = dict()
+    for num, col in enumerate(['red', 'green', 'blue']):
+        col_list = [[float_list[i], rgb_list[i][num], rgb_list[i][num]] for i in range(len(float_list))]
+        cdict[col] = col_list
+    cmp = mpl.colors.LinearSegmentedColormap('my_cmp', segmentdata=cdict, N=256)
+    return cmp
+
+def hex_to_rgb(value):
+    '''
+    Converts hex to rgb colours
+    value: string of 6 characters representing a hex colour.
+    Returns: list length 3 of RGB values'''
+    value = value.strip("#") # removes hash symbol if present
+    lv = len(value)
+    return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
+
+def rgb_to_dec(value):
+    '''
+    Converts rgb to decimal colours (i.e. divides each value by 256)
+    value: list (length 3) of RGB values
+    Returns: list (length 3) of decimal values'''
+    return [v/256 for v in value]
