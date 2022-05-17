@@ -30,6 +30,7 @@ from tablexplore import util, core, dialogs
 from tablexplore.plugin import Plugin
 import matplotlib as mpl
 import pylab as plt
+from tablexplore import plotting
 
 cmapsfile = core.cmapsfile
 
@@ -37,7 +38,7 @@ class ColormapsPlugin(Plugin):
     """Template plugin for TableExplore"""
 
     #uncomment capabilities list to appear in menu
-    capabilities = ['gui','docked']
+    capabilities = ['gui']
     requires = ['']
     menuentry = 'Colormap Tool'
     iconfile = 'colormaps.png'
@@ -50,7 +51,6 @@ class ColormapsPlugin(Plugin):
             return
         self.parent = parent
         self.table = table
-        #self.ID = 'Colormap Tool'
         self.createWidgets()
         return
 
@@ -80,19 +80,27 @@ class ColormapsPlugin(Plugin):
         button = QPushButton("Sample Colormaps")
         button.clicked.connect(self.showColorMaps)
         vbox.addWidget(button)
+
+        current = plotting.load_colormaps()
+        self.current_w = cb = QComboBox()
+        cb.addItems(['']+list(current.keys()))
+        cb.currentIndexChanged.connect(self.loadCustom)
+        vbox.addWidget(QLabel('load cmap colors:'))
+        vbox.addWidget(cb)
+
         button = QPushButton("Random Colors")
         button.clicked.connect(self.makeRandom)
         vbox.addWidget(button)
         self.ncolors = w = QSpinBox()
         w.setValue(5)
         w.setRange(2,20)
+        vbox.addWidget(QLabel('num colors:'))
         vbox.addWidget(w)
 
         vbox.addWidget(QLabel('type:'))
         self.cmaptype_w = cb = QComboBox()
         cb.addItems(['discrete','interpolated'])
         vbox.addWidget(cb)
-        vbox.addWidget(QLabel('num colors:'))
         button = QPushButton("Update")
         button.clicked.connect(self.update)
         vbox.addWidget(button)
@@ -100,6 +108,19 @@ class ColormapsPlugin(Plugin):
         button.clicked.connect(self.save)
         vbox.addWidget(button)
         return bw
+
+    def loadCustom(self):
+        """Edit a saved cmap"""
+
+        name = self.current_w.currentText()
+        current = plotting.load_colormaps()
+        cmap = current[name]
+        try:
+            clrs = cmap.__dict__['colors']
+        except:
+            clrs = []
+        self.createColorButtons(clrs)
+        return
 
     def showColorMaps(self):
 
@@ -125,29 +146,28 @@ class ColormapsPlugin(Plugin):
 
         n=int(self.ncolors.value())
         colors = self.colors = util.random_colors(n=n,seed=None)
-        self.cbw.deleteLater()
-        self.cbw = self.createColorButtons(self.main, colors)
-        self.layout.addWidget(self.cbw)
+        self.createColorButtons(colors)
         self.update()
         return
 
-    def createColorButtons(self, parent, colors):
+    def createColorButtons(self, colors):
+        """Create buttons for color selection"""
 
+        self.cbw.deleteLater()
         self.cbuttons = []
-        bw = QWidget(parent)
-        vbox = QVBoxLayout(bw)
-        bw.setMaximumWidth(200)
+        self.cbw = QWidget(self.main)
+        vbox = QVBoxLayout(self.cbw)
+        self.cbw.setMaximumWidth(200)
         for c in colors:
-            #r,g,b = util.hex_to_rgb(c)
             btn = dialogs.ColorButton()
             btn.setColor(c)
             vbox.addWidget(btn)
             self.cbuttons.append(btn)
-
-        return bw
+        self.layout.addWidget(self.cbw)
+        return
 
     def update(self, event=None):
-        """Update the colormaps and preview"""
+        """Update the colormaps and previews"""
 
         colors = [btn._color for btn in self.cbuttons]
         type = self.cmaptype_w.currentText()
@@ -170,15 +190,20 @@ class ColormapsPlugin(Plugin):
         return
 
     def save(self):
-        """Save colormap to file"""
+        """Save colormap to file and register it"""
 
-        self.mycmap.name = 'mycmap'
-        mpl.colormaps.register(self.mycmap)
+        current = plotting.load_colormaps()
+        name, ok = QInputDialog.getText(self.main, 'Colormap name', 'Enter name:')
+        if not ok:
+            return
+        self.mycmap.name = name
+        mpl.colormaps.register(self.mycmap, force=True)
         #save as pickle
+        current[name] = self.mycmap
         fp = open(cmapsfile, 'wb')
-        pickle.dump(self.mycmap, fp)
+        pickle.dump(current, fp)
         fp.close()
-        print (mpl.colormaps['mycmap'])
+        #print (mpl.colormaps['mycmap'])
         return
 
     def plot_examples(self, cmap, ax=None):

@@ -72,6 +72,7 @@ class Application(QMainWindow):
         self.setCentralWidget(self.main)
 
         #plot docks
+        plotting.update_colormaps()  
         self.addDockWidgets()
         self.statusbar = QStatusBar()
         self.setStatusBar(self.statusbar)
@@ -91,8 +92,7 @@ class Application(QMainWindow):
         self.setIconSize(QtCore.QSize(core.ICONSIZE, core.ICONSIZE))
         self.showRecentFiles()
         self.startLogging()
-        plotting.loadColormaps()
-        
+
         if project_file != None:
             self.openProject(project_file)
         elif csv_file != None:

@@ -97,19 +97,28 @@ def defaultOptions():
             }
     return opts
 
-def loadColormaps():
+def update_colormaps():
     """Load stored colormaps"""
 
-    if not os.path.exists(cmapsfile):
+    cmaps = load_colormaps()
+    if cmaps == None:
         return
+    for name in cmaps:
+        cm=cmaps[name]
+        mpl.colormaps.register(cm)
+        global colormaps
+        colormaps.append(cm.name)
+    return
+
+def load_colormaps():
+
+    if not os.path.exists(cmapsfile):
+        return {}
     import pickle
     fp = open(cmapsfile, 'rb')
-    cmap = pickle.load(fp)
+    cmaps = pickle.load(fp)
     fp.close()
-    mpl.colormaps.register(cmap)
-    global colormaps
-    colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
-    return
+    return cmaps
 
 class PlotWidget(FigureCanvas):
     def __init__(self, parent=None, figure=None, dpi=100, hold=False):
@@ -1459,7 +1468,6 @@ class FormatOptions(BaseOptions):
     def __init__(self):
         """Setup variables"""
 
-        #self.parent = parent
         scales = ['linear','log']
         style_list = ['default', 'classic', 'fivethirtyeight',
                      'seaborn-pastel','seaborn-whitegrid', 'ggplot','bmh',
