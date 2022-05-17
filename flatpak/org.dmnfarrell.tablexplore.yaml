@@ -1,0 +1,20 @@
+
+#flatpak manifest for tablexplore
+
+app-id: org.dmnfarrell.tablexplore
+runtime: org.kde.Platform
+runtime-version: '5.15-21.08'
+sdk: org.kde.Sdk
+command: tablexplore
+#rename-desktop-file: tablexplore.desktop
+
+modules:
+  - python3-requirements.json
+
+  - name: tablexplore
+    buildsystem: simple
+    build-commands: python3 setup.py install --prefix=/app --root=/
+    sources:
+        - type: archive
+          url: https://github.com/dmnfarrell/tablexplore/archive/refs/tags/v0.5.0.tar.gz
+          sha256: 3b879a94f2d087262616d37a03982259e958a152063c004e44801feb93c14fe8

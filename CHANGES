@@ -6,6 +6,7 @@
 * column headers resize to fit wrapped text
 * changed plugins to dock in app, not table
 * udpated tests plugin
+* added colormap plugin
 
 -----
 0.5.0

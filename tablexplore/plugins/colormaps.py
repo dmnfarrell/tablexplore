@@ -196,14 +196,15 @@ class ColormapsPlugin(Plugin):
         name, ok = QInputDialog.getText(self.main, 'Colormap name', 'Enter name:')
         if not ok:
             return
+        #set name
         self.mycmap.name = name
+        #register it
         mpl.colormaps.register(self.mycmap, force=True)
         #save as pickle
         current[name] = self.mycmap
         fp = open(cmapsfile, 'wb')
         pickle.dump(current, fp)
         fp.close()
-        #print (mpl.colormaps['mycmap'])
         return
 
     def plot_examples(self, cmap, ax=None):

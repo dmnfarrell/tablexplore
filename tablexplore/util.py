@@ -219,7 +219,7 @@ def hex_to_rgb(value):
     value = value.lstrip('#')
     lv = len(value)
     return tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
-    
+
 def checkOS():
     """Check the OS we are in"""
 
@@ -230,3 +230,15 @@ def checkOS():
         return 'darwin'
     if "win" in _platform:
         return 'windows'
+
+def get_user_config_directory():
+    """Returns a platform-specific root directory for user config settings."""
+
+    if os.name == "nt":
+        appdata = os.getenv("LOCALAPPDATA")
+        if appdata:
+            return appdata
+        appdata = os.getenv("APPDATA")
+        if appdata:
+            return appdata
+        return None
