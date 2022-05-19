@@ -46,6 +46,22 @@ border-radius: 4px;
 }
 """
 
+dockstyle = '''
+    QDockWidget {
+        max-width:240px;
+    }
+    QDockWidget::title {
+        background-color: lightblue;
+    }
+    QScrollBar:vertical {
+         width: 15px;
+         margin: 1px 0 1px 0;
+     }
+    QScrollBar::handle:vertical {
+         min-height: 20px;
+     }
+'''
+
 class Application(QMainWindow):
     def __init__(self, project_file=None, csv_file=None, excel_file=None):
 
@@ -72,7 +88,7 @@ class Application(QMainWindow):
         self.setCentralWidget(self.main)
 
         #plot docks
-        plotting.update_colormaps()  
+        plotting.update_colormaps()
         self.addDockWidgets()
         self.statusbar = QStatusBar()
         self.setStatusBar(self.statusbar)
@@ -110,21 +126,6 @@ class Application(QMainWindow):
     def addDockWidgets(self):
         """Add plot dialogs to dock"""
 
-        dockstyle = '''
-            QDockWidget {
-                max-width:240px;
-            }
-            QDockWidget::title {
-                background-color: lightblue;
-            }
-            QScrollBar:vertical {
-                 width: 15px;
-                 margin: 1px 0 1px 0;
-             }
-            QScrollBar::handle:vertical {
-                 min-height: 20px;
-             }
-        '''
         style = '''
             QWidget {
                 font-size: 12px;
@@ -163,7 +164,6 @@ class Application(QMainWindow):
                                 style=style)
             area.setWidget(dialog)
             self.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
-            #dock.setAllowedAreas(Qt.AllDockWidgetAreas)
             self.plotwidgets[name] = widgets
             docks[name] = dock
 
@@ -176,6 +176,28 @@ class Application(QMainWindow):
             action = self.docks[name].toggleViewAction()
             self.dock_menu.addAction(action)
             action.setCheckable(True)
+        #series dock
+        #self.addSeriesDock()
+        return
+
+    '''def addSeriesDock(self):
+        """Add series dock. Updated by plotter when selections changed."""
+
+        dock = QDockWidget('series')
+        dock.setStyleSheet("QDockWidget::title {background-color: #99ccff;}")
+        area = QScrollArea()
+        area.setWidgetResizable(True)
+        dock.setWidget(area)
+        self.seriesarea = area
+        self.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
+        return'''
+
+    def replot(self):
+        """Plot current"""
+
+        w = self.getCurrentTable()
+        pf = w.pf
+        pf.replot()
         return
 
     def tabSelected(self, index):
@@ -901,7 +923,6 @@ class Application(QMainWindow):
         sheet.addWidget(pf)
         sheet.setSizes((500,1000))
 
-        #pf.applyPlotoptions()
         #reload attributes of table and plotter if present
         if meta != None:
             self.loadMeta(dfw, meta)
@@ -911,8 +932,6 @@ class Application(QMainWindow):
                 pf.hide()
 
         self.updatePlotWidgets(dfw)
-        #set default style
-        #pf.opts['format'].setWidgetValue('style', core.PLOTSTYLE)
         self.tabs.setCurrentIndex(idx)
         return
 
@@ -1146,13 +1165,6 @@ class Application(QMainWindow):
         self.addSheet()
         self.paste()
         return
-
-    def replot(self):
-        """Plot current"""
-
-        w = self.getCurrentTable()
-        pf = w.pf
-        pf.replot()
 
     def zoomIn(self):
 

@@ -209,6 +209,28 @@ def dialogFromOptions(parent, opts, sections=None,
             scol+=1
     return dialog, widgets
 
+def getWidgetValue(w):
+    """Get value from any kind of widget"""
+
+    val = None
+    if type(w) is QLineEdit:
+        val = w.text()
+    elif type(w) is QPlainTextEdit:
+        val = w.toPlainText()
+    elif type(w) is QComboBox or type(w) is QFontComboBox:
+        val = w.currentText()
+    elif type(w) is QListWidget:
+        val = [i.text() for i in w.selectedItems()]
+    elif type(w) is QCheckBox:
+        val = w.isChecked()
+    elif type(w) is QSlider:
+        val = w.value()
+    elif type(w) in [QSpinBox,QDoubleSpinBox]:
+        val = w.value()
+    elif type(w) is ColorButton:
+        val = w.color()
+    return val
+
 def getWidgetValues(widgets):
     """Get values back from a set of widgets"""
 
@@ -217,22 +239,7 @@ def getWidgetValues(widgets):
         val = None
         if i in widgets:
             w = widgets[i]
-            if type(w) is QLineEdit:
-                val = w.text()
-            elif type(w) is QPlainTextEdit:
-                val = w.toPlainText()
-            elif type(w) is QComboBox or type(w) is QFontComboBox:
-                val = w.currentText()
-            elif type(w) is QListWidget:
-                val = [i.text() for i in w.selectedItems()]
-            elif type(w) is QCheckBox:
-                val = w.isChecked()
-            elif type(w) is QSlider:
-                val = w.value()
-            elif type(w) in [QSpinBox,QDoubleSpinBox]:
-                val = w.value()
-            elif type(w) is ColorButton:
-                val = w.color()
+            val = getWidgetValue(w)
             if val != None:
                 kwds[i] = val
     kwds = kwds
@@ -704,6 +711,25 @@ class ComboDelegate(QItemDelegate):
     @Slot()
     def currentIndexChanged(self):
         self.commitData.emit(self.sender())
+
+class SimpleDialog(QDialog):
+    """Qdialog for table operations interfaces"""
+    def __init__(self, parent, title=None):
+
+        super(SimpleDialog, self).__init__(parent)
+        self.parent = parent
+        self.setWindowTitle(title)
+        self.setGeometry(QtCore.QRect(400, 300, 1000, 600))
+        self.resize(500, 200)
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.Cancel|QDialogButtonBox.Ok ,
+            QtCore.Qt.Horizontal,
+            self
+        )
+        self.layout = QVBoxLayout(self)
+        self.layout.addWidget(self.button_box)
+        self.show()
+        return
 
 class BasicDialog(QDialog):
     """Qdialog for table operations interfaces"""
@@ -1280,7 +1306,6 @@ class ManageColumnsDialog(BasicDialog):
         self.table.undo()
         self.cols_w.clear()
         self.cols_w.addItems(self.table.model.df.columns)
-
 
 class PreferencesDialog(QDialog):
     """Preferences dialog from config parser options"""

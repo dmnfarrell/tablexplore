@@ -92,8 +92,7 @@ def defaultOptions():
     opts = {'general': MPLBaseOptions(),
             'format': FormatOptions(),
             'labels': AnnotationOptions(),
-            'axes': AxesOptions(),
-            #'series':SeriesOptions(),
+            'axes': AxesOptions()
             }
     return opts
 
@@ -134,11 +133,13 @@ class PlotWidget(FigureCanvas):
 class PlotViewer(QWidget):
     """Plot viewer class"""
     def __init__(self, table, parent=None):
+
         super(PlotViewer, self).__init__(parent)
         self.parent = parent
         self.table = table
         self.createWidgets()
         self.createOptions()
+        self.seriesopts = SeriesOptions()
         self.currentdir = os.path.expanduser('~')
         sizepolicy = QSizePolicy()
         self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
@@ -156,16 +157,43 @@ class PlotViewer(QWidget):
         self.toolbar = NavigationToolbar(self.canvas, layout)
 
         #add custom buttons
-        iconfile = os.path.join(iconpath,'zoom-out.png')
-        a = QAction(QIcon(iconfile), "Reduce",  self)
+        iconfile = os.path.join(iconpath,'plotseries.png')
+        #a = QAction(QIcon(iconfile), "Customise Series", self)
+        #a.triggered.connect(self.customiseSeries)
+        #self.toolbar.addAction(a)
+        iconfile = os.path.join(iconpath,'reduce.png')
+        a = QAction(QIcon(iconfile), "Reduce elements",  self)
         a.triggered.connect(lambda: self.zoom(zoomin=False))
         self.toolbar.addAction(a)
-        iconfile = os.path.join(iconpath,'zoom-in.png')
-        a = QAction(QIcon(iconfile), "Enlarge",  self)
+        iconfile = os.path.join(iconpath,'enlarge.png')
+        a = QAction(QIcon(iconfile), "Enlarge elements",  self)
         a.triggered.connect(lambda: self.zoom(zoomin=True))
         self.toolbar.addAction(a)
         vbox.addWidget(self.toolbar)
         vbox.addWidget(self.canvas)
+        return
+
+    def customiseSeries(self):
+        """
+        Show custom options for current plot series. Allows plot types to
+        be specified per series and uses a custom plot function.
+        """
+
+        data = self.table.getSelectedDataFrame()
+        if self.seriesopts.series == {}:
+            self.seriesopts.series = self.getSeries(data)
+        dlg = self.seriesopts.showDialog(self)
+        dlg.exec_()
+        return
+
+    def customPlot(self):
+        """plot custom series """
+
+        self.data = self.table.getSelectedDataFrame()
+        layout='single'
+        ax=self.ax
+        axs = data.plot(kind='line',layout=layout, ax=ax)
+
         return
 
     def showTools(self):
@@ -211,8 +239,7 @@ class PlotViewer(QWidget):
         self.opts = {'general':MPLBaseOptions(),
                     'format':FormatOptions(),
                     'labels':AnnotationOptions(),
-                    'axes':AxesOptions(),
-                    #'series':SeriesOptions()
+                    'axes':AxesOptions()
                     }
         return
 
@@ -265,6 +292,8 @@ class PlotViewer(QWidget):
             self.data = data
 
         self.applyPlotoptions()
+        #self.getSeries(data)
+
         self.setStyle()
         self.plotCurrent()
         return
@@ -283,6 +312,18 @@ class PlotViewer(QWidget):
         #else:
         self.plot2D(redraw=redraw)
         return
+
+    def getSeries(self, data):
+
+        kwds = self.opts['general'].kwds
+        ptype = kwds['kind']
+        self.series = series = {}
+        for c in data.columns:
+            series[c] = {}
+            series[c]['kind'] = ptype
+            series[c]['color'] = ''
+        #print (self.series)
+        return series
 
     def applyPlotoptions(self):
         """Apply the current plotter/options"""
@@ -664,7 +705,7 @@ class PlotViewer(QWidget):
         rows = int(round(np.sqrt(len(data.columns)),0))
         if len(data.columns) == 1 and kind not in ['pie']:
             kwargs['subplots'] = 0
-        #print (kwargs)
+
         if 'colormap' in kwargs:
             cmap = plt.cm.get_cmap(kwargs['colormap'])
         else:
@@ -1603,41 +1644,98 @@ class SeriesOptions(BaseOptions):
         """Setup variables"""
 
         super(SeriesOptions, self).__init__()
-        self.groups = grps = OrderedDict({'main':[]})
+        self.series = {}
         self.setDefaults()
         return
 
-    def updateWidgets(self, parent, df):
-        """Recreate widgets dynamically"""
+    def showDialog(self, parent=None):
 
-        opts = self.opts = {}
-        self.kwds = {}
-        ptypes = ['line','bar','scatter']
-        cols = list(df.columns)
-        cols = [str(c) for c in cols]
-        for name in cols:
-            self.opts[name] = {'type':'combobox','items':ptypes,'default':''}
-        self.groups['main'] = self.opts.keys()
-        dialog, widgets = dialogFromOptions(parent, self.opts, self.groups,
-                                style=self.style)
-        self.widgets = widgets
-        #self.parent.setWidget(dialog)
-        #print (self.widgets)
+        dlg = SimpleDialog(parent, title='Series Options')
+        dlg.button_box.accepted.connect(self.update)
+        self.createSeriesWidgets(dlg)
+        return dlg
+
+    def createButtons(self, parent):
+
+        bw = self.button_widget = QWidget(parent)
+        vbox = QVBoxLayout(bw)
+        button = QPushButton("Update")
+        button.clicked.connect(self.update)
+        vbox.addWidget(button)
+
         return
 
-    def update(self, df):
-        """Update data widget(s) when dataframe changes"""
+    def createSeriesWidgets(self, parent):
 
-        if util.check_multiindex(df.columns) == 1:
-            cols = list(df.columns.get_level_values(0))
-        else:
-            cols = list(df.columns)
-        #add empty value
-        cols = [str(c) for c in cols]
-        self.updateWidgets(df)
+        l = parent.layout
+        l.setAlignment(QtCore.Qt.AlignTop)
+        kinds= ['line','bar','scatter']
+        row = QWidget()
+        l.addWidget(row)
+        l2 = QHBoxLayout(row)
+        l2.addWidget(QLabel('name'))
+        l2.addWidget(QLabel('kind'))
+        l2.addWidget(QLabel('color'))
+        l2.addWidget(QLabel('linestyle'))
+        self.widgets = {}
+        for s in self.series:
+            self.widgets[s] = {}
+            opt=self.series[s]
+            row = QWidget()
+            l.addWidget(row)
+            l2 = QHBoxLayout(row)
+            l2.addWidget(QLabel(s))
+            w=QComboBox()
+            w.addItems(kinds)
+            val = self.series[s]['kind']
+            index = w.findText(val)
+            w.setCurrentIndex(index)
+            l2.addWidget(w)
+            self.widgets[s]['kind'] = w
+            w = ColorButton()
+            val = self.series[s]['color']
+            w.setColor(val)
+            l2.addWidget(w)
+            self.widgets[s]['color'] = w
+            w=QComboBox()
+            w.addItems(linestyles)
+            l2.addWidget(w)
+            self.widgets[s]['linestyle'] = w
         return
 
-class CustomizeOptions():
-    """Class for selecting more custom plot options.  """
-    def __init__(self):
-        """Setup variables"""
+    def update(self, event=None):
+        """Update series options from widgets and replot"""
+
+        for s in self.widgets:
+            for i in self.widgets[s]:
+                w = self.widgets[s][i]
+                val = getWidgetValue(w)
+                #print (val)
+                self.series[s][i] = val
+        print (self.series)
+        return
+
+class CustomiseDialog(QDialog):
+    """Preferences dialog from config parser options"""
+
+    def __init__(self, parent, options={}):
+
+        super(CustomiseDialog, self).__init__(parent)
+        self.parent = parent
+        self.setWindowTitle('Custom plot')
+        self.resize(400, 200)
+        self.setGeometry(QtCore.QRect(300,300, 600, 200))
+        self.setMaximumWidth(600)
+        self.setMaximumHeight(300)
+        self.show()
+        return
+
+    def createWidgets(self):
+        """create widgets"""
+
+        self.tabs = QTabWidget()
+        l = self.layout = QVBoxLayout(self)
+        l.addWidget(self.tabs)
+        w = QWidget()
+        idx = self.tabs.addTab(w, 'legend')
+        return
