@@ -139,7 +139,7 @@ class PlotViewer(QWidget):
         self.table = table
         self.createWidgets()
         self.createOptions()
-        self.seriesopts = SeriesOptions()
+        self.seriesopts = SeriesOptions(plotviewer=self)
         self.currentdir = os.path.expanduser('~')
         sizepolicy = QSizePolicy()
         self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
@@ -189,11 +189,20 @@ class PlotViewer(QWidget):
     def customPlot(self):
         """plot custom series """
 
-        self.data = self.table.getSelectedDataFrame()
+        data = self.table.getSelectedDataFrame()
         layout='single'
-        ax=self.ax
-        axs = data.plot(kind='line',layout=layout, ax=ax)
-
+        self.clear()
+        self.ax = self.fig.add_subplot(111)
+        series = self.seriesopts.series
+        for s in series:
+            df = data[s]
+            kwds = series[s]
+            kind=kwds['kind']
+            color = kwds['color']
+            print (kwds)
+            df.plot(kind=kind,layout=layout,color=color,ax=self.ax)
+        self.fig.legend()
+        self.canvas.draw()
         return
 
     def showTools(self):
@@ -1640,29 +1649,37 @@ class AxesOptions(BaseOptions):
 
 class SeriesOptions(BaseOptions):
     """Class for selecting custom plot types for each series"""
-    def __init__(self):
+    def __init__(self, plotviewer):
         """Setup variables"""
 
         super(SeriesOptions, self).__init__()
         self.series = {}
+        self.plotviewer = plotviewer
         self.setDefaults()
         return
 
     def showDialog(self, parent=None):
 
-        dlg = SimpleDialog(parent, title='Series Options')
-        dlg.button_box.accepted.connect(self.update)
+        dlg = self.dlg = SimpleDialog(parent, title='Series Options')
         self.createSeriesWidgets(dlg)
+        btnbox = self.createButtons(dlg)
         return dlg
 
     def createButtons(self, parent):
 
+        l = parent.layout
         bw = self.button_widget = QWidget(parent)
-        vbox = QVBoxLayout(bw)
+        vbox = QHBoxLayout(bw)
+        button = QPushButton("Cancel")
+        button.clicked.connect(self.close)
+        vbox.addWidget(button)
+        button = QPushButton("Clear")
+        button.clicked.connect(self.update)
+        vbox.addWidget(button)
         button = QPushButton("Update")
         button.clicked.connect(self.update)
         vbox.addWidget(button)
-
+        l.addWidget(bw)
         return
 
     def createSeriesWidgets(self, parent):
@@ -1713,6 +1730,11 @@ class SeriesOptions(BaseOptions):
                 #print (val)
                 self.series[s][i] = val
         print (self.series)
+        self.plotviewer.customPlot()
+        return
+
+    def close(self):
+        self.dlg.destroy()
         return
 
 class CustomiseDialog(QDialog):

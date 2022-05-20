@@ -721,14 +721,17 @@ class SimpleDialog(QDialog):
         self.setWindowTitle(title)
         self.setGeometry(QtCore.QRect(400, 300, 1000, 600))
         self.resize(500, 200)
-        self.button_box = QDialogButtonBox(
-            QDialogButtonBox.Cancel|QDialogButtonBox.Ok ,
-            QtCore.Qt.Horizontal,
-            self
-        )
-        self.layout = QVBoxLayout(self)
-        self.layout.addWidget(self.button_box)
+        self.layout = QVBoxLayout(self)        
         self.show()
+        return
+
+    def createButtons(self):
+        """Create buttons"""
+        self.button_box = QDialogButtonBox(
+                    QDialogButtonBox.Cancel|QDialogButtonBox.Ok ,
+                    QtCore.Qt.Horizontal,
+                    self
+        )
         return
 
 class BasicDialog(QDialog):
