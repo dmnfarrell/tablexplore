@@ -944,6 +944,7 @@ class Application(QMainWindow):
                 pf.hide()
 
         self.updatePlotWidgets(dfw)
+        self.updatePlugins()
         self.tabs.setCurrentIndex(idx)
         return
 
@@ -1284,7 +1285,8 @@ class Application(QMainWindow):
 
         from . import plugin
         default = os.path.join(module_path, 'plugins')
-        paths = [default]
+        other = os.path.join(core.settingspath, 'plugins')
+        paths = [default,other]
         failed = plugin.init_plugin_system(paths)
         self.updatePluginMenu()
         return

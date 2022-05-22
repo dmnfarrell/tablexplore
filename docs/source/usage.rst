@@ -189,6 +189,18 @@ Rather than grouping the table directly and then plotting, it is also possible t
 Setting preferences
 -------------------
 
-Application settings are set from the Edit->Preferences menu. The image below shows the settings which are mostly self explanatory. If settings get corrupted or you want to restor defaults use the 'reset' button.
+Application settings are set from the Edit->Preferences menu. The image below shows the settings which are mostly self explanatory. If settings get corrupted or you want to restore defaults use the 'reset' button.
 
 .. image:: preferences.png
+
+Plugins
+-------
+
+Plugins can be added by anyone (see code examples on how to do this). Currently there are are only a few useful built-in plugins. New ones will be added below. To add a third party plugin (just a .py file), place it in the plugin folder under <home dir>/.config/tablexplore. For security, you shouldn't just download and run any .py file without trusting it first.
+
+Colormap plugin
++++++++++++++++
+
+This allows you to add your own colormaps for plotting. The screen grab below shows you. You can generate random colors, then edit them. When done choose the type of colormap and then save. Pick a name and this is stored and added to the list of of colormaps in the plot options. You have to restart the program to see it. (Colormaps are kept under .config/tablexplore/cmaps.pkl which can be deleted if you want to clear them.)
+
+.. image:: colormaps.gif

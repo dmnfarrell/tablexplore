@@ -32,7 +32,7 @@ class ExamplePlugin(Plugin):
     """Template plugin for TableExplore"""
 
     #uncomment capabilities list to appear in menu
-    capabilities = ['gui','docked']
+    capabilities = ['gui']
     requires = ['']
     menuentry = 'Example Plugin'
     name = 'Example Plugin'

@@ -1,11 +1,12 @@
-Code Example
-============
+Code Examples
+=============
 
-This section is for python programmers you want to use the table widget in their own programs.
+This section is for Python programmers.
 
 Basics
 ------
-Code::
+
+If you want to use the table widget in another GUI program::
 
 	python
 	from PySide2 import QtCore
@@ -37,3 +38,29 @@ Code::
 	    aw = TestApp()
 	    aw.show()
 	    app.exec_()
+
+Writing a plugin
+----------------
+
+This is quite straightforward if you are familiar with PyQt5/Pyside2. Built in plugins are kept in the plugin folder where the program is installed. You can look at these to get an idea how the plugins are written. When you make your own plugin, just add the .py file to the plugin folder under <home dir>/.config/tablexplore. It will be loaded when the program starts and added to the menu. You can add any code into the script, usually designed to execute using the table or plotter.  GUI based plugins will be added as docked widgets to the application.
+
+Here is an example plugin::
+
+	class ExamplePlugin(Plugin):
+	    """Template plugin for TableExplore"""
+
+	    #uncomment capabilities list to appear in menu
+			capabilities = ['gui']
+	    requires = ['']
+	    menuentry = 'Example Plugin'
+	    name = 'Example Plugin'
+
+	    def __init__(self, parent=None, table=None):
+	        """Customise this and/or doFrame for your widgets"""
+
+	        if parent==None:
+	            return
+	        self.parent = parent
+	        self.table = table
+	        self.createWidgets()
+	        return

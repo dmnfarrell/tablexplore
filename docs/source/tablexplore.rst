@@ -20,14 +20,6 @@ tablexplore.core module
    :undoc-members:
    :show-inheritance:
 
-tablexplore.data module
------------------------
-
-.. automodule:: tablexplore.data
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 tablexplore.dialogs module
 --------------------------
 

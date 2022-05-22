@@ -33,6 +33,8 @@ module_path = os.path.dirname(os.path.abspath(__file__))
 iconpath = os.path.join(module_path, 'icons')
 pluginiconpath = os.path.join(module_path, 'plugins', 'icons')
 settingspath = os.path.join(homepath, '.config','tablexplore')
+if not os.path.exists(settingspath):
+    os.makedirs(settingspath)
 cmapsfile = os.path.join(settingspath, 'cmaps.pkl')
 
 textalignment = None
