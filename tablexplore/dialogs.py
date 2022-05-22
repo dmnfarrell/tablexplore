@@ -320,7 +320,8 @@ class ColorButton(QPushButton):
         if self._color:
             self.setStyleSheet("background-color: %s;" % self._color)
         else:
-            self.setStyleSheet("")
+            self.setStyleSheet("")    
+        return
 
     def color(self):
         return self._color
@@ -721,7 +722,7 @@ class SimpleDialog(QDialog):
         self.setWindowTitle(title)
         self.setGeometry(QtCore.QRect(400, 300, 1000, 600))
         self.resize(500, 200)
-        self.layout = QVBoxLayout(self)        
+        self.layout = QVBoxLayout(self)
         self.show()
         return
 

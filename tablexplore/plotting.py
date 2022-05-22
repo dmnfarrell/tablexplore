@@ -52,6 +52,8 @@ cmapsfile = os.path.join(settingspath, 'cmaps.pkl')
 colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
 markers = ['','o','.','^','v','>','<','s','+','x','p','d','h','*']
 linestyles = ['-','--','-.',':']
+plotkinds = ['line', 'bar', 'barh', 'scatter', 'pie', 'histogram', 'boxplot', 'violinplot', 'dotplot',
+             'heatmap', 'area', 'hexbin', 'scatter_matrix', 'density', 'radviz']
 valid_kwds = {'line': ['alpha', 'colormap', 'grid', 'legend', 'linestyle','ms',
                   'linewidth', 'marker', 'subplots', 'rotx', 'logx', 'logy',
                   'sharex','sharey', 'kind'],
@@ -139,7 +141,7 @@ class PlotViewer(QWidget):
         self.table = table
         self.createWidgets()
         self.createOptions()
-        self.seriesopts = SeriesOptions(plotviewer=self)
+        #self.seriesopts = SeriesOptions(plotviewer=self)
         self.currentdir = os.path.expanduser('~')
         sizepolicy = QSizePolicy()
         self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
@@ -157,7 +159,7 @@ class PlotViewer(QWidget):
         self.toolbar = NavigationToolbar(self.canvas, layout)
 
         #add custom buttons
-        iconfile = os.path.join(iconpath,'plotseries.png')
+        #iconfile = os.path.join(iconpath,'plotseries.png')
         #a = QAction(QIcon(iconfile), "Customise Series", self)
         #a.triggered.connect(self.customiseSeries)
         #self.toolbar.addAction(a)
@@ -173,21 +175,36 @@ class PlotViewer(QWidget):
         vbox.addWidget(self.canvas)
         return
 
+    def updateSeries(self, event=None):
+        """Update series with new plots"""
+
+        data = self.table.getSelectedDataFrame()
+        self.seriesopts.series = self.getSeries(data)
+        return
+
     def customiseSeries(self):
         """
         Show custom options for current plot series. Allows plot types to
         be specified per series and uses a custom plot function.
         """
 
-        data = self.table.getSelectedDataFrame()
         if self.seriesopts.series == {}:
-            self.seriesopts.series = self.getSeries(data)
+            self.updateSeries()
         dlg = self.seriesopts.showDialog(self)
         dlg.exec_()
         return
 
     def customPlot(self):
         """plot custom series """
+
+        self.applyPlotoptions()
+        self.setStyle()
+        kwds = self.opts['general'].kwds
+        formatkwds = self.opts['format'].kwds
+        kwds.update(formatkwds)
+        axes_layout = kwds['axes_layout']
+        lkwds = self.opts['labels'].kwds.copy()
+        axkwds = self.opts['axes'].kwds
 
         data = self.table.getSelectedDataFrame()
         layout='single'
@@ -196,14 +213,29 @@ class PlotViewer(QWidget):
         series = self.seriesopts.series
         for s in series:
             df = data[s]
-            kwds = series[s]
-            kind=kwds['kind']
-            color = kwds['color']
-            print (kwds)
-            df.plot(kind=kind,layout=layout,color=color,ax=self.ax)
+            skwds = series[s]
+            kind = skwds['kind']
+            #skwds = self.check_kwds(skwds, kind)
+            #print (skwds)
+            df.plot(layout=layout,ax=self.ax,**skwds)
         self.fig.legend()
+
+        axs=self.ax
+        lkwds.update(kwds)
+        self.setFigureOptions(axs, lkwds)
         self.canvas.draw()
         return
+
+    def check_kwds(self, kwds, kind):
+        return dict((k, kwds[k]) for k in valid_kwds[kind] if k in kwds)
+
+    def colorsfromColormap(self, df, cmap):
+        """Column colors from cmap"""
+
+        cols = df.columns
+        clrs = util.gen_colors(cmap,len(cols))
+        colordict = dict(zip(cols,clrs))
+        return colordict
 
     def showTools(self):
         """Show/hide tools dock"""
@@ -217,7 +249,6 @@ class PlotViewer(QWidget):
     def createWidgets(self):
         """Create widgets. Plot on left and dock for tools on right."""
 
-        #self.main = QSplitter(Qt.Horizontal, self)
         self.main = QWidget(self)
         hbox = QHBoxLayout(self)
         self.left = left = QWidget(self.main)
@@ -301,8 +332,7 @@ class PlotViewer(QWidget):
             self.data = data
 
         self.applyPlotoptions()
-        #self.getSeries(data)
-
+        #self.updateSeries()
         self.setStyle()
         self.plotCurrent()
         return
@@ -325,13 +355,20 @@ class PlotViewer(QWidget):
     def getSeries(self, data):
 
         kwds = self.opts['general'].kwds
-        ptype = kwds['kind']
+        fkwds = self.opts['format'].kwds
+        kwds.update(fkwds)
         self.series = series = {}
+        colordict = self.colorsfromColormap(data, fkwds['colormap'])
+        #print (colordict)
+        basekwds = ['kind','marker','ms','linestyle', 'linewidth', 'alpha']
+        skwds = {k:kwds[k] for k in basekwds}
+        #print (fkwds)
         for c in data.columns:
-            series[c] = {}
-            series[c]['kind'] = ptype
-            series[c]['color'] = ''
-        #print (self.series)
+            series[c] = skwds.copy()
+            #series[c]['kind'] = kind
+            series[c]['color'] = colordict[c]
+            print (series[c])
+        print (self.series)
         return series
 
     def applyPlotoptions(self):
@@ -838,7 +875,7 @@ class PlotViewer(QWidget):
                 return
             #adjust colormap to avoid white lines
             if cmap != None:
-                cmap = util.adjustColorMap(cmap, 0.15,1.0)
+                #cmap = util.adjustColorMap(cmap, 0.15,1.0)
                 del kwargs['colormap']
             if kind == 'barh':
                 kwargs['xerr']=yerr
@@ -1456,8 +1493,6 @@ class MPLBaseOptions(BaseOptions):
     """Class to provide a dialog for matplotlib options and returning
         the selected prefs"""
 
-    kinds = ['line', 'bar', 'barh', 'scatter', 'pie', 'histogram', 'boxplot', 'violinplot', 'dotplot',
-             'heatmap', 'area', 'hexbin', 'scatter_matrix', 'density', 'radviz']
     legendlocs = ['best','upper right','upper left','lower left','lower right','right','center left',
                 'center right','lower center','upper center','center']
 
@@ -1484,7 +1519,7 @@ class MPLBaseOptions(BaseOptions):
                 'sharex':{'type':'checkbox','default':0,'label':'share x'},
                 'sharey':{'type':'checkbox','default':0,'label':'share y'},
                 'legend':{'type':'checkbox','default':1,'label':'legend'},
-                'kind':{'type':'combobox','default':'line','items':self.kinds,'label':'plot type'},
+                'kind':{'type':'combobox','default':'line','items':plotkinds,'label':'plot type'},
                 'stacked':{'type':'checkbox','default':0,'label':'stacked'},
                 'axes_layout':{'type':'combobox','default':'single','items':layouts,'label':'axes layout'},
                 'bins':{'type':'spinbox','default':20,'width':5},
@@ -1686,14 +1721,15 @@ class SeriesOptions(BaseOptions):
 
         l = parent.layout
         l.setAlignment(QtCore.Qt.AlignTop)
-        kinds= ['line','bar','scatter']
+
         row = QWidget()
         l.addWidget(row)
         l2 = QHBoxLayout(row)
-        l2.addWidget(QLabel('name'))
-        l2.addWidget(QLabel('kind'))
-        l2.addWidget(QLabel('color'))
-        l2.addWidget(QLabel('linestyle'))
+        for i in ['name','kind','color','line style','marker','marker size','alpha']:
+            w=QLabel(i)
+            l2.addWidget(w)
+            #w.setFixedWidth(100)
+        kinds = ['line','bar']
         self.widgets = {}
         for s in self.series:
             self.widgets[s] = {}
@@ -1701,12 +1737,17 @@ class SeriesOptions(BaseOptions):
             row = QWidget()
             l.addWidget(row)
             l2 = QHBoxLayout(row)
-            l2.addWidget(QLabel(s))
+            w=QLabel(s)
+            w.setFixedWidth(100)
+            l2.addWidget(w)
             w=QComboBox()
             w.addItems(kinds)
             val = self.series[s]['kind']
             index = w.findText(val)
             w.setCurrentIndex(index)
+            w.setFixedWidth(80)
+            if val not in ['line','bar']:
+                w.setEnabled(False)
             l2.addWidget(w)
             self.widgets[s]['kind'] = w
             w = ColorButton()
@@ -1716,8 +1757,36 @@ class SeriesOptions(BaseOptions):
             self.widgets[s]['color'] = w
             w=QComboBox()
             w.addItems(linestyles)
+            val = self.series[s]['linestyle']
+            index = w.findText(val)
+            w.setCurrentIndex(index)
             l2.addWidget(w)
             self.widgets[s]['linestyle'] = w
+            w=QSpinBox()
+            val = self.series[s]['linewidth']
+            w.setValue(int(val))
+            l2.addWidget(w)
+            self.widgets[s]['linewidth'] = w
+            w=QComboBox()
+            w.addItems(markers)
+            val = self.series[s]['marker']
+            index = w.findText(val)
+            w.setCurrentIndex(index)
+            self.widgets[s]['marker'] = w
+            l2.addWidget(w)
+            w=QSpinBox()
+            val = self.series[s]['ms']
+            w.setValue(int(val))
+            l2.addWidget(w)
+            self.widgets[s]['ms'] = w
+            w=QDoubleSpinBox()
+            val = self.series[s]['alpha']
+            w.setValue(val)
+            w.setRange(0,1)
+            w.setSingleStep(0.1)
+            l2.addWidget(w)
+            self.widgets[s]['alpha'] = w
+
         return
 
     def update(self, event=None):
@@ -1727,37 +1796,12 @@ class SeriesOptions(BaseOptions):
             for i in self.widgets[s]:
                 w = self.widgets[s][i]
                 val = getWidgetValue(w)
-                #print (val)
+                #print (s,i,val)
                 self.series[s][i] = val
-        print (self.series)
+        #print (self.series)
         self.plotviewer.customPlot()
         return
 
     def close(self):
         self.dlg.destroy()
-        return
-
-class CustomiseDialog(QDialog):
-    """Preferences dialog from config parser options"""
-
-    def __init__(self, parent, options={}):
-
-        super(CustomiseDialog, self).__init__(parent)
-        self.parent = parent
-        self.setWindowTitle('Custom plot')
-        self.resize(400, 200)
-        self.setGeometry(QtCore.QRect(300,300, 600, 200))
-        self.setMaximumWidth(600)
-        self.setMaximumHeight(300)
-        self.show()
-        return
-
-    def createWidgets(self):
-        """create widgets"""
-
-        self.tabs = QTabWidget()
-        l = self.layout = QVBoxLayout(self)
-        l.addWidget(self.tabs)
-        w = QWidget()
-        idx = self.tabs.addTab(w, 'legend')
         return

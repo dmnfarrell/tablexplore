@@ -123,7 +123,8 @@ class ColormapsPlugin(Plugin):
         return
 
     def showColorMaps(self):
-
+        """Show sample colormaps"""
+        
         cmaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
         pf = self.table.pf
         n=20

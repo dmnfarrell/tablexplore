@@ -102,6 +102,7 @@ class Application(QMainWindow):
         self.recent_files = ['']
         self.recent_urls = []
         self.scratch_items = {}
+        self.openplugins = {}
 
         self.loadSettings()
         self.setTheme()
@@ -210,6 +211,8 @@ class Application(QMainWindow):
         #print (table.pf)
         #get plot options and update widgets
         self.updatePlotWidgets(table)
+        #update any plugins to use the current table if needed
+        self.updatePlugins()
         return
 
     def updatePlotWidgets(self, table):
@@ -220,6 +223,15 @@ class Application(QMainWindow):
             opts.widgets = self.plotwidgets[key]
             opts.updateWidgets()
         table.pf.updateData()
+        return
+
+    def updatePlugins(self):
+        """Update table for a plugin if it needs it"""
+
+        for o in self.openplugins:
+            print (o)
+            w = self.getCurrentTable()
+            self.openplugins[o].table = w
         return
 
     def startLogging(self):
@@ -1283,9 +1295,9 @@ class Application(QMainWindow):
         index = self.tabs.currentIndex()
         name = self.tabs.tabText(index)
         tablew = self.sheets[name]
-        if not hasattr(tablew, 'openplugins'):
-            tablew.openplugins = {}
-        openplugins = tablew.openplugins
+        if not hasattr(self, 'openplugins'):
+            self.openplugins = {}
+        openplugins = self.openplugins
 
         if plugin.name in openplugins:
             p = openplugins[plugin.name]

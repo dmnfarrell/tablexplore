@@ -44,7 +44,6 @@ class ExamplePlugin(Plugin):
             return
         self.parent = parent
         self.table = table
-        self.ID = 'Example Plugin'
         self.createWidgets()
         return
 

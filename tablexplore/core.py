@@ -391,6 +391,7 @@ class DataFrameWidget(QWidget):
 
         if self.pf == None:
             self.pf = plotting.PlotViewer(table=self.table, parent=parent)
+            #self.table.selectionModel().selectionChanged.connect(self.pf.updateSeries)
         if parent == None:
             self.pf.show()
         return self.pf

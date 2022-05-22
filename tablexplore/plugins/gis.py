@@ -85,7 +85,6 @@ class GISPlugin(Plugin):
             return
         self.parent = parent
         self.tablewidget = table
-        self.ID = 'Simple GIS'
         self.layers = {}
         self.createWidgets()
         self.createMenu()
