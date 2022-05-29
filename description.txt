@@ -17,7 +17,7 @@ editing and row/column changes are supported.
 Documentation
 -------------
 
-https://readthedocs.org/projects/tablexplore/
+https://tablexplore.readthedocs.io/en/latest/
 
 Installation
 ------------
@@ -39,7 +39,7 @@ Code::
   from PySide2.QtWidgets import *
   from PySide2.QtGui import *
   import pandas as pd
-  from tablexplore import data, core, plotting, interpreter
+  from tablexplore import core, plotting, interpreter
 
   class TestApp(QMainWindow):
       def __init__(self, project_file=None, csv_file=None):

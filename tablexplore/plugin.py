@@ -69,6 +69,11 @@ class Plugin(object):
         methods = [m for m in mems if not m[0].startswith('_')]
         return methods
 
+    def _update(self):
+        """Called when table is changed"""
+
+        return
+
     def _aboutWindow(self):
         """Display an about dialog"""
 

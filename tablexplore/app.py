@@ -228,10 +228,10 @@ class Application(QMainWindow):
     def updatePlugins(self):
         """Update table for a plugin if it needs it"""
 
-        for o in self.openplugins:
-            print (o)
+        for o in self.openplugins:            
             w = self.getCurrentTable()
             self.openplugins[o].table = w
+            self.openplugins[o]._update()
         return
 
     def startLogging(self):
