@@ -269,9 +269,15 @@ class PlotViewer(QWidget):
 
     def getFigureSize(self):
 
-        fig=self.fig
+        fig = self.fig
         size = fig.get_size_inches()
         return size
+
+    def canvasResize(self):
+        """Trigger resize canvas"""
+
+        self.canvas.setGeometry(QtCore.QRect(0, 0, self.width(), self.height()-30))
+        return
 
     def createOptions(self):
         """Create option attributes for plotter"""

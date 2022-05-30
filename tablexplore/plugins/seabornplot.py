@@ -39,6 +39,28 @@ colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
 styles = ['darkgrid', 'whitegrid', 'dark', 'white', 'ticks']
 kinds = ['point', 'bar', 'count', 'box', 'violin', 'strip']
 
+widgetstyle = '''
+    QWidget {
+        font-size: 12px;
+        max-width: 220px;
+    }
+    QLabel {
+        min-width: 60px;
+        width:80px;
+    }
+    QPlainTextEdit {
+        max-height: 100px;
+        min-width: 100px;
+    }
+    QComboBox {
+        combobox-popup: 0;
+        max-height: 30px;
+        max-width: 100px;
+    }
+    QListView::item:selected {
+        min-width: 300px;}
+'''
+
 class SeabornPlugin(Plugin):
     """Template plugin for TableExplore"""
 
@@ -77,8 +99,9 @@ class SeabornPlugin(Plugin):
                      'hue': {'type':'combobox','default':'','items':datacols},
                      'x': {'type':'combobox','default':'','items':datacols},
                      'y': {'type':'combobox','default':'','items':datacols},
+                     'col_wrap':{'type':'spinbox','default':0,'range':(0,10),'label':'col wrap'},
                      'ci':{'type':'spinbox','default':95,'range':(0,100)},
-                     'melt':{'type':'checkbox','default':1,'label':'long form'},
+                     #'melt':{'type':'checkbox','default':1,'label':'long form'},
                      'fontscale':{'type':'doublespinbox','default':1.2,'range':(.5,3),
                                     'interval':.1, 'label':'font scale'},
                      #'title':{'type':'entry','default':''},
@@ -88,7 +111,7 @@ class SeabornPlugin(Plugin):
                      }
 
         grps = {'formats':['kind','wrap','palette'],
-                    'factors':['x','y','hue','col','ci','melt'],
+                    'factors':['x','y','hue','col','col_wrap','ci'],
                     'labels':['fontscale']}
         self.groups = grps = OrderedDict(grps)
 
@@ -97,15 +120,17 @@ class SeabornPlugin(Plugin):
         l.setSpacing(1)
         l.setAlignment(QtCore.Qt.AlignTop)
         self.main.setLayout(l)
-        self.main.setMaximumWidth(300)
-        dialog, self.widgets = dialogs.dialogFromOptions(self.main, self.opts, self.groups,
-                            section_wrap=1)
+        self.main.setMaximumWidth(250)
+        dialog, self.widgets = dialogs.dialogFromOptions(self.main,
+                        self.opts, self.groups, section_wrap=1,
+                        style=widgetstyle)
         l.addWidget(dialog)
         bw = self.createButtons(self.main)
         l.addWidget(bw)
         return
 
     def createButtons(self, parent):
+        """Create buttons"""
 
         bw = QWidget(parent)
         bw.setMaximumWidth(200)
@@ -113,32 +138,35 @@ class SeabornPlugin(Plugin):
         button = QPushButton("Plot")
         button.clicked.connect(self.replot)
         vbox.addWidget(button)
+        button = QPushButton("Help")
+        button.clicked.connect(self.help)
+        vbox.addWidget(button)
         return bw
 
     def replot(self, event=None):
         """Update the plot"""
 
         df = self.table.getSelectedDataFrame()
-        print (df)
+        pf = self.table.pf
+        if len(df) == 0:
+            pf.showWarning('no data selected')
         kwds = dialogs.getWidgetValues(self.widgets)
 
-        pf = self.table.pf
         figsize = pf.getFigureSize()
-        height = figsize[1]
+        width,height = figsize
         plt.figure(figsize=figsize)
 
-        keep = ['hue','col','x','y','palette','kind']
+        keep = ['hue','col','x','y','palette','kind','col_wrap']
         kwargs = {i:kwds[i] for i in keep}
-        for col in ['hue','col','x','y']:
-            if kwargs[col] == '':
+        for col in ['hue','col','x','y','col_wrap']:
+            if kwargs[col] in ['',0]:
                 del kwargs[col]
         print (kwargs)
-
-        g = sns.catplot(data=df, height=height, aspect=1, **kwargs)
+        aspect = height/width
+        print (width, height, aspect)
+        g = sns.catplot(data=df, height=height, aspect=aspect, **kwargs)
         self.g = g
-        #except Exception as e:
-        #    pf.showWarning(e)
-        #    return
+
         pf.setFigure(g.fig)
         return
 
@@ -150,4 +178,11 @@ class SeabornPlugin(Plugin):
         for key in ['x','y','hue','col']:
             self.widgets[key].clear()
             self.widgets[key].addItems(datacols)
+        return
+
+    def help(self):
+
+        import webbrowser
+        url = 'https://seaborn.pydata.org/index.html'
+        webbrowser.open(url,autoraise=1)
         return
