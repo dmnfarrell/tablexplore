@@ -96,13 +96,14 @@ class SeabornPlugin(Plugin):
                      'palette': {'type':'combobox','default':'Spectral','items':colormaps},
                      'kind': {'type':'combobox','default':'bar','items':kinds},
                      'col': {'type':'combobox','default':'','items':datacols},
+                     'row': {'type':'combobox','default':'','items':datacols},
                      'hue': {'type':'combobox','default':'','items':datacols},
                      'x': {'type':'combobox','default':'','items':datacols},
                      'y': {'type':'combobox','default':'','items':datacols},
                      'col_wrap':{'type':'spinbox','default':0,'range':(0,10),'label':'col wrap'},
                      'ci':{'type':'spinbox','default':95,'range':(0,100)},
                      #'melt':{'type':'checkbox','default':1,'label':'long form'},
-                     'fontscale':{'type':'doublespinbox','default':1.2,'range':(.5,3),
+                     'fontscale':{'type':'doublespinbox','default':1.5,'range':(.5,3),
                                     'interval':.1, 'label':'font scale'},
                      #'title':{'type':'entry','default':''},
                      #'ylabel':{'type':'entry','default':''},
@@ -111,7 +112,7 @@ class SeabornPlugin(Plugin):
                      }
 
         grps = {'formats':['kind','wrap','palette'],
-                    'factors':['x','y','hue','col','col_wrap','ci'],
+                    'factors':['x','y','hue','col','row','col_wrap','ci'],
                     'labels':['fontscale']}
         self.groups = grps = OrderedDict(grps)
 
@@ -150,24 +151,30 @@ class SeabornPlugin(Plugin):
         pf = self.table.pf
         if len(df) == 0:
             pf.showWarning('no data selected')
+            return
         kwds = dialogs.getWidgetValues(self.widgets)
+        pf._initFigure()
+        #figsize = pf.getFigureSize()
+        width,height = 8,6
 
-        figsize = pf.getFigureSize()
-        width,height = figsize
-        plt.figure(figsize=figsize)
-
-        keep = ['hue','col','x','y','palette','kind','col_wrap']
+        keep = ['hue','col','row','x','y','palette','kind','col_wrap']
         kwargs = {i:kwds[i] for i in keep}
-        for col in ['hue','col','x','y','col_wrap']:
+        for col in ['hue','col','row','x','y','col_wrap']:
             if kwargs[col] in ['',0]:
                 del kwargs[col]
-        print (kwargs)
+        #print (kwargs)
         aspect = height/width
-        print (width, height, aspect)
-        g = sns.catplot(data=df, height=height, aspect=aspect, **kwargs)
+        #print (width, height, aspect)
+        sns.set(font_scale=kwds['fontscale'])
+        try:
+            g = sns.catplot(data=df, height=height, aspect=aspect, **kwargs)
+        except Exception as e:
+            pf.showWarning(e)
+            return
         self.g = g
 
         pf.setFigure(g.fig)
+        pf.canvasResize()
         return
 
     def _update(self):

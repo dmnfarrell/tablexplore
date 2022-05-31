@@ -320,7 +320,7 @@ class ColorButton(QPushButton):
         if self._color:
             self.setStyleSheet("background-color: %s;" % self._color)
         else:
-            self.setStyleSheet("")    
+            self.setStyleSheet("")
         return
 
     def color(self):
@@ -714,7 +714,8 @@ class ComboDelegate(QItemDelegate):
         self.commitData.emit(self.sender())
 
 class SimpleDialog(QDialog):
-    """Qdialog for table operations interfaces"""
+    """Qdialog for generic operations"""
+
     def __init__(self, parent, title=None):
 
         super(SimpleDialog, self).__init__(parent)
@@ -733,6 +734,31 @@ class SimpleDialog(QDialog):
                     QtCore.Qt.Horizontal,
                     self
         )
+        return
+
+class MultipleFilesDialog(QDialog):
+    def __init__(self, parent, title='Import Multiple'):
+        super(MultipleFilesDialog, self).__init__(parent)
+        self.parent = parent
+        self.setWindowTitle(title)
+        self.layout = QVBoxLayout(self)
+        self.resize(400, 100)
+        self.show()
+        self.createWidgets()
+        return
+
+    def createWidgets(self):
+
+        l=self.layout
+        button = QPushButton("Select Files")
+        button.clicked.connect(self.parent.importMultipleFiles)
+        l.addWidget(button)
+        button = QPushButton("Select a Folder")
+        button.clicked.connect(lambda: self.parent.importMultipleFiles(folders=True))
+        l.addWidget(button)
+        #self.cb = QCheckBox()
+        #l.addWidget(QLabel('Join data'))
+        #l.addWidget(self.cb)
         return
 
 class BasicDialog(QDialog):

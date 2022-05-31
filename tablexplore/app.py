@@ -228,7 +228,7 @@ class Application(QMainWindow):
     def updatePlugins(self):
         """Update table for a plugin if it needs it"""
 
-        for o in self.openplugins:            
+        for o in self.openplugins:
             w = self.getCurrentTable()
             self.openplugins[o].table = w
             self.openplugins[o]._update()
@@ -395,7 +395,7 @@ class Application(QMainWindow):
                 QtCore.Qt.CTRL + QtCore.Qt.Key_S)
         self.file_menu.addAction('&Save As', self.saveAsProject)
         self.file_menu.addAction('Import CSV file', self.importFile)
-        self.file_menu.addAction('Import Multiple', self.importMultiple)
+        self.file_menu.addAction('Batch Import', self.importMultiple)
         self.file_menu.addAction('Import Pickle file', self.importPickle)
         self.file_menu.addAction('Import HDF5', self.importHDF)
         self.file_menu.addAction('Import URL', self.importURL)
@@ -843,21 +843,59 @@ class Application(QMainWindow):
     def importMultiple(self):
         """Import many files"""
 
-        options = QFileDialog.Options()
-        filenames, _ = QFileDialog.getOpenFileNames(self,"Import Files",
+        dlg = dialogs.MultipleFilesDialog(parent=self)
+        dlg.exec_()
+        return
+
+    def importMultipleFiles(self, folders=False):
+        """Import many files"""
+
+        if folders == False:
+            options = QFileDialog.Options()
+            filenames, _ = QFileDialog.getOpenFileNames(self,"Import Files",
                              "","CSV files (*.csv);;Text Files (*.txt);;All Files (*)",
                              options=options)
+
+        else:
+            #get folder and recursively find files
+            import glob
+            path = QFileDialog.getExistingDirectory(self,'Select Folder')
+            filenames = glob.glob(path + '/**/*.csv', recursive=True)
+
         if not filenames:
             return
+        num_files = len(filenames)
+        concat=False
+        reply = QMessageBox.question(self, 'Join Tables?',
+                                 '%s files to be imported. '
+                                 'Do you wish to join them in one table?' %num_files,
+                                  QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            concat = True
 
-        for f in filenames:
-            name = os.path.splitext(os.path.basename(f))[0]
-            if name in self.sheets:
-                name+='_1'
-            self.addSheet(name)
+        tables = []
+        if concat == False:
+            for f in filenames:
+                lbl = os.path.splitext(os.path.basename(f))[0]
+                name = lbl
+                i=1
+                while name in self.sheets:
+                    name=lbl+'_%s' %i
+                    i+=1
+                    self.addSheet(name)
+                    w = self.getCurrentTable()
+                    w.importFile(f, dialog=False)
+                    QApplication.processEvents()
+        elif concat == True:
+            tables = []
+            for f in filenames:
+                df = pd.read_csv(f)
+                tables.append(df)
+            final = pd.concat(tables)
+            self.addSheet('imported')
             w = self.getCurrentTable()
-            w.importFile(f, dialog=False)
-
+            w.table.model.df = final
+            w.refresh()
         return
 
     def importExcel(self, filename=None):

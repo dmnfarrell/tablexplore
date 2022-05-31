@@ -124,10 +124,10 @@ class ColormapsPlugin(Plugin):
 
     def showColorMaps(self):
         """Show sample colormaps"""
-        
+
         cmaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
         pf = self.table.pf
-        n=20
+        n=10
         figsize = pf.getFigureSize()
 
         fig,ax=plt.subplots(n,1,figsize=figsize)

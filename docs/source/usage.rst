@@ -42,6 +42,11 @@ Import text files
 
 Import of csv and general plain text formats is done from the file menu, toolbar or by right-clicking anywhere in the table and using the context menu. The dialog has most basic options such as delimiter, header selection, comment symbol, rows to skip etc. When you change the import option you can update the preview to see if the new table will look correct. You then press import. Note that it is generally a good idea to remove empty lines and bad data if you can before importing.
 
+Import multiple files
+---------------------
+
+You can bulk import files using the File->Batch Import option. This allows you to choose a selection of files or to choose a folder and all the csv files inside will be recursively selected. If the files represent the same data structure they can be joined together into one table.
+
 Saving your work
 ----------------
 
@@ -193,14 +198,37 @@ Application settings are set from the Edit->Preferences menu. The image below sh
 
 .. image:: preferences.png
 
+The terminal
+------------
+
+For those familiar with Python and pandas a basic terminal is included, accessible from the toolbar. This will appear below the table. You can then run any Python command via the intepreter. The current table data is initially assigned to the `df` variable and the table can be accessed from the `table` variable. For example to add a column you would do the following::
+
+  df['a'] = 3
+  table.refresh()
+
+Working example is shown here:
+
+.. image:: terminal.gif
+
 Plugins
 -------
 
 Plugins can be added by anyone (see code examples on how to do this). Currently there are are only a few useful built-in plugins. New ones will be added below. To add a third party plugin (just a .py file), place it in the plugin folder under <home dir>/.config/tablexplore. For security, you shouldn't just download and run any .py file without trusting it first.
 
-Colormap plugin
-+++++++++++++++
+Colormap tool
++++++++++++++
 
 This allows you to add your own colormaps for plotting. The screen grab below shows you. You can generate random colors, then edit them. When done choose the type of colormap and then save. Pick a name and this is stored and added to the list of of colormaps in the plot options. You have to restart the program to see it. (Colormaps are kept under .config/tablexplore/cmaps.pkl which can be deleted if you want to clear them.)
 
 .. image:: colormaps.gif
+
+Seaborn plugin
+++++++++++++++
+
+Seaborn is a statistical plotting package for Python. This plugin lets you use it as an alternative to the regular plotting tools. Note that you need to have installed tablexplore using pip for this to work  and it is not currently part of the standalone windows application or the snap. The plugin has a set of drop down menus mostly for selecting which column in your table you want to be plotted in which dimension. These won't all be intuitive unless you have used seaborn.
+
+It is assumed that your data is in 'long form' or 'tidy' format.
+
+Typical usage is shown below:
+
+.. image:: seaborn.gif

@@ -163,6 +163,9 @@ class PlotViewer(QWidget):
         #a = QAction(QIcon(iconfile), "Customise Series", self)
         #a.triggered.connect(self.customiseSeries)
         #self.toolbar.addAction(a)
+        #a = QAction("Adjust Canvas", self)
+        #a.triggered.connect(self.canvasResize)
+        #self.toolbar.addAction(a)
         iconfile = os.path.join(iconpath,'reduce.png')
         a = QAction(QIcon(iconfile), "Reduce elements",  self)
         a.triggered.connect(lambda: self.zoom(zoomin=False))
@@ -273,10 +276,11 @@ class PlotViewer(QWidget):
         size = fig.get_size_inches()
         return size
 
-    def canvasResize(self):
+    def canvasResize(self, pad=50):
         """Trigger resize canvas"""
 
-        self.canvas.setGeometry(QtCore.QRect(0, 0, self.width(), self.height()-30))
+        self.canvas.setGeometry(QtCore.QRect(0, pad, self.width(), self.height()-pad))
+        self.canvas.updateGeometry()
         return
 
     def createOptions(self):
