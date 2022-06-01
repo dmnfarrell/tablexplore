@@ -191,6 +191,11 @@ Plotting grouped data
 
 Rather than grouping the table directly and then plotting, it is also possible to plot data grouped. This requires you select the appropriate columns including the one to be grouped by and select the grouping column in the 'groupby' menu in the plot options. Plots can be grouped by 1-2 columns at once.
 
+Scratchpad
+----------
+
+The scratchpad is used to store plots as you go along, that can be viewed and saved later. It's also used for tables in text. It can be useful for resizing plots before saving for example. The plots stored here are saved with your project so can be retrieved at any time.
+
 Setting preferences
 -------------------
 

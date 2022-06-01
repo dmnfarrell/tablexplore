@@ -93,7 +93,7 @@ class SeabornPlugin(Plugin):
         df = self.table.table.model.df
         datacols = ['']+list(df.columns)
         self.opts = {'wrap': {'type':'entry','default':2,'label':'column wrap'},
-                     'palette': {'type':'combobox','default':'Spectral','items':colormaps},
+                     'palette': {'type':'combobox','default':'Set1','items':colormaps},
                      'kind': {'type':'combobox','default':'bar','items':kinds},
                      'col': {'type':'combobox','default':'','items':datacols},
                      'row': {'type':'combobox','default':'','items':datacols},
@@ -102,13 +102,9 @@ class SeabornPlugin(Plugin):
                      'y': {'type':'combobox','default':'','items':datacols},
                      'col_wrap':{'type':'spinbox','default':0,'range':(0,10),'label':'col wrap'},
                      'ci':{'type':'spinbox','default':95,'range':(0,100)},
-                     #'melt':{'type':'checkbox','default':1,'label':'long form'},
                      'fontscale':{'type':'doublespinbox','default':1.5,'range':(.5,3),
-                                    'interval':.1, 'label':'font scale'},
-                     #'title':{'type':'entry','default':''},
-                     #'ylabel':{'type':'entry','default':''},
+                                    'interval':.1, 'label':'font scale'}
                      #'logy':{'type':'checkbox','default':0,'label':'log y'},
-                     #'aspect':{'type':'doublespinbox','default':1.0, 'range':(-4,4)},
                      }
 
         grps = {'formats':['kind','wrap','palette'],
