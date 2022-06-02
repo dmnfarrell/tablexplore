@@ -83,9 +83,14 @@ The following string methods are supported:
 * title, convert to TitleCase
 * swap case
 * get length of string
-* concat, concatenate strings in first two cols with given separator
+* concatenate strings in multiple columns
 * slice, slice string by start/end indexes
 * replace
+
+Date/Time conversion
+--------------------
+
+Also by right clicking on a column you can convert it to `datetime` which is the internal format used to store dates and is useful for plotting time series. Normally the program can infer the dates but you can select the format.
 
 Summarizing and grouping data
 -----------------------------

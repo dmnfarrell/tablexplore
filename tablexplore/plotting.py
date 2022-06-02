@@ -1074,7 +1074,8 @@ class PlotViewer(QWidget):
                                     xytext=(5, 5), textcoords='offset points',)
 
         if kwds['legend'] == 1 and axes_layout == 'single':
-            ax.legend(cols[1:])
+            leg = ax.legend(cols[1:])
+            #leg.set_draggable(state=True)
 
         return ax, handles
 

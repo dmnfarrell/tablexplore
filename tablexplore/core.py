@@ -979,13 +979,15 @@ class DataFrameWidget(QWidget):
         """Apply string operation to column(s)"""
 
         df = self.table.model.df
-        #cols = self.getSelectedColumns()
+        idx = self.table.getSelectedColumns()
+        cols = df.columns[idx]
         col = column
         funcs = ['','split','strip','lstrip','lower','upper','title','swapcase','len',
                  'slice','replace','concat']
         opts = {'function':  {'type':'combobox','default':'',
                             'items':funcs,'label':'Function'},
                 'sep':  {'type':'entry','default':',', 'label':'Split separator'},
+                'concat_sep':  {'type':'entry','default':'', 'label':'Concat separator'},
                 'start':  {'type':'entry','default':0, 'label':'Slice start'},
                 'end':  {'type':'entry','default':1, 'label':'Slice end'},
                 'pat':  {'type':'entry','default':'', 'label':'Pattern'},
@@ -1006,6 +1008,7 @@ class DataFrameWidget(QWidget):
         pat = kwds['pat']
         repl = kwds['repl']
         inplace = kwds['inplace']
+        concatsep = kwds['concat_sep']
         x = None
 
         if func == 'split':
@@ -1033,7 +1036,8 @@ class DataFrameWidget(QWidget):
         elif func == 'replace':
             x = df[col].replace(pat, repl, regex=True)
         elif func == 'concat':
-            x = df[col].str.cat(df[cols[1]].astype(str), sep=sep)
+            #x = df[col].str.cat(df[cols[1]].astype(str), sep=sep)
+            x = df[cols].astype(str).apply(lambda row: concatsep.join(row.values.astype(str)), axis=1)
         if inplace == 0:
             newcol = col+'_'+func
         else:
