@@ -37,7 +37,7 @@ cmapsfile = core.cmapsfile
 
 colormaps = sorted(m for m in plt.cm.datad if not m.endswith("_r"))
 styles = ['darkgrid', 'whitegrid', 'dark', 'white', 'ticks']
-kinds = ['point', 'bar', 'count', 'box', 'violin', 'strip']
+kinds = ['point', 'bar', 'count', 'box', 'boxen', 'violin', 'strip', 'swarm', 'line']
 
 widgetstyle = '''
     QWidget {
@@ -92,8 +92,7 @@ class SeabornPlugin(Plugin):
 
         df = self.table.table.model.df
         datacols = ['']+list(df.columns)
-        self.opts = {'wrap': {'type':'entry','default':2,'label':'column wrap'},
-                     'palette': {'type':'combobox','default':'Set1','items':colormaps},
+        self.opts = {'palette': {'type':'combobox','default':'Set1','items':colormaps},
                      'kind': {'type':'combobox','default':'bar','items':kinds},
                      'col': {'type':'combobox','default':'','items':datacols},
                      'row': {'type':'combobox','default':'','items':datacols},
@@ -107,7 +106,7 @@ class SeabornPlugin(Plugin):
                      #'logy':{'type':'checkbox','default':0,'label':'log y'},
                      }
 
-        grps = {'formats':['kind','wrap','palette'],
+        grps = {'formats':['kind','palette'],
                     'factors':['x','y','hue','col','row','col_wrap','ci'],
                     'labels':['fontscale']}
         self.groups = grps = OrderedDict(grps)
@@ -150,20 +149,25 @@ class SeabornPlugin(Plugin):
             return
         kwds = dialogs.getWidgetValues(self.widgets)
         pf._initFigure()
-        #figsize = pf.getFigureSize()
         width,height = 8,6
-
+        #print (kwds)
+        kind = kwds['kind']
         keep = ['hue','col','row','x','y','palette','kind','col_wrap']
         kwargs = {i:kwds[i] for i in keep}
         for col in ['hue','col','row','x','y','col_wrap']:
             if kwargs[col] in ['',0]:
                 del kwargs[col]
         #print (kwargs)
-        aspect = height/width
-        #print (width, height, aspect)
+        aspect = height/width        
         sns.set(font_scale=kwds['fontscale'])
         try:
-            g = sns.catplot(data=df, height=height, aspect=aspect, **kwargs)
+            if kind == 'line':
+                del kwargs['kind']
+                sns.lineplot(data=df, ax=pf.ax, **kwargs)
+                pf.canvas.draw()
+                return
+            else:
+                g = sns.catplot(data=df, height=height, aspect=aspect, **kwargs)
         except Exception as e:
             pf.showWarning(e)
             return
