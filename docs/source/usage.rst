@@ -40,7 +40,7 @@ Launching tablexplore from the command line allows you to provide several option
 Import text files
 -----------------
 
-Import of csv and general plain text formats is done from the file menu, toolbar or by right-clicking anywhere in the table and using the context menu. The dialog has most basic options such as delimiter, header selection, comment symbol, rows to skip etc. When you change the import option you can update the preview to see if the new table will look correct. You then press import. Note that it is generally a good idea to remove empty lines and bad data if you can before importing.
+Import of csv and general plain text formats is done from the file menu, toolbar or by right-clicking anywhere in the table and using the context menu. The dialog has most basic options such as delimiter, header selection, comment symbol, rows to skip etc. When you change the import option you can update the preview to see if the new table will look correct. You then press import. Note that it is generally a good idea to remove empty lines and bad data if you can before importing. The table at the bottom of the import dialog contains the column data types (dtype) of each column. You can set this manually if you want to make sure a column is imported correctly. For example, numbers with leading zeroes will have this removed by default as the column is set to int. manually setting dtype to object avoids this.
 
 Import multiple files
 ---------------------
@@ -211,10 +211,12 @@ Application settings are set from the Edit->Preferences menu. The image below sh
 The terminal
 ------------
 
-For those familiar with Python and pandas a basic terminal is included, accessible from the toolbar. This will appear below the table. You can then run any Python command via the intepreter. The current table data is initially assigned to the `df` variable and the table can be accessed from the `table` variable. For example to add a column you would do the following::
+For those familiar with Python and pandas a basic terminal is included, accessible from the toolbar. This will appear below the table. You can then run any Python command via the intepreter. The current table data is initially assigned to the `df` variable and the table can be accessed from the `table` variable. For example to add a column called 'new' you would do the following::
 
-  df['a'] = 3
+  df['new'] = 3
   table.refresh()
+
+Any pandas operation can be performed. You need to call ``table.refresh()`` to update the table after making changes to the underlying dataframe.
 
 Working example is shown here:
 
