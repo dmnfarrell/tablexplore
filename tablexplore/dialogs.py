@@ -1833,6 +1833,7 @@ class FilterBar(QWidget):
         w.addItems(booleanops)
         l.addWidget(self.boolean_w)
         w = self.column_w = QComboBox()
+        w.setMaximumWidth(300)
         w.addItems(cols)
         #l.addWidget(QLabel('Column:'))
         l.addWidget(self.column_w)

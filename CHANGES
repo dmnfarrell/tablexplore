@@ -4,6 +4,8 @@
 
 * multiple import allows recursive folders
 * seaborn plugin
+* fix to show plotter
+* apply column functions - can apply with other columns
 
 -----
 0.5.1

@@ -666,10 +666,12 @@ class DataFrameWidget(QWidget):
         else:
             funcs = singlefuncs
         types = ['float','int']
+        allcols = ['']+list(df.columns)
         opts = {'funcname':  {'type':'combobox','default':'int','items':funcs,'label':'Function'},
-                'scalar': {'type':'entry','default':1,'label':'Argument'},
-                'newcol':  {'type':'entry','default':'','items':funcs,'label':'New column name'},
-                'inplace':  {'type':'checkbox','default':False,'label':'Update in place'},
+                'scalar': {'type':'entry','default':1,'label':'Scalar Argument'},
+                'column': {'type':'combobox','default':'','items':allcols,'label':'Column Argument'},
+                'inplace':  {'type':'checkbox','default':True,'label':'Update in place'},
+                'newcol':  {'type':'entry','default':'','items':funcs,'label':'New column name'},                
                 'suffix':  {'type':'entry','default':'_x','items':funcs,'label':'Suffix'},
                 'group': {'type':'combobox','default':'','items':tablecols,'label':'Apply per Group'},
                }
@@ -679,7 +681,11 @@ class DataFrameWidget(QWidget):
             return
         kwds = dlg.values
         funcname = kwds['funcname']
-        arg = kwds['scalar']
+        if kwds['column'] != '':
+            c = kwds['column']
+            arg = df[c]          
+        else:
+            arg = float(kwds['scalar'])
         newcol = kwds['newcol']
         inplace = kwds['inplace']
         suffix = kwds['suffix']
@@ -700,15 +706,15 @@ class DataFrameWidget(QWidget):
             newcol = funcname + s
 
         if funcname == 'divide':
-            result = df[cols] / float(arg)
-        elif funcname == 'multiply':
-            result = df[cols] * float(arg)
+            result = df[cols].div(arg, axis=0)
+        elif funcname == 'multiply':        
+            result = df[cols].mul(arg, axis=0)
         elif funcname == 'mod':
-            result = df[cols] % float(arg)
+            result = df[cols].mod(arg, axis=0)
         elif funcname == 'add':
-            result = df[cols] + float(arg)
+            result = df[cols].add(arg, axis=0)
         elif funcname == 'power':
-            result = df[cols]**float(arg)
+            result = df[cols].pow(arg, axis=0)
         elif len(cols) >= 2:
             result = df[cols].apply(func, 1)
         else:
@@ -719,11 +725,13 @@ class DataFrameWidget(QWidget):
             else:
                 result = df[col].apply(func, 1)
 
-        if inplace == True or funcname in ['divide','mulitply','mod','add','power']:
+        if funcname in ['divide','multiply','mod','add','power']:
             df[cols] = result
-        else:
+        elif funcname in multifuncs or inplace == False:
             idx = df.columns.get_loc(col)
             df.insert(idx+1, newcol, result)
+        else:
+            df[cols] = result
         self.refresh()
         return
 

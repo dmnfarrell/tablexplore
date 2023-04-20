@@ -347,11 +347,11 @@ class Application(QMainWindow):
         items = {'new project': {'action': lambda: self.newProject(ask=True),'file':'project-new'},
                  'open': {'action':self.openProject,'file':'document-open'},
                  'save': {'action': lambda: self.saveProject(None),'file':'save'},
+                 'add sheet': {'action': lambda: self.addSheet(name=None),'file':'add'},
                  'zoom out': {'action':self.zoomOut,'file':'zoom-out'},
                  'zoom in': {'action':self.zoomIn,'file':'zoom-in'},
                  'decrease columns': {'action': lambda: self.changeColumnWidths(.9),'file':'decrease-width'},
-                 'increase columns': {'action': lambda: self.changeColumnWidths(1.1),'file':'increase-width'},
-                 'add sheet': {'action': lambda: self.addSheet(name=None),'file':'add'},
+                 'increase columns': {'action': lambda: self.changeColumnWidths(1.1),'file':'increase-width'},                 
                  'add column': {'action': lambda: self._call('addColumn'),'file':'add-column'},
                  'add row': {'action': lambda: self._call('addRows'),'file':'add-row'},
                  'clean data': {'action':lambda: self._call('cleanData'),'file':'clean'},
@@ -976,11 +976,10 @@ class Application(QMainWindow):
         #reload attributes of table and plotter if present
         if meta != None:
             self.loadMeta(dfw, meta)
-            if core.SHOWPLOTTER == False:
-                pf.hide()
             if 'showplotter' in meta and meta['showplotter'] == False:
                 pf.hide()
-
+        if core.SHOWPLOTTER == False:
+            pf.hide()
         self.updatePlotWidgets(dfw)
         self.updatePlugins()
         self.tabs.setCurrentIndex(idx)
