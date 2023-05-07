@@ -518,12 +518,13 @@ class ImportDialog(QDialog):
         delimiters = [',',r'\t',' ','\s+',';','/','&','|','^','+','-']
         encodings = ['utf-8','ascii','latin-1','iso8859_15','cp037','cp1252','big5','euc_jp',
                      'koi8_r','mac_latin2','utf_32']
+        engines = ['python','c','pyarrow']
         timeformats = ['infer','%d/%m/%Y','%Y/%m/%d','%Y/%d/%m',
                         '%Y-%m-%d %H:%M:%S','%Y-%m-%d %H:%M',
                         '%d-%m-%Y %H:%M:%S','%d-%m-%Y %H:%M']
         grps = {'formats':['sep','decimal','comment'],
                 'data':['skiprows','skipinitialspace',
-                        'skip_blank_lines','parse_dates','encoding','time format'],
+                        'skip_blank_lines','parse_dates','encoding','engine','time format'],
                 'other':['rowsperfile']}
         grps = OrderedDict(sorted(grps.items()))
         opts = self.opts = {'sep':{'type':'combobox','default':',','editable':True,
@@ -546,10 +547,10 @@ class ImportDialog(QDialog):
                                 'tooltip':'date/time format'},
                      'encoding':{'type':'combobox','default':'utf-8','items':encodings,
                                 'tooltip':'file encoding'},
-                     #'prefix':{'type':'entry','default':None,'label':'prefix',
-                     #           'tooltip':''}
+                     'engine':{'type':'combobox','default':'python','items':engines,
+                                'tooltip':'import engine'},
                      'rowsperfile':{'type':'spinbox','default':0,'label':'rows per file',
-                                'tooltip':'rows to read'}
+                                'tooltip':'rows to read'},
                      }
 
         optsframe, self.widgets = dialogFromOptions(self, opts, grps, wrap=1, section_wrap=1)
